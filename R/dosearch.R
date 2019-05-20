@@ -11,12 +11,12 @@ dosearch <- function(
     if ( !is.character(graph) ) stop("Invalid graph.")
 
     if ( !is.null(transportability) || !is.null(selection_bias) || !is.null(missing_data) ) {
-        return(get_derivation_dag(match.call()))
+        return(get_derivation_dag(data, query, graph, transportability, selection_bias, missing_data, control))
     }
     if ( grepl(":", graph[1]) ) {
-        return(get_derivation_ldag(match.call()))
+        return(get_derivation_ldag(data, query, graph, control))
     }
-    return(get_derivation_dag(match.call()))
+    return(get_derivation_dag(data, query, graph, transportability, selection_bias, missing_data, control))
 }
 
 get_derivation <- dosearch

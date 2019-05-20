@@ -44,7 +44,6 @@ Rcpp::List initialize_dosearch(
     const std::vector<int>& rules,
     const bool& draw_derivation,
     const bool& draw_all,
-    const bool& derive_all,
     const bool& formula,
     const bool& heuristic,
     const char& md_sym,
@@ -53,7 +52,6 @@ Rcpp::List initialize_dosearch(
     dcongraph* g = new dcongraph(n);
     g->add_ivars();
     g->initialize_datanodes();
-    derivation* d;
 
     // Add directed edges
     for ( unsigned i = 0; i < dir_rhs.size(); i++ ) {
@@ -68,6 +66,8 @@ Rcpp::List initialize_dosearch(
     if ( sb > 0 ) g->set_sbnodes(sb);
     if ( md_s > 0 ) g->set_md_switches(md_s);
     if ( md_p > 0 ) g->set_md_proxies(md_p);
+
+    derivation* d = new derivation();
 
     dosearch *s;
     if ( heuristic ) s = new dosearch_heuristic(n, draw_derivation, draw_all, formula, verbose);

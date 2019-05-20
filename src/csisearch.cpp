@@ -372,7 +372,7 @@ bool csisearch::valid_rule(const int& ruleid, const int& a, const int& b, const 
     return true;
 }
 
-void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const int &c, const int &d, const int &z, const int &z_ind) {
+void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const int &c, const int &d, const int &z) {
     info.valid = false;
 
     switch ( ruleid ) {

@@ -55,7 +55,7 @@ Rcpp::List initialize_csisearch(
     }
     g->set_contexts(con_vars, intv_vars);
 
-    derivation* d;
+    derivation* d = new derivation();
 
     csisearch *s;
     if ( heuristic ) s = new csisearch_heuristic(n, draw_derivation, draw_all, formula, verbose);

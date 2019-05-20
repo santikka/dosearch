@@ -8,8 +8,8 @@
 #include <chrono>
 #include <stack>
 #include <Rcpp.h>
-#include <derivation.h>
-#include <set.h>
+#include "set.h"
+#include "derivation.h"
 
 using namespace std;
 
