@@ -1,6 +1,5 @@
 \name{dosearch-package}
 \alias{dosearch-package}
-\alias{dosearch}
 \docType{package}
 \title{Causal Effect Identification from Multiple Incomplete Data Sources}
 

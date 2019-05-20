@@ -4,7 +4,7 @@
 \title{Identify a causal effect from arbitrary experiments and observations}
 \description{Identify a causal \code{query} from available \code{data} in a causal model described by a \code{graph} that is a semi-Markovian DAG or a labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related to transportability of causal effects, recoverability from selection bias and identifiability under missing data can also be included in the model. }
 
-\usage{get_derivation(data, query, graph, transportability = NULL, selection_bias = NULL,
+\usage{dosearch(data, query, graph, transportability = NULL, selection_bias = NULL,
   missing_data = NULL, control = list())}
 
 \arguments{
@@ -38,7 +38,7 @@ should be given as follows:
 
 The use of multiple do-operators is not permitted. Furthermore, when both conditioning variables and a do-operator are present, every conditioning variable must either precede the do-operator or follow it. When \code{graph} is an LDAG, the do-operation is represented by an intervention node, i.e.,
 
-\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}}
+\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}
 
 \code{query} is the target distribution of the search. It has the same syntax as \code{data}, but only a single distribution should be given.
 
