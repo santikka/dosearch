@@ -1,0 +1,3 @@
+useDynLib(dosearch, .registration=TRUE)
+export(dosearch, get_derivation)
+importFrom(Rcpp, evalCpp)

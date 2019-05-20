@@ -1,0 +1,1621 @@
+%\VignetteIndexEntry{Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-based Approach}
+%\VignetteAuthor{Santtu Tikka, Antti Hyttinen, Juha Karvanen}
+%\VignetteKeyword{R}
+%\VignetteKeyword{package}
+%\VignetteTangle{no}
+%\VignetteEngine{R.rsp::tex}
+\documentclass[a4paper,11pt,oneside]{article}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\usepackage{csquotes}
+%\usepackage{framed}
+\usepackage{url}
+\usepackage{amssymb,amsmath}
+\usepackage[table]{xcolor}
+\usepackage[round]{natbib}
+%for plotting the graphs
+\usepackage[all]{xy}
+
+\usepackage{float}
+\floatstyle{ruled} % plain, boxed, or ruled
+
+% JMLR requirements for figure/table captions
+\usepackage{caption}
+\captionsetup[table]{%
+    position=below,
+    singlelinecheck=true,
+    format=hang
+}
+\captionsetup[figure]{%
+    position=below,
+    singlelinecheck=true,
+    format=hang
+}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+%other packages
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{float}
+\usepackage{accents}
+%\floatstyle{ruled} % plain, boxed, or ruled
+
+%\newfloat{program}{thp}{lop}
+%\floatname{program}{Algorithm}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage[noend]{algpseudocode}
+
+%\captionsetup[algorithm]{format=hang,singlelinecheck=false}
+\newcommand*\Let[2]{\State #1 $\gets$ #2}
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\INPUT{\item[\algorithmicinput]}
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\OUTPUT{\item[\algorithmicoutput]}
+
+
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+\tikzset{%
+  dot/.style n args = {4}{name=#3, circle, draw, inner sep=1pt, minimum size=5pt, fill=black, label={[shift={(#1,#2)}]#4:$#3$}},
+  lat/.style n args = {4}{name=#3, circle, draw, inner sep=1pt, minimum size=5pt, label={[shift={(#1,#2)}]#4:$#3$}},
+  sb/.style n args = {4}{name=#3, circle, draw, inner sep=1pt, minimum size=7pt, label={[shift={(#1,#2)}]#4:$#3$}},
+  dot5/.style n args = {5}{name=#3, circle, draw, inner sep=1pt, minimum size=5pt, fill=black, label={[shift={(#1,#2)}]#4:$#5$}},
+  lat5/.style n args = {5}{name=#3, circle, draw, inner sep=1pt, minimum size=5pt, label={[shift={(#1,#2)}]#4:$#5$}},
+  sq/.style n args = {4}{name=#3, rectangle, draw, inner sep=1pt, minimum size=5pt, fill=black, label={[shift={(#1,#2)}]#4:$#3$}},
+  tr/.style n args = {4}{name=#3, regular polygon,regular polygon sides=4, draw, inner sep=1pt, minimum size=6pt, fill=gray, label={[shift={(#1,#2)}]#4:$#3$}},
+  bordered/.style = {draw,outer sep=1, inner sep=2, minimum size=5pt},
+  >={Latex[width=1.5mm,length=2mm]},
+  every picture/.style={semithick}
+}
+
+
+%commands
+\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+%\newtheorem{assumption}{Assumption}
+\newtheorem{lemma}{Lemma}
+
+\definecolor{violet}{rgb}{0.7,0,0.7}
+\definecolor{gray}{rgb}{0.4,0.4,0.4}
+
+\newcommand{\+}[1]{\ensuremath{\mathbf{#1}}}
+
+\newcommand{\acomment}[1]{{{\color{blue} [A: #1]}}}
+\newcommand{\jcomment}[1]{{{\color{violet} [J: #1]}}}
+\newcommand{\scomment}[1]{{{\color{red} [S: #1]}}}
+\newcommand{\comment}[1]{{{\color{magenta} [#1]}}}
+%\newcommand{\mcomment}[1]{{{\color{brown} [M: #1]}}}
+
+\newcommand{\given}{{ \, | \, }}
+\newcommand{\doublebar}{{ \, || \, }}
+\newcommand{\sbullet}{{\scalebox{0.75}{$\bullet$}}}
+
+
+\newcommand{\A}{{\bf A}}
+\newcommand{\B}{{\bf B}}
+\newcommand{\bb}{{\bf b}}
+\newcommand{\C}{{\bf C}}
+\newcommand{\cvec}{{\bf c}}
+\newcommand{\D}{{\bf D}}
+\newcommand{\E}{{\bf E}}
+\newcommand{\e}{{\bf e}}
+\newcommand{\F}{\bf{F}}
+\newcommand{\bH}{{\bf H}}
+\newcommand{\bh}{{\bf h}}
+\newcommand{\I}{{\bf I}}
+\newcommand{\J}{{\bf J}}
+\newcommand{\K}{{\bf K}}
+\newcommand{\kvec}{{\bf k}}
+\newcommand{\LL}{{\bf L}}
+\newcommand{\m}{{\bf m}}
+\newcommand{\R}{{\bf R}}
+\newcommand{\T}{{\bf T}}
+\newcommand{\bt}{{\bf t}}
+%\newcommand{\tvec}{\bf{t}}
+%\renewcommand{\t}{\bf{t}}
+\newcommand{\U}{{\bf U}}
+\newcommand{\V}{{\bf{V}}}
+\newcommand{\W}{{\bf{W}}}
+\newcommand{\w}{{\bf{w}}}
+\newcommand{\X}{{\bf{X}}}
+\newcommand{\x}{{\bf {x}}}
+\newcommand{\Y}{{\bf{Y}}}
+\newcommand{\Z}{{\bf{Z}}}
+
+\newcommand{\Pa}{\textrm{Pa}}
+\newcommand{\Ch}{\textrm{Ch}}
+\newcommand{\An}{\textrm{An}}
+\newcommand{\De}{\textrm{De}}
+\newcommand{\NA}{\textrm{NA}}
+
+\newcommand\thickbar[1]{\accentset{\rule{.4em}{.8pt}}{#1}}
+\newcommand\widebar[1]{\accentset{\rule{.8em}{.8pt}}{#1}}
+\newcommand\thickubar[1]{\underaccent{\,\rule{.35em}{.8pt}}{#1}}
+
+\newcommand{\0}{\bf{0}}
+
+
+\newcommand{\Se}{{\bf \Sigma}_{\e}}
+\newcommand{\Sx}{{\bf \Sigma}_{\x}}
+\newcommand{\Sc}{{\bf \Sigma}_{\cvec}}
+\newcommand{\hSe}{\tilde{\bf \Sigma}_{\e}}
+\newcommand{\hSx}{\tilde{\bf \Sigma}_{\x}}
+\newcommand{\hB}{\tilde{\bf B}}
+
+
+
+\newcommand{\sV}{\mathcal{V}}
+\newcommand{\sJ}{\mathcal{J}}
+\newcommand{\sU}{\mathcal{U}}
+\newcommand{\sL}{\mathcal{L}}
+\newcommand{\sM}{\mathcal{M}}
+\newcommand{\sG}{\mathcal{G}}
+\newcommand{\sE}{\mathcal{E}}
+\newcommand{\sD}{\mathcal{D}}
+\newcommand{\sI}{\mathcal{I}}
+\newcommand{\sS}{\mathcal{S}}
+\newcommand{\sF}{\mathcal{F}}
+\newcommand{\sA}{\mathcal{A}}
+\newcommand{\sB}{\mathcal{B}}
+\newcommand{\sC}{\mathcal{C}}
+\newcommand{\sX}{\mathcal{X}}
+\newcommand{\sY}{\mathcal{Y}}
+\newcommand{\sP}{\mathcal{P}}
+
+\newcommand{\SAT}{\mathrm{SAT}}
+
+
+\newcommand{\knew}{ {k^{\mathrm{new}}} }
+\newcommand{\kold}{ {k^{\mathrm{old}}} }
+\newcommand{\sIold}{\sI^{\mathrm{old}} }
+\newcommand{\sInew}{\sI^{\mathrm{new}} }
+
+
+\renewcommand{\vec}{\mathrm{vec}}
+\newcommand{\cov}{{\mbox{cov}}}
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\cG}{{\cal G}}
+\newcommand{\rsa}{{\rightsquigarrow}}
+%\newcommand{\lsa}{{\leftsquigarrow}}
+%\newcommand{\lsa}{{ \rotatebox[origin=c]{180}{\rightsquigarrow}}}
+ \newcommand{\lsa}{{ \reflectbox{$\rightsquigarrow$}}}
+\newcommand{\lrsa}{{\leftrightsquigarrow}}
+% \newcommand{\sa}{{-}}
+\newcommand{\longra}{{\longrightarrow}}
+%\newcommand{\lsa}{{ \rotatebox[origin=c]{180}{\rightsquigarrow}}}
+\newcommand{\longla}{{\longleftarrow}}
+\newcommand{\longlra}{{\longleftrightarrow}}
+\newcommand{\sa}{{\text{---}}}
+\newcommand{\ra}{\rightarrow}
+\newcommand{\la}{\leftarrow}
+\newcommand{\lra}{\leftrightarrow}
+
+\newcommand{\tap}{\overset{\rsa}{p}}
+\newcommand{\aap}{\overset{\lrsa}{q}}
+\newcommand{\ttp}{\overset{\sa}{r}}
+
+\newcommand{\dsep}{\independent_{\hspace{-1mm}G}}
+\newcommand{\csisep}{\independent_{\hspace{-1mm}G(c)}}
+%\newcommand{\csisepi}#1{\independent_{\hspace{-1mm}G({#1})}}
+
+\newcommand{\dcon}{\not\dsep}
+
+
+
+
+
+
+
+\newcommand{\ok}{\color{green}{\boldsymbol{\checkmark}}}
+\newcommand{\notok}{\color{red}{\boldsymbol{\times}}}
+
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}} 
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+\newcommand{\nindep}{{\hspace{1mm}\backslash \hspace{-3.5mm} \independent}}
+
+%% Some shortcuts/commands added by Juha
+\newcommand{\eref}[1]{(\ref{#1})}
+\newcommand{\doo}{\textrm{do}}
+
+%% WORKS:
+%\newcommand{\mybigvee[1]}{{\mbox{\scriptsize $\displaystyle \bigvee_{\raisebox{-2mm}{\scriptsize ${#1}$}}$}}}
+
+%% In development:
+\newcommand{\mybigvee[1]}{{\raisebox{0.5mm}{\scriptsize $\displaystyle \bigvee_{\raisebox{-1mm}{\scriptsize ${#1}$}}$}}}
+
+\newcommand{\pa}{{\mathrm{Pa}}}
+\newcommand{\conf}{{\mathrm{Conf}}}
+
+
+%%%% Margins
+\renewcommand{\topfraction}{0.95}   % let figure take up nearly whole page
+\renewcommand{\textfraction}{0.05}  % let figure take up nearly whole page
+
+% Specify the dimensions of each page
+
+\oddsidemargin .25in
+\evensidemargin .25in
+\marginparwidth 0.07 true in
+\topmargin -0.5in
+\addtolength{\headsep}{0.25in}
+\textheight 8.5 true in
+\textwidth 6.0 true in
+\widowpenalty=10000
+\clubpenalty=10000
+%\@twosidetrue \@mparswitchtrue \def\ds@draft{\overfullrule 5pt}
+
+
+% Do-search -- a general purpose algorithm for causal effect identification from multiple incomplete data sources
+%\title{Nonparametric Causal Effect Identification\\ from Arbitrary Experiments and Observations}
+%\title{A General Search Based Approach for\\ Nonparametric Causal Effect Identification}
+%\title{A General Search Algorithm for Causal Effect Identification from Multiple Incomplete Data Sources}
+
+%OK, ALTHOUGH YOUR MULTIPLE IS AS REDUNTANT AS RULE 1 OF DO-CALC ;)
+%Search Algorithm on huono search tai approach
+%Multiple Source Distributions
+%
+
+%\jmlrheading{20}{2019}{1-32}{1/19}{00/00}{tikka}{Tikka, Hyttinen and Karvanen}
+
+% Short headings should be running head and authors last names
+
+%\ShortHeadings{Causal Effect Identification from Multiple Incomplete Data Sources}{Tikka, Hyttinen and Karvanen}
+%\firstpageno{1}
+
+\begin{document}
+
+\title{Causal Effect Identification from Multiple Incomplete\\ Data Sources: A General Search-based Approach}
+
+\author{Santtu Tikka, santtu.tikka@jyu.fi \\
+       Department of Mathematics and Statistics\\
+       University of Jyvaskyla, Finland\\
+       \and
+       Antti Hyttinen, antti.hyttinen@helsinki.fi \\
+       HIIT, Department of Computer Science\\
+       University of Helsinki, Finland\\
+       \and
+       Juha Karvanen, juha.t.karvanen@jyu.fi\\
+       Department of Mathematics and Statistics\\
+       University of Jyvaskyla, Finland}
+
+%\editor{Somebody}
+\date{}
+\maketitle
+
+\begin{abstract}%
+Causal effect identification considers whether an interventional probability distribution can be uniquely determined without parametric assumptions from measured source distributions and structural knowledge on the generating system. While complete graphical criteria and procedures exist for many identification problems, there are still challenging but important extensions that have not been considered in the literature. To tackle these new settings, we present a search algorithm directly over the rules of do-calculus. Due to generality of do-calculus, the search is capable of taking more advanced data-generating mechanisms into account along with an arbitrary type of both observational and experimental source distributions. The search is enhanced via a heuristic and search space reduction techniques. The approach, called \texttt{do-search}, is provably sound, and it is complete with respect to identifiability problems that have been shown to be completely characterized by do-calculus. When extended with additional rules, the search is capable of handling missing data problems as well. With the versatile search, we are able to approach new problems such as combined transportability and selection bias, or multiple sources of selection bias. We also perform a systematic analysis of bivariate missing data problems and study causal inference under case-control design.
+\end{abstract}
+
+%The versatility of the search is demonstrated via examples on complicated settings such as identifiability under multiple sources of selection bias.
+
+% Causal effect identifiability considers whether an interventional probability distribution can be determined without parametric assumptions from (measured) source distribution(s) and structural knowledge on the generating system.
+% The unifying factor among many such identifiability results is the use of do-calculus: a collection of inference rules that allows the manipulation of interventional distributions. 
+%  While complete identification criteria and procedures exist for many of the simpler problems, there are still many challenging but important extensions of the basic identifiability problem that have not been extensively considered in the literature. 
+% %For several scenarios complete identification criteria and procedures exist.
+% %Commonly either a graphical criterion or an algorithm is used to show identifiability for a restricted problem. 
+% To tackle these new settings, we present a search algorithm directly over the rules of do-calculus, which is capable of taking more advanced data-generating mechanisms into account along with an arbitrary type of both observational and experimental source distributions. The search is enhanced via a heuristic and search space pruning techniques. Our search is provably sound, and it is complete with respect to identifiability problems that have been shown to be completely characterized by do-calculus. Importantly,  
+% with the versatile search, we are able to tackle new problems such as combined transportability and selection bias, multiple sources of selection bias, and causal effect identification from arbitrary (experimental) distribution (e.g. in the settings of overlapping variables), and perform systematic analysis of missing data problems and case-control designs.
+% 
+% %The versatility of the search is demonstrated via examples on complicated settings such as identifiability under multiple sources of selection bias.
+
+
+
+%\begin{keywords}
+ % causality, do-calculus, selection bias, transportability, missing data, case-control design, meta-analysis
+%\end{keywords}
+
+%\acomment{Please use jcomment and scomment environments for commenting. Feel free to write and edit any notes.}
+
+\begin{center} A modification of \citep{dosearch}. \end{center}
+
+\section{Introduction}
+A causal effect is defined as the distribution $P(\+Y \given \doo(\+X),\+Z)$ where variables $\+ Y$ are observed, variables $\+ X$ are intervened upon (forced to values irrespective of their natural causes) and variables $\+ Z$ are conditioned on. Instead of placing various parametric restrictions based on background knowledge, we are interested in this paper in the question of identifiability: can the causal effect be uniquely determined from the distributions (data) we have and a graph representing our structural knowledge on the generating causal system. 
+
+In the most basic setting we are identifying causal effects from a single observational input distribution, corresponding to passively observed data. To solve such problems more generally than what is possible with the back-door adjustment \citep{SGS,Pearl:book2009,greenland1999}, \citet{pearl1995causal} 
+introduced \emph{do-calculus}, a set of three rules that together with probability theory enable the manipulation of interventional distributions. \citet{Shpitser} and \citet{huangvaltorta:complete} showed that do-calculus is complete by presenting polynomial-time algorithms whose each step can be seen as a rule of do-calculus or as an operation based on basic probability theory. The algorithms have a high practical value because the rules of do-calculus do not by themselves provide an indication on the order in which they should be applied. The algorithms save us from manual application of do-calculus, which is a tedious task in all but the simplest problems.
+
+
+Since then many extensions of the basic identifiability problem have appeared. 
+In identifiability using surrogate experiments \citep{Bareinboim:zidentifiability}, or $z$-identifiability, an experimental distribution is available in addition to the observed probability distribution.
+For data observed in the presence of selection bias, both algorithmic and graphical identifiability results have been derived \citep{bareinboim2015recovering, Correa2018}. More generally, the presence of missing data necessitates the representation of the missingness mechanism, which poses additional challenges \citep{Mohan2013, Shpitser2015}. Another dimension of complexity is the number of available data sources. Identification from a mixture of observational and interventional distributions that originate from multiple conceptual domains is known as transportability for which complete solutions exist in a specific setting \citep{bareinboim2014transportability}. Most of these algorithms are implemented in the R package \texttt{causaleffect} \citep{Tikka:identifying}.
+
+
+While completeness has been accomplished for a number of basic identifiability problems, there are still many challenging but important extensions to the identifiability problem that have not been studied so far. Table~\ref{tab:stateofart} recaps the current state of the art identifiability results; it also describes generalizations that we aim to investigate in this paper.  To find solutions to the more complicated identifiability problems, we present a unified approach to the identification of observational and interventional causal queries by constructing a search algorithm that directly applies the rules of do-calculus.  We impose no restrictions to the number or type of known input distributions: we thus provide a solution to problems for which no algorithmic solutions exist (row 7 in Table~\ref{tab:stateofart}). We also extend to identifiability under missing data  together with mechanisms related to selection bias and transportability (row 10 in Table~\ref{tab:stateofart}). 
+
+%NOT RELEVANT AT THIS POINT
+%\acomment{Not relevant here, insert where it is: Due to the nature of the search, formulas for intermediary queries that were identified during the search are also available as a result.}
+
+
+
+% We are not bound to a single source of selection bias and can even consider more complicated problems through missing data mechanisms.
+%The breadth of current results only covers a fraction of possible identifiability problems, especially in the context of missing data. 
+
+
+To combat the inherent computational complexity of such a search-based approach, we derive rules and techniques that avoid unnecessary steps. We also present a search heuristic that considerably speeds up the search in the cases where the effect is indeed identifiable.  The approach, called \texttt{do-search}, is provably sound and it retains the completeness in the cases previously proven to be solved by do-calculus rules. We can easily scale up to the problems sizes commonly reported in the literature.
+ An R package \citep{rsoft} implementing \texttt{do-search} is also available on CRAN at: 
+\begin{center}
+\url{https://CRAN.R-project.org/package=dosearch}
+ \end{center}
+%YES IT LOOKS SILLY BUT IT NEEDS TO STANDOUT IN THE REVIEWING PHASE
+
+\setlength\tabcolsep{0.1cm}
+\begin{table}[!t]
+\begin{center}
+\resizebox{1.00\textwidth}{!}{
+\begin{footnotesize}
+\begin{tabular}{rlllll}
+& & & & \textbf{Missing} &  \\
+& \textbf{Problem} & & \textbf{Input} & \textbf{data} & \textbf{Solution} \\
+ & \textbf{(Reference)}  & \textbf{Target} & \textbf{(assumptions)} & \textbf{pattern} & \textbf{(complete)}  \\ \hline
+1  & Causal effect identifiability & $P(\+Y \given \doo(\+ X))$ & $P(\+V)$ & None & ID (Yes)  \\
+   & {\scriptsize \citep{Shpitser}} & & & &  \\ [0.1cm] 
+2  & Causal effect identifiability  & $P(\+Y \given \doo(\+ X), \+ Z)$ & $P(\+V)$ & None & IDC (Yes)  \\ 
+   & {\scriptsize \citep{Shpitser_conditional}} & & & &  \\  [0.1cm]
+3  & $z$-identifiability & $P(\+Y \given \doo(\+ X), \+ Z)$    & $P(\+V)$, $P(\+V \setminus \+ B_i \given \doo(\+B))$ & None & zID (Yes)   \\ 
+   & {\scriptsize \citep{Bareinboim:zidentifiability}} & & (NE, ED) & & \\ [0.1cm]
+4  & $mz$-transportability & $P(\+Y \given \doo(\+ X), \+ Z)$ & $\{P(\+V \setminus (\+ B_i \cup \+ T_i) \given \doo(\+B_i), \+ T_i)\}$  & None & TR$^{\textrm{mz}}$ (Yes)   \\
+   & {\scriptsize \citep{bareinboim2014transportability}} & & (NEDD, ED)& &  \\ [0.1cm]
+5  & Surrogate outcome  & $P(\+Y \given \doo(\+ X), \+ Z)$     & $\{P(\+ A_i \given \doo(\+ B_i), \+ C_i) \}$  & None & TRSO (No)   \\ 
+   & identifiability & & (NE, SO) & &   \\ 
+   & {\scriptsize \citep{Tikka:surrogate}} & & & & \\ [0.1cm]
+6  & Selection bias recoverability & $P(\+Y \given \doo(\+ X), \+ Z)$ & $P(\+V\given S)$ & Selection & RC  (?) \\ 
+   &  {\scriptsize \citep{bareinboim2015recovering}} & & & &    \\  [0.1cm]
+\textit{\textbf{7}} & \textit{\textbf{Generalized identifiability}}  & $P(\+Y \given \doo(\+ X), \+ Z)$     & $\{ P(\+ A_i \given \doo(\+ B_i), \+ C_i) \}$  & \textit{\textbf{None}} & \textit{\textbf{None}}   \\ [0.1cm]
+8  & Missing data recoverability & $P(\+V)$ & $P(\+ V^*)$ & Restricted & Thm.~2 (Yes)   \\ 
+   & {\scriptsize \citep{Mohan2013}} & & & &   \\ [0.1cm]
+9  & Missing data recoverability & $P(\+V)$ & $P(\+ V^*)$ & Arbitrary & MID (?)  \\ [0.1cm]
+   & {\scriptsize \citep{Shpitser2015}} & & & &   \\ [0.1cm]
+\textit{\textbf{10}} & \textit{\textbf{Generalized identifiability}}  & $P(\+ Y \given \doo(\+ X), \+ Z)$     & $\{ P(\+ A_i^* \given \doo(\+ B_i), \+ C_i^*) \}$      & \textit{\textbf{Arbitrary}} &  \textit{\textbf{None}}   \\ 
+& \textit{\textbf{with missing data}} & &  &  & %\\\\
+%10 & Missing data recoverability  & $P(\+Y \given \doo(\+ X), \+ Z)$ & $P(\+ V^*)$ & Arbitrary & \textit{\textbf{None}}  \\ [0.1cm]
+%11 & Generalized z-identifiability & $P(\+Y \given \doo(\+X), \+ Z)$      & $P(\+V^*)$, $P(\+ V^* \setminus \+ B \given \doo(\+B))$  & Arbitrary & \textit{\textbf{None}}  \\ 
+%& with missing data & &   & & \\ [0.1cm]
+%12 & $mz$-transportability & $P(\+Y \given \doo(\+ X), \+ Z)$ & $\{P(\+V^* \given \doo(\+B_i))\}$ & Arbitrary &  \textit{\textbf{None}}  \\
+% & with missing data & & (NEDD, ED) &  &\\ [0.1cm]
+\end{tabular}
+\end{footnotesize}
+}
+\end{center}
+\caption{Solved and unsolved problems (in bold italic) in causal identification. Input $P(\+V)$ stands for passively observed joint distribution of all variables. Input $P(\+V^*)$ is the joint distribution with missing data (see Section~\ref{sect:missingness}). Input $P(\+V \given S)$ means the joint distribution under selection bias. Input $P(\+V \setminus \+ B \given \doo(\+B))$ stands for an experiment where all variables are measured and input $P(\+ A \given \doo(\+ B))$ stands for an experiment where only a subset $\+ A \subset \+V$ of the variables is measured. Notation $\{\cdot\}$ denotes a set of inputs enumerated by the index $i$. The variable sets present in the same distribution are disjoint. The assumptions of nested experiments (NE), entire distributions (ED) and nested experiments in different domains (NEDD) are explained in Section~\ref{sect:problem}. Assumptions related to surrogate outcomes (SO) can be found in \citep{Tikka:surrogate}. The last column tells the algorithm or result that can be used to solve the problem and whether it provides a complete solution to the problem, or whether the completeness status is not known (?). An algorithm is complete if it returns a formula when the target query is identifiable. Problems 1--6 are special cases of problem 7 and problems 1--9 are special cases of problem 10. 
+} 
+\label{tab:stateofart}
+\end{table}
+\setlength\tabcolsep{6pt}
+
+
+The paper is structured as follows. Section~\ref{sect:problem} formulates our general search problem and explains the scenarios in Table~\ref{tab:stateofart} and previous research in detail. Section~\ref{sect:search} presents the search algorithm, including the rules we use, search space reduction techniques, heuristics, theoretical properties, and finally simulations that demonstrate the efficacy of the search. Section~\ref{sect:new_results} shows a number of new problems for which we can find solutions by using the search. These problems include combined transportability and selection bias, multiple sources of selection bias, and causal effect identification from arbitrary (experimental) distributions. Section~\ref{sect:missingness} shows how the search can be extended to problems that involve missing data. This section also includes a systematic analysis of missing data problems and case-control designs.
+Section~\ref{sect:discussion} discusses the merits and limitations of the approach. Section~\ref{sect:conclusion} offers concluding remarks.
+
+
+
+
+%We focus on non-parametric identification and assume that the causal model has been fully specified. Table~\ref{tab:stateofart} describes the current extent of known non-parametric identifiability results under this assumption. Lines 6, 8--910 and 13--14 describe problems for which no solution currently exists. 
+%Motivation:
+%\begin{itemize}
+%\item Overlapping datasets scenario: we have several marginal and/or interventional distributions observed, and thus whats given by the ID-algorithm is not necessarily identifiable.
+%\item We obtain simpler expressions --- these are more easily understandable by application field experts.
+%\item Numerical estimation with the simpler expression may be more accurate in some cases (essentially when we cannot describe the data with a single good graphical model).
+%\end{itemize}
+
+%Board had two examples that were derived, but that could not be derived in the other formalism of z-identifiability and transportability. We should describe them in detail here and also show the graphs.
+
+
+
+
+%\setlength\tabcolsep{0.1cm}
+%\begin{table}%[H]
+%\begin{center}
+%\begin{footnotesize}
+%\begin{tabular}{rlllll}
+%& & & & \textbf{Missing} &  \\
+%& \textbf{Problem} & & \textbf{Input} & \textbf{data} & \textbf{Solution} \\
+% & \textbf{(Reference)}  & \textbf{Target} & \textbf{(assumptions)} & \textbf{pattern} & \textbf{(complete)}  \\ \hline
+%1  & Causal effect identifiability & $P(\+Y \given \doo(\+ X))$ & $P(\+V)$ & None & ID (Yes)  \\
+%   & {\scriptsize \citep{Shpitser}} & & & &  \\ [0.1cm] 
+%2  & Causal effect identifiability  & $P(\+Y \given \doo(\+ X), \+ C)$ & $P(\+V)$ & None & IDC (Yes)  \\ 
+%   & {\scriptsize \citep{Shpitser_conditional}} & & & &  \\  [0.1cm]
+%3  & $z$-identifiability & $P(\+Y \given \doo(\+ X), \+ C)$    & $P(\+V)$, $P(\+V \given \doo(\+Z))$ & None & zID (Yes)   \\ 
+%   & {\scriptsize \citep{Bareinboim:zidentifiability}} & & (NE, ED) & & \\ [0.1cm]
+%4  & Selection bias recoverability & $P(\+Y \given \doo(\+ X), \+ C)$ & $P(\+V\given S = 1)$ & Selection & RC  (?) \\ 
+%   &  {\scriptsize \citep{bareinboim2015recovering}} & & & &    \\  [0.1cm]
+%5  & Missing data recoverability & $P(\+V)$ & $P(\+ V^*)$ & Restricted & Thm.~2 (Yes)   \\ 
+%   & {\scriptsize \citep{Mohan2013}} & & & &   \\ [0.1cm]
+%6  & Missing data recoverability & $P(\+V)$ & $P(\+ V^*)$ & Arbitrary & MID (?)  \\ [0.1cm]
+%   & {\scriptsize \citep{Shpitser2015}} & & & &   \\ [0.1cm]
+%7  & $mz$-transportability & $P(\+Y \given \doo(\+ X), \+ C)$ & $P(\+ V)$, $\{P(\+V_i \given \doo(\+Z_i))\}$  & None & TR$^{\textrm{mz}}$ (Yes)   \\
+% & {\scriptsize \citep{bareinboim2014transportability}} & & (NEDD, ED)& &  \\ [0.1cm]
+%8 & Surrogate outcome  & $P(\+Y \given \doo(\+ X), \+ C)$     & $P(\+ V)$, $\{ P(\+ W_i \given \doo(\+ Z_i)) \}$  & None & TRSO (No)   \\ 
+%  & identifiability & & (NE, SO) & &   \\ 
+%  & {\scriptsize \citep{Tikka:surrogate}} & & & & \\ [0.1cm]
+%9 & Generalized identifiability  & $P(\+Y \given \doo(\+ X), \+ C)$     & $P(\+ V)$, $\{ P(\+ W_i \given \doo(\+ Z_i)) \}$  & None & \textit{\textbf{None}}   \\ 
+%  & & & & &   \\ [0.1cm]  
+% 10 & Missing data recoverability  & $P(\+Y \given \doo(\+ X), \+ C)$ & $P(\+ V^*)$ & Arbitrary & \textit{\textbf{None}}  \\ [0.1cm]
+%11 & Generalized z-identifiability & $P(\+Y \given \doo(\+X), \+C)$      & $P(\+V^*)$, $P(\+W \given \doo(\+Z))$  & Arbitrary & \textit{\textbf{None}}  \\ 
+%& with missing data & &   & & \\ [0.1cm]
+%12 & $mz$-transportability & $P(\+Y \given \doo(\+ X), \+ C)$ & $P(\+ V^*)$, $\{P(\+V_i \given \doo(\+Z_i))\}$ & Arbitrary &  \textit{\textbf{None}}  \\
+% & with missing data & & (NEDD, ED) &  &\\ [0.1cm]
+%13 & Generalized identifiability  & $P(\+ Y \given \doo(\+ X), \+ C)$     & $ \{ P(\+ V_i^*) \}$, $\{ P(\+ W_i^* \given \doo(\+ Z_i)) \}$      & Arbitrary &  \textit{\textbf{None}}   \\ 
+%& with missing data & &  &  & \\\\
+%\end{tabular}
+%\end{footnotesize}
+%\end{center}
+%\caption{Solved and unsolved problems in causal identification. Input $P(\+V)$ stands for passively observed joint distribution of all variables. Input $P(\+V)^*$ is the joint distribution with missing data. Input $P(\+V \given S = 1)$ means the joint distribution under selection bias. Input $P(\+V \given \doo(\+Z))$ stands for an experiment where all variables are measured and input $P(\+W \given \doo(\+Z))$ stands for an experiment  only a subset $\+W \subset \+V$ of the variables is measured. Notation $\{\cdot\}$ denotes a set of inputs. The assumptions of nested experiments (NE), entire distributions (ED) and nested experiments in different domains (NEDD) are explained in the introduction. Assumptions related to surrogate outcomes (SO) can be found in \citep{Tikka:surrogate}. The last column tells the algorithm or result that can be used to solve the problem and whether it provides a complete solution to the problem, or whether the completeness status is not known (?). %The superscripts give the references: $^1$~\citep{Shpitser}, $^2$~\citep{Shpitser_conditional}, $^3$~\citep{bareinboim2015recovering}, $^4$~\citep{Shpitser2015}, $^5$~\citep{Mohan2013}, $^6$~\citep{Bareinboim:zidentifiability}, $^7$~\citep{bareinboim2014transportability}, $^8$~\citep{Tikka:surrogate}.An algorithm is complete if it returns the result always when it exists. All other problems are special cases of problem 13. 
+%} 
+%\label{tab:stateofart}
+%\end{table}
+%\setlength\tabcolsep{6pt}
+
+
+\section{The General Causal Effect Identification Problem} \label{sect:problem}
+
+Our presentation is based on Structural Causal Models (SCM) and the language of directed graphs. We assume the reader to be familiar with these concepts and refer them to detailed works on these topics for extended discussion and descriptions, such as \citep{Pearl:book2009} and \citep{Koller09}. 
+%An SCM incorporates the ability to manipulate functional relationships of the model through the $\doo$ operator. A variable $X$ can be forced to take a specific value $x$ through the intervention $\doo(x)$ on a model $M$ that generates a new submodel $M_x$, where the functional relationships assign the constant $x$ as the value of $X$. The interventional distribution of variable $Y$ in this new model is denoted by $P(Y \given \doo(X))$, which is the causal effect of $X$ on $Y$. 
+%The SCM framework
+Following the standard set-up of do-calculus \citep{pearl1995causal}, we assume
+that the causal structure can be represented by a \emph{semi-Markovian
+causal graph} $G$ over a set of vertices $\+ V$ (see Fig~\ref{fig:simple_search}(\subref{fig:intro_backdoor}) for example). The directed
+edges correspond to direct causal relations between
+the variables (relative to $\+ V$); directed edges do not form any cycles. Confounding of any two observed variables in $\+ V$ by some unobserved common cause
+is represented by a bidirected edge between the variables.
+%We focus on semi-Markovian SCMs, where the induced directed graph of the model is acyclic and unobserved confounders have exactly two observed children. These confounders are omitted from the graphs for simplicity and they are represented instead by a bidirected edge between the confounded variables.
+
+In a non-parametric setting, the problem of expressing a causal quantity of interest in terms of available information has been be described in various ways depending on the context. When available data are affected by selection bias or missing data, a typical goal is to \enquote{recover} some joint or marginal distributions. If data are available from multiple conceptual domains, a distribution is \enquote{transported} from the source domains, from which a combination of both observational and experimental data are available, to a target domain. The aforementioned can be expressed in the SCM framework by equipping the graph of the model with special vertices. However, on a fundamental level these problems are simply variations of the original identifiability problem of causal effects and as such, our goal is to represent them as a single generalized identifiability problem. Formally, identifiability can be defined as follows \citep{Pearl:book2009,shpitser2008}.
+
+\begin{definition}[Identifiability] \label{def:identifiability}
+Let $\+ M$ be a set of models with a description $T$ and two objects $\phi$ and $\theta$ computable from each model. Then $\phi$ is \emph{identifiable} from $\theta$ in $T$ if $\phi$ is uniquely computable from $\theta$ in any model $M \in \+ M$. In other words, all models in $\+ M$ which agree on $\theta$ also agree on $\phi$.
+\end{definition}
+
+In the simplest case, the description $T$ refers to the graph induced by causal model, $\theta$ is the joint distribution of the observed variables $P(\+ V)$ and the query $\phi$ is a causal effect $P(Y \given \doo(X))$. On the other hand, proving non-identifiability of  $\phi$ from $\theta$ can be obtained by describing two models $M^1, M^2 \in \+ M$ such that $\theta$ is the same in $M^1$ and $M^2$, but object $\phi$ in $M^1$ is different from $\phi$ in $M^2$.
+
+%Next we formulate the general form for a causal identifiability problem that we consider in this paper:
+ The general form for a causal identifiability problem that we consider in this paper is formulated as follows.
+
+
+\begin{description}
+\item[Input:]
+A set of input distributions of the form $P(\+ A_i \given \doo(\+ B_i),\+ C_i)$, a query $P(\+ Y \given \doo(\+ X), \+ Z)$  and a semi-Markovian causal graph $G$ over $\+ V$. \item[Task:]
+ Output a formula  for the query  $P(\+ Y \given \doo(\+ X),\+ Z)$ over the input distributions, or decide that it is %non-parametrically
+ not identifiable.
+ 
+\end{description}
+Here  $\+ A_i,\+ B_i, \+ C_i$ are disjoint subsets of $\+ V$ for all $i$, and $\+ X,\+ Y,\+ Z$ are disjoint subsets of $\+ V$. The causal graph $G$ may contain vertices which describe mechanisms related to transportability and selection bias. In the following subsections we explain several important special cases of this problem definition, some that have been considered in the literature and some which have not been.
+
+
+\subsection{Previously Considered Scenarios as Special Cases} \label{sect:prev_scenarios}
+
+We restate the concepts of transportability and selection bias under the causal inference framework, and show that identifiability in the scenarios of rows 1--6 of Table~\ref{tab:stateofart} falls under the general form on row 7. We return to problems that involve missing data on rows 8--10 later in Section~\ref{sect:missingness}.
+ 
+% Falling to a general form with adjustments means that it does not fall
+% with a few adjustments.
+
+\paragraph{Causal Effect Identification} Input is restricted to a passive observational distribution $P(\+ V)$. The target is either a causal effect $P(\+ Y \given \doo ( \+ X) )$ for row 1 of Table~\ref{tab:stateofart} or a conditional causal effect $P(\+ Y \given \doo ( \+ X), \+ Z )$ for row 2 of Table~\ref{tab:stateofart} \citep{Shpitser,Shpitser_conditional}.
+
+\paragraph{$z$-identifiability} Similarly to ordinary causal effect identification, the input consists of the passive observational distribution $P(\+ V)$ but also of experimental distributions known as surrogate experiments on a set $\+ B$ \citep{Bareinboim:zidentifiability}. Two restricting assumptions, called here nested experiments and entire distributions, apply to surrogate experiments. Experiments are called nested experiments (NE) when for each experiment intervening a set of variables $\+B$, experiments intervening on all subsets of $\+B$ are available as well. Entire distributions (ED) denote the assumption that the union of observed and intervened variables is always the set of all variables $\+V$. 
+
+\paragraph{Surrogate Outcome Identifiability} Surrogate outcomes generalize the notion of surrogate experiments from $z$-identifiability. For surrogate outcomes, the assumption of nested experiments still holds, but the assumption of entire distributions can be dropped. Some less strict assumptions (SO) still apply \citep{Tikka:surrogate}. The idea of surrogate outcomes is that data from previous experiments are available, but the target $\+ Y$ was at most only partially measured in these experiments and the experiments do not have to be disjoint from $\+ X$. 
+
+\paragraph{Transportability} The problem of incorporating data from multiple causal domains is known as transportability \citep{bareinboim2013general}. Formally, the goal is to identify a query in a target domain $\pi^*$ using data from source domains $\pi_1, \ldots ,\pi_n$. The domains are represented in the causal graph using a special set of transportability nodes $\+ T$ which is partitioned into disjoint subsets $\+ T_1,\ldots,\+ T_n$ corresponding to each domain $\pi_i$. The causal graph contains an extra edge $T_{ij} \rightarrow V_j$ whenever a functional discrepancy in $f_{V_j}$ or in $P(u_{V_j})$ exists between the target domain $\pi^*$ and the source domain $\pi_i$. The discrepancy is active if $T_{ij} = 1$ and inactive otherwise. A distribution associated with a domain $\pi_i$ is of the form $P(\+ A \given \doo(\+ B),\+ C,\+ T_i = 1,\+ T_{-i} = 0)$. In other words, only the discrepancies between the $\pi_i$ and $\pi^*$ are active. A distribution corresponding to the target domain has no active discrepancies meaning that it is of the form $P(\+ A \given \doo(\+ B),\+ C,\+ T = 0$). Any variable is conditionally independent from inactive transportability nodes since their respective edges vanish. Furthermore, since transportability nodes set to $0$ vanish, we can assume any present transportability node to have the value $1$. Thus an input distribution from a domain $\pi_i$ takes the form $P(\+ A \given \doo(\+ B),\+ C,\+ T_i)$. In the specific case of $mz$-transportability, the assumptions of entire distributions (ED) and nested experiments in different domains (NEDD) apply, which means that $P(\+ V \setminus (\+ B_i^\prime \cup \+ T_i) \given \doo(\+ B_i^\prime), \+ T_i)$ is available for every subset $\+ B_i^\prime$ of $\+ B_i$ in each domain $\pi_i$.
+
+
+
+\paragraph{Selection Bias Recoverability} Selection bias can be seen as a special case of missing data, where the mechanism responsible for the preferential selection is represented in the causal graph by a special sink vertex $S$ \citep{Bareinboim2012:selectionbias}. Typical input for the recoverability problem is $P(\+ V \given S = 1)$, the joint distribution observed under selection bias. Just as in the case of transportability nodes, selection bias nodes only appear when the mechanism has been enabled. Thus we may assume that the input is of form $P(\+ V \given S)$. More generally, we can consider input distributions of the form $P(\+ A \given \doo(\+ B),\+ C, S)$.
+
+\subsection{New Scenarios as Special Cases} \label{sect:new_scenarios}
+
+The following settings are special cases of the general identifiability problem of row 7 in Table~\ref{tab:stateofart}, that do not fall under any of the problems of rows 1--6. They serve as interesting additions to the cases considered in the literature. Concrete examples on these new scenarios are presented in Section~\ref{sect:new_results}. Section~\ref{sect:missingness} extends the general problem of row 7 in Table~\ref{tab:stateofart} to the general problem with missing data on row 10 while also showcasing the special cases of rows 8 and 9.
+
+\paragraph{Multiple Data Sources with Partially Overlapping Variable Sets} %\scomment{How can variables overlap? Does this mean overlapping variable sets?}
+%It is a common term because the fully written out version is too long to pronounce, but yes it is misleading so lets not use it hrtr
+The scenario where only subsets of variables are ever observed together has been extensively considered in the causal discovery literature \citep{danks2009integrating,tillman2011learning,triantafillou2010learning}, but not in the context of causal effect identification. In the basic setting the input consists of passively observed distributions $P(\+ A_i)$ such that $\+ A_i \subset \+ V$.  We may also observe experimental distributions $P(\+ A_i \given \doo (\+ B_i))$ \citep{heh2012uai,overlapping_sofia} or even conditionals $P(\+ A_i \given \doo(\+ B_i), \+ C_i)$. Our approach sets no limitations for the number and types of input distributions.
+
+
+%If previous algorithms (Table~\ref{tab:stateofart}) are applied to this scenario then they may either produce formulas with source distributions that cannot be estimated from the data sets we have, or report non-identifiability when not taking all source distributions into account. 
+
+%To the best of our knowledge, such  scenarios have not been considered in this context of causal effect identifiability in their full generality. 
+%Some inputs may add identifiability beyond the restricted input set of the previous methods. As it is clear, both scenarios fit directly into the problem formulation. \jcomment{J: The last two sentences are unclear for me.}
+
+\paragraph{Combining Transportability and Selection Bias} To the best of our knowledge, the frameworks of transportability and selection bias have not been considered simultaneously. The combination of these scenarios fits into the general problem formulation. For example, we may have access to two observational distributions originating from different source domains, but affected by the same biasing mechanism: $P(\+ A_1 \given \+ C_1, T_1, S)$ and $P(\+ A_2 \given \+ C_2, T_2, S)$, where $T_1$ and $T_2$ are the transportability nodes corresponding to the two source domains and $S$ is the selection bias node.
+
+\paragraph{Recovering from Multiple Sources of Selection Bias} In recent literature on selection bias as a causal inference problem, the focus has been on settings where only a single selection bias node is present \citep[e.g.][]{Bareinboim2014:selectionbias,Correa2017,Correa2018}. However, multiple sources of selection bias are typical in longitudinal studies where dropout occurs at different stages of the study. Our approach is applicable for an arbitrary number of selection bias mechanisms and input distributions affected by arbitrary combinations of these mechanisms. In other words, if $\+ S$ is the set of all selection bias nodes present in the graph, the inputs can take the form $P(\+ A \given \doo(\+ B), \+ C, \+ S^\prime)$, where $\+ S^\prime$ is an arbitrary subset of $\+ S$.
+
+\section{A Search Based Approach for Causal Effect Identification} \label{sect:search}
+
+%Methods for solving identifiability problems are typically based on either a factorization of the interventional distribution which reduces the problem into a set of smaller subproblems or on finding a suitable set for adjustment. We focus instead on a search based approach that starts from the set of inputs of the general identifiability problem and derives new distributions through valid transformation rules either stopping when the target quantity is found or when the search space is exhausted. The question is, what rules are needed, how they are applied and in which order.
+
+%\scomment{maybe docalc here? it is needed for describing the search} YES IT MUST BE
+
+The key to identification of causal effects is that interventional expressions can be manipulated using the rules of do-calculus. We present these rules for augmented DAGs where an additional intervention variable $I_X$ such that $I_X \rightarrow X$ is added to the induced graph for each variable $X$ \citep{SGS,Pearl:book2009,lauritzen2000causal} (see Figure~\ref{fig:simple_search}(\subref{fig:augmented})). Now a d-separation condition of the form $\+Y \independent{} \+Z \given \+X, \+W \doublebar \+X$ means that $\+ Y$ and $\+ Z$ are d-separated by $\+ X$ and $\+ W$ in a graph where edges incoming to (intervened) $\+ X$ have been removed \citep{hyttinen2015,dawid2002influence}.  The three rules of do-calculus \cite{pearl1995causal} can be expressed as follows:
+\begin{eqnarray*}
+ P(\+ Y \given \doo(\+ X), \+ Z, \+ W) &=& P(\+ Y \given \doo(\+ X), \+ W), \text{ if } \+ Y \independent{} \+ Z \given \+ X, \+ W \doublebar \+ X \\
+P(\+ Y \given \doo(\+ X, \+ Z), \+ W) &=& P(\+ Y \given \doo(\+ X), \+ Z, \+ W), \text{ if } \+ Y \independent{} \+ I_{\+ Z} \given \+ X, \+ Z, \+W \doublebar \+X \\
+P(\+ Y \given \doo(\+ X, \+ Z), \+ W) &=& P(\+ Y \given \doo(\+ X), \+ W), \text{ if } \+ Y \independent{}\+  I_{\+ Z} \given \+ X, \+W \doublebar \+X
+\end{eqnarray*}
+The rules are often referred to as insertion/deletion of observations, exchange of actions and observations, and insertion/deletion of actions respectively. Each rule of do-calculus is only applicable if the accompanying d-separation criterion (on the right-hand side) holds in the underlying graph. In addition to these rules, most derivations require basic probability calculus.
+%\]}
+%\begin{enumerate}
+%\item{Insertion and deletion of observations: 
+%\[
+%  P(\+ y \given \doo(\+ x), \+ z, \+ w) = P(\+ y \given \doo(\+ x), \+ w), \text{ if } \+ Y \independent{} \+ Z \given \+ X, \+ W \doublebar \+ X
+%\]}
+%\item{:
+%\[
+%  P(\+ y \given \doo(\+ x, \+ z), \+ w) = P(\+ y \given \doo(\+ x), \+ z, \+ w), \text{ if } \+ Y \independent{} \+ I_{\+ Z} \given \+ X, \+ Z, \+W \doublebar \+X
+%\]}
+%\item{Insertion and deletion of actions:\[ P(\+ y \given \doo(\+ x, \+ z), \+ w) = P(\+ y \given \doo(\+x), \+w), \text{ if } \+ Y \independent{}\+  I_{\+ Z} \given \+ X, \+W \doublebar \+X
+%\]}
+%\end{enumerate}
+%where, for disjoint sets $\+X, \+Y, \+Z$ and $\+W$ of variables in the graph (including intervention nodes), 
+%Notation $\+ I_{\+ Z}$ refers to all the intervention nodes of nodes $\+ Z$.
+
+
+
+
+
+\begin{algorithm}[!t]
+  \begin{algorithmic}[1]
+  \INPUT{Target $Q = P(\+ Y \given \doo(\+ X),\+ W)$, a semi-Markovian graph $G$ and a set of known input distributions $\+ P=\{P_1,\ldots,P_n\}$}.
+  \OUTPUT{A formula for $Q$ 
+  %in terms of $\+ P$ CANNOT BE IN TERMS OF P SINCE STUFF IS ADDED TO P
+  or NA if the effect is not identifiable.}
+  \State \textbf{for each} $P_i \in \+ P$ \textbf{do}
+  %%%%
+    \State \quad Derive new distributions computable from $P_i$ 
+    %using the rules of do-calculus
+    %Antti took out: we need also prob. calculus
+     such that:
+    %\Statex \quad \quad \textbullet~The derived distribution is not already in $\+ P$.
+    \Statex \quad \quad \textbullet~The required d-separation criteria are satisfied by $G$.
+    \Statex \quad \quad \textbullet~For multiple inputs, both inputs must be in $\+ P$.
+    %%%%
+  %%%%
+  \State \quad Add the new identified distributions to $\+ P$.
+  \State \quad If $Q$ was derived, return a formula for it.
+  \State Return NA.
+  \end{algorithmic}
+  \caption{An outline of a search for causal effect identification. }
+  \label{prog:naive}
+\end{algorithm}
+
+Do-calculus directly motivates a forwards search over its rules. The outline of this type of search is given in Algorithm~\ref{prog:naive}. The algorithm derives new identifiable distributions based on what has been given as the input or identified in the previous steps. For each identified distribution every rule of do-calculus and standard probability manipulations of marginalization and conditioning are applied in succession, until the target distribution is found, or no new distributions can be found to be identifiable. A preliminary version of this kind of search is used by \citet{hyttinen2015} as a part of an algorithmic solution to causal effect identifiability when the underlying graph is unavailable.
+
+The formulas produced by Algorithm~\ref{prog:naive} correspond to short derivations and unnecessarily complicated expressions are avoided. Also, only distributions guaranteed to be identifiable are derived and used during the search.  Formulas for intermediary queries that were identified during the search are also available as a result. Alternatively, one could also start with the target and search towards the input distributions; a search in this direction will spend time deriving a number expressions that are anyway non-identifiable based on the input. A depth-first search would produce unnecessarily complicated expressions. %Problem specific algorithms directly use the factorization of the underlying graph $G$, and then use steps that can be seen as applications of do-calculus in the special case considered \citep{tian:identify,huangvaltorta:complete,Shpitser}, but a search can be used to solve these and the more general scenarios with a single approach.
+
+
+%The axiomatization directly motivates
+%%Our starting point is
+%%I dont think it is breadth first any more with the heuristic. Lets avoid the term.
+% a forward breadth-first search\footnote{With a forwards search we only consider distributions 
+%that are guaranteed identifiable; a backwards search from the target towards the input would also derive a number unidentifiable distributions. On the other hand, a depth-first search would produce unnecessarily complicated expression.}. The outline of this type of search is given in Algorithm~\ref{prog:naive}. 
+% Every rule of do-calculus and standard probability manipulations of marginalization and conditioning can be applied to each input distribution and to each distribution derived from the inputs in succession until the target distribution is found or the set of rules and inputs have been exhausted.  
+% Such a search appears e.g. \citep{hyttinen2015} in the context of causal effect identifiability when the underlying graph is unavailable.
+ 
+ 
+ %\begin{program}[!ht]
+%\begin{minipage}{8.3cm}
+%{\sffamily \small \vspace{2mm} {{\sffamily
+%\begin{list}{}{\leftmargin=0em}
+%\item Input: target $Q = P(\+ y \given \doo(\+ x),\+ w)$, an semi-Markovian graph $G$, and a set of known distributions $\+ P=\{P_1,\ldots,P_n\}$.
+%\item Initialize set $P$ as empty.
+%\item While some input distribution $P_k$ is not in $P$:
+%\begin{list}{}{\leftmargin=0.7em}
+%\item Put $P_k$ into the list $P$.% if it is not there already.
+%\item For each $P_i \in \+ P$:
+%\begin{list}{}{\leftmargin=1em}
+%\item Derive distributions from $P_i$ using do-calculus and probability manipulations. Require that:
+%\begin{itemize}{}{\leftmargin=1.3em}
+ % \item The derived distribution is not already in $\+ P$.
+%\end{itemize}
+%\item Add the new distributions to $\+ P$.
+%\item If $P(\+ y \given \doo(\+ x),\+ w)$ was derived, return.
+%\end{list}
+%\end{list}
+%\item Return $\textrm{NA}$.
+%\end{list}
+%}}
+% \vspace{-2.7mm}
+%}
+%\end{minipage}
+%\caption{A naive forwards breadth-first search.}
+%\label{prog:naive}
+%\end{program}
+
+
+\begin{figure}
+  \begin{subfigure}[t]{0.24\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=2]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (1,0) {};
+    \node [dot = {0}{0}{Z}{above}] at (0.5,0.66) {};
+
+    \draw [->] (X) -- (Y);
+    \draw [->] (Z) -- (Y);
+    \draw [->] (Z) -- (X);
+    \end{tikzpicture}
+    \caption{Example graph.}
+    \label{fig:intro_backdoor}
+  \end{subfigure}
+  \hfill
+    \begin{subfigure}[t]{0.24\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=2]
+    \node [dot = {0}{0}{I_X}{above}] at (-0.2,0.5) {};
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (1,0) {};
+    \node [dot = {0}{0}{Z}{above}] at (0.5,0.66) {};
+
+    \draw [->] (I_X) -- (X);
+    \draw [->] (X) -- (Y);
+    \draw [->] (Z) -- (Y);
+    \draw [->] (Z) -- (X);
+    \end{tikzpicture}
+    \caption{Augmented graph.}
+    \label{fig:augmented}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.4\textwidth}
+    \centering
+    \begin{tikzpicture}{scale=0.8}
+    \node[bordered] (v1) at (0,4) {$P(X,Y,Z)$};
+    \node[bordered] (v2) at (-1,2.75) {$P(Z)$};
+    \node[bordered] (v3) at (1,2.75) {$P(Y \given X,Z)$};
+    \node[bordered] (v4) at (-1.35,1.5) {$P(Z \given \doo(X))$};
+    \node[bordered] (v5) at (1.35,1.5) {$P(Y \given \doo(X), Z)$};
+    \node[bordered] (v6) at (0,0.25) {$P(Y,Z \given \doo(X))$};
+    \node[bordered] (v7) at (0,-1) {$P(Y \given \doo(X))$};
+    \draw[->] (v1) edge node[left,xshift=-2] {M} (v2);
+    \draw[->] (v1) edge node[right,xshift=2] {C} (v3);
+    \draw[->] (v2) edge node[left] {R3} (v4);
+    \draw[->] (v3) edge node[right] {R2} (v5);
+    \draw[->] (v4) edge node[left,xshift=-1] {P} (v6);
+    \draw[->] (v5) edge node[right,xshift=1] {P} (v6);
+    \draw[->] (v6) edge node[left] {M}  (v7);
+    \end{tikzpicture}
+    \caption{A derivation for $P(Y \given \doo(X))$.}
+    \label{fig:derivation}
+  \end{subfigure}
+  \caption{
+  %A graph where the back-door criterion holds and rules used by the search described in Algorithm~\ref{prog:naive} to derive $P(Y\given \doo(X))$ in the graph. 
+  The back-door criterion holds in the example graph (\subref{fig:intro_backdoor}) for $Z$. The augmented graph (\subref{fig:augmented}) includes the intervention node $I_X$ for $X$ explicitly. The labels M, C, P, R2 and R3 in the derivation of (\subref{fig:derivation})
+  %NOT A TREE!!!!!!!! LETS CALL IT DERIVATION
+   refer to marginalization, conditioning, product rule and rules 2 and 3 of do-calculus respectively (see Table~\ref{tab:rules}). The required d-separation conditions $Y \independent I_X \given Z,X$ for R2 and $Z \independent I_X$ for R3 hold in the augmented graph (\subref{fig:augmented}). }
+  \label{fig:simple_search}
+\end{figure}
+
+
+The search can easily derive for example the back-door criterion in the graph of Figure~\ref{fig:simple_search}(\subref{fig:intro_backdoor}) as shown by the derivation in Figure~\ref{fig:simple_search}(\subref{fig:derivation}). The target is $Q = P(Y \given \doo(X))$ and input is $\+ P = \{P(X,Y,Z)\}$. From $P(X,Y,Z)$ the search first derives the marginal $P(Z)$ and the conditional $P(Y \given X,Z)$. Then $P(Z \given \doo(X))$ is derived by the third rule of do-calculus because $Z \independent I_X$. The second rule derives $P(Y \given \doo(X), Z)$  from $P(Y \given X,Z)$ as $Y \independent I_X \given Z,X$. The two terms can be combined via the product rule of probability calculus to get $P(Y, Z \given \doo(X))$ and finally the target is $P(Y \given \doo(X))$ is just a marginalization of this. The familiar formula $\sum_{Z} P(Y \given X,Z)P(Z)$ is thus obtained.
+
+
+%The target is identifiable by the search and the search path from the set of inputs to the target is depicted in Figure~\ref{fig:simple_search}(\subref{fig:search_path}). Other distributions that were derived during the search are omitted for clarity.
+
+
+
+%Next, the rules of do-calculus are used to insert an intervention and to exchange an observation into an intervention resulting in  and $P(Y \given \doo(X), Z)$. The two resulting distributions are then multiplied to obtain $P(Y, Z \given \doo(X))$ and the target is finally obtained via marginalization. Since $P(Z \given \doo(X))$ and $P(Y \given \doo(X), Z)$ can be represented by $P(Z)$ and $P(Y \given X,Z)$, 
+
+
+However, it is not straightforward to make a search over do-calculus computationally feasible. The search space in Figure~\ref{fig:simple_search}(\subref{fig:derivation}) shows only the parts that resulted in the identifying formula:
+for example all passively observed marginals and conditionals over $\+ V$ can be derived from the input $P(\+ V)$. Especially in a non-identifiable case a naive search may go through a huge space before it can return the non-identifiable verdict. The choice of rules is also not obvious: a redundant rule may make the search faster or slower; false non-identifiability may be concluded if a necessary rule is missing. Also the order in which the rules are applied can have a large impact on the performance of the search. In the following sections we will provide highly non-trivial solutions to these challenges. %Although in the example, the rules of do-calculus and probability theory are sufficient for obtaining an identifying formula, for a more general setting, additional rules related to missing data mechanisms are also required. 
+%\newpage
+
+\subsection{Rules} \label{sect:rules}
+
+Table~\ref{tab:rules} lists the full set of rules used to manipulate distributions during the search, generalizing \citet{hyttinen2015}.
+
+%\pagebreak
+%\begin{landscape}
+\begin{table}[!t]%[H]
+\begin{center}
+\begin{small}
+\begin{tabular}{lllll}
+ Rule
+& Additional Input
+ & Output %& Condition
+ & Description
+  \\
+\hline
+ $1+$ && $P(\+ Y \given \doo(\+ X), \+ Z, \+ W)$ & Insertion of observations \\
+ $1-$ && $P(\+ Y \given \doo(\+ X), \+ W \setminus \+ Z)$ & Deletion of observations \\
+ $2+$ && $P(\+ Y \given \doo(\+ X,\+ Z), \+ W \setminus \+ Z)$ & Observation to action exchange \\
+ $2-$ && $P(\+ Y \given \doo(\+ X \setminus \+ Z),\+ Z, \+ W)$ & Action to observation exchange \\
+ $3+$ && $P(\+ Y \given \doo(\+ X,\+ Z), \+ W)$ & Insertion of actions \\
+ $3-$ && $P(\+ Y \given \doo(\+ X \setminus \+ Z), \+ W)$ & Deletion of actions \\
+\hline
+ $4$ && $P(\+ Y \setminus \+ Z \given \doo(\+ X),\+ W)$ & Marginalization \\
+ $5$ && $P(\+ Y \setminus \+ Z \given \doo(\+ X),\+ Z,\+ W)$ & Conditioning \\
+ $6+$ & $P(\+ Z \given \doo(\+X),\+ W \setminus \+ Z)$ & $P(\+Y, \+Z \given \doo(\+ X),\+W)$ & Chain rule multiplication \\
+ $6-$ & $P(\+ Z \given \doo(\+ X), \+ Y,\+ W)$  & $P(\+Y, \+Z \given \doo(\+ X),\+W)$ & Chain rule multiplication
+\end{tabular}
+\end{small}
+\end{center}
+\caption{The rules used to manipulate input distributions of the form $P(\+ Y \given \doo(\+ X), \+ W)$. The output distribution is identified if the input is identified and if the corresponding d-separation criteria hold in the graph (for rules $1\pm,2\pm$ and $3\pm$) or if the additional input has also been identified (rules $6\pm$). The sets $\+ Y, \+ X$ and $\+ W$ are disjoint. The role of the set $\+ Z$ depends on the rule being applied. 
+%The set $\+ Z$ is the subset to be enumerated in the search.
+%\acomment{What is the difference btw. 6 and -6? Doesnt seem to be any now that I took out the additional input.} \acomment{Also 7 and -7?} \acomment{Now I understand, depending on which input is expanded, one used different ruel. But this means that our set of rules is inherently redundant!!!! We could find the effect without -7 right, by just waiting until 7 is applied to the "additional input"?} \scomment{In a sense yes, but not really, since for a division using the chain rule of the form $P_1 / P_2$ we would have to check whether the term takes the role of $P_1$ or $P_2$, same with the multiplication. It is just easier to represent it as two different rules, where the roles are fixed. } 
+%\acomment{conditioning is not chain rule?}
+}
+\label{tab:rules}
+\end{table}
+%\end{landscape}
+%\pagebreak
+\noindent
+\paragraph{Do-calculus} Rules $1\pm, 2\pm$ and $3\pm$ correspond to the rules of do-calculus such that rules $1+, 2+, 3+$ are used to add conditional variables and interventions and rules $1-, 2-, 3-$ are used to remove them. Each rule is only valid if the corresponding d-separation criterion given in the beginning of Section~\ref{sect:search} hold.
+
+\paragraph{Probability theory} Rule $4$ performs marginalization over $\+ Z \subset \+ Y$, and produces a summation at the formula level:
+\[
+  P(\+Y \setminus \+ Z \given \doo(\+ X),\+ W) = \sum_{\+ Z} P(\+ Y \given \doo(\+ X),\+ W).
+\]
+Similarly, rule $5$ conditions on a subset $\+ Z \subset \+ Y$ to obtain the following formula:
+\[
+  P(\+ Y \setminus \+ Z \given \doo(\+ X),\+Z, \+ W) = \frac{P(\+ Y \given \doo(\+ X),\+ W)}{\sum_{\+ Y \setminus \+ Z} P(\+ Y \given \doo(\+ X),\+ W)}.
+\]
+Rules $6+$ and $6-$ perform multiplication using the chain rule of probability which requires two known distributions. When rule $6+$ is applied, the distribution $P(\+ Y \given \doo(\+ X),\+ W)$ is known and we check whether $P(\+ Z \given \doo(\+ X),\+ W \setminus \+ Z)$ is known as well. For rule $6-$, the roles of the distributions are reversed. In the case of rule $6+$, $\+ Z$ is a subset of $\+ W$ and we obtain
+\[
+  P(\+ Y,\+ Z \given \doo(\+ X),\+ W) = P(\+ Y \given \doo(\+ X),\+ W) P(\+ Z \given \doo(\+ X),\+ W \setminus \+ Z).
+\]
+The two version of the chain rule are needed: it may be the case that when expanding $P(\+ Y \given \doo(\+ X), \+ W)$ with rule $6+$ the additional input $P(\+ Z \given \doo(\+X),\+ W \setminus \+ Z)$ is only identified later in the search. Then, $P(\+Y, \+Z \given \doo(\+ X),\+W)$ is identified when rule $6-$ is applied to $P(\+ Y \given \doo(\+X),\+ W)$.
+
+\subsection{Improving the Efficacy of the Search} \label{sect:improvements}
+
+In this section, we present various techniques that improved the efficiency of the search. %, such that it can be used to solve interesting causal effect identifiability problems.
+These findings are implemented in a search algorithm in Section~\ref{sect:algo}.
+
+\subsubsection{Term Expansion}
+
+Term expansion refers to the process of deriving new distributions from an input distribution using the rules of Table~\ref{tab:rules}. By \emph{term} we mean a single identified distribution. A term is considered \emph{expanded} if the rules of Table~\ref{tab:rules} have been applied to it in every possible way when the term is in the role of the input. Note that an expanded distribution may still take the role of an additional input when another term is being expanded. Consider the step of expanding the input term in Table~\ref{tab:rules} to all possible outputs with any rule. % from 1 to -6. 
+This can be done by enumerating every non-empty subset $\+ Z$ of $\+ V$, and applying the rule with regard to it. %We perform the enumeration over the subsets of $\+ V$ in an order of increasing cardinality. The intuition behind this approach is that operations involving rules 1, 2 and 3 of do-calculus require an evaluation of a d-separation criterion, and small sets of vertices are more likely d-separated than larger sets due to smaller sets having fewer paths between them.
+
+% $P(\+ A \given \doo(\+ B),\+ C)$
+\begin{table}[!t]
+\begin{center}
+\begin{small}
+\begin{tabular}{llll}
+Rule & Validity condition & Termination condition \\
+\hline
+$1+$  & $\+ Z \cap (\+ Y \cup \+ X \cup \+ W) = \emptyset$  & \\
+$1-$  & $\+ Z \subseteq \+ W$                               & $\+ W = \emptyset$ \\
+$2+$  & $\+ Z \subseteq \+ W$                               & $\+ W = \emptyset$ \\
+$2-$  & $\+ Z \subseteq \+ X$                               & $\+ X = \emptyset$ \\
+$3+$  & $\+ Z \cap (\+ Y \cup \+ X \cup \+ W) = \emptyset$  & \\
+$3-$  & $\+ Z \subseteq \+ X$                               & $\+ X = \emptyset$ \\ \hline
+$4$   & $\+ Z \subset \+ Y$                                 & $|\+ Y| = 1$ \\
+$5$   & $\+ Z \subset \+ Y$                                 & $|\+ Y| = 1$ \\
+$6+$  & $\+ Z \subseteq \+ W$                               & $\+ W = \emptyset$ \\
+$6-$  & $\+ Z \cap (\+ Y \cup \+ X \cup \+ W) = \emptyset$  & \\ \hline
+\end{tabular}
+\end{small}
+\end{center}
+\caption{The conditions for the enumerated subset $\+ Z$ for applying the rules of Table~\ref{tab:rules} to a term $P(\+ Y \given \doo(\+ X),\+ W)$. For rules $6+$ and $6-$, the conditions specify valid variables of the second required term.} 
+\label{tab:validsets}
+\end{table}
+
+
+% In principle For any rule, 
+Table~\ref{tab:validsets} outlines the requirements for $\+ Z$ for each rule of the search. Table~\ref{tab:validsets} tells us that when an observation $\+ Z$ is added using rule $1+$, it cannot be contained in any of the sets $\+ Y, \+ X$ or $\+ W$ since they are already present in the term. Only observations that are present can be removed, which is why $\+ Z$ has to a subset of $\+ W$ when applying rule $1-$. We may skip the application of this rule if the set of observations is empty for the current term. The exchange of observations to experiments using rule $2+$ has similar requirements for set $\+ Z$ as rule $1-$. Exchanging experiments to observations using rule $2-$ works in a similar fashion. Only experiments that are present can be exchanged which means that $\+ Z \subseteq \+ X$. This rule can be skipped if the set of experiments is empty. New experiments are added using rule $3+$ with similar requirements as rule $1+$. Well-defined subsets for using rule $3-$ are the same as for rule $2-$. For rules $4$ and $5$, the only requirement is that $\+ Z$ is a proper subset of $\+ Y$. When the chain rule is applied with rule $6+$, we require that the variables of the second product term is observed in the first term. When applied in reverse with rule $6-$, the variables of the second term must not be present in the first term.
+
+\subsubsection{Termination Conditions}
+
+Additionally, Table~\ref{tab:validsets} lists the termination condition: if it is satisfied by the current term to be expanded we know that the rule cannot be applied to it. The following simple lemma shows that when any of the termination conditions hold, no new distributions can be derived from it using the respective rule, which allows the search to directly proceed to the next rule.
+
+\begin{lemma} \label{lem:termination} Let $G$ be a semi-Markovian graph and let $\+ Y, \+ X$ and $\+ W$ be disjoint subsets of $\+ V$. Then all of the following are true:
+\begin{itemize}
+\item[(i)]{If $\+ W = \emptyset$, then rule $1-$ of Table~\ref{tab:rules} cannot be used.} 
+\item[(ii)]{If $\+ W = \emptyset$, then rule $2+$ of Table~\ref{tab:rules} cannot be used.}
+\item[(iii)]{If $\+ X = \emptyset$, then rule $2-$ of Table~\ref{tab:rules} cannot be used.}
+\item[(iv)]{If $\+ X = \emptyset$, then rule $3-$ of Table~\ref{tab:rules} cannot be used.}
+\item[(v)]{If $|\+ Y| = 1$, then rule $4$ of Table~\ref{tab:rules} cannot be used.}
+\item[(vi)]{If $|\+ Y| = 1$, then rule $5$ of Table~\ref{tab:rules} cannot be used.}
+\item[(vii)]{If $\+ W = \emptyset$, then rule $6+$ of Table~\ref{tab:rules} cannot be used. }
+\end{itemize}
+\end{lemma}
+\begin{proof}
+For (i), the set $\+ W$ is empty so the application of rule $1-$ using any subset $\+ Z$ would result in $P(\+ Y \given \doo(\+ X), \+ W \setminus \+ Z) = P(\+ Y \given \doo(\+ X), \+ W)$ which is already identified. For (ii), 
+ the set $\+ W$ is empty so no observation can be exchanged for an action using the second rule of do-calculus. For (iii), the set $\+ X$ is empty so no action can be exchanged for an observation using the second rule of do-calculus. For (iv), the  set $\+ X$ is empty so the application of rule $3-$ using any subset $\+ Z$ would result in $P(\+ Y \given \doo(\+ X \setminus \+ Z), \+ W) = P(\+ Y \given \doo(\+ X), \+ W)$ which is already identified.
+For (v) and (vi), the set $\+ Y$ only has a single vertex, so it cannot have a non-empty subset. For (vii), the set $\+ W$ is empty so no subset $\+ Z \subset \+ W$ can exist for the second input.
+\end{proof}
+
+\subsubsection{Rule Necessity}
+
+The rule 1 of do-calculus can be omitted as shown by \citet[Lemma 4]{huangvaltorta:complete}. Instead of inserting an observation using rule 1, we can insert an intervention and then exchange it for an observation. Similarly, an observation can be removed by first exchanging it for an intervention and then deleting the intervention. It follows that rules $1+$ and $1-$ of Table~\ref{tab:rules} are unnecessary for the search.
+
+\begin{figure}[!t]
+  \centering
+  \begin{tikzpicture}[scale=1.6]
+  \node [dot = {0}{0}{X_1}{left}] at (0,0) {};
+  \node [dot = {0}{0}{X_2}{right}] at (2,0) {};
+  \node [dot = {0}{0}{Z_1}{above}] at (1,1) {};
+  \node [dot = {0}{0}{Z_2}{below}] at (1,-1) {};
+  \node [dot = {0}{0}{W}{above right}] at (1,0) {};
+  \node [dot = {0}{0}{Y}{right}] at (3,0) {};
+
+  \draw [->] (X_1) -- (Z_1);
+  \draw [->] (X_1) -- (Z_2);
+  \draw [->] (X_2) -- (Z_1);
+  \draw [->] (X_2) -- (Z_2);
+  \draw [->] (Z_1) -- (Y);
+  \draw [->] (Z_2) -- (Y);
+  \draw [->] (Z_1) -- (W);
+  \draw [->] (Z_2) -- (W);
+  \draw [->] (X_1) -- (W);
+  \draw [->] (X_2) -- (W);
+  \end{tikzpicture}
+  \caption{A graph for the example where all rules of Table~\ref{tab:rules} are required for identifying the target quantity.}
+  \label{fig:necessary_rules}
+\end{figure}
+
+The following example shows that the remaining rules of Table~\ref{tab:rules} are all necessary. In the graph of Figure~\ref{fig:necessary_rules}, the causal effect $P(Y, X_1 \given \doo(X_2), W)$ can be identified from the inputs $P(W \given \doo(X_2), Y, X_1)$,  $P(Y \given \doo(X_2), Z_1, Z_2, X_1)$, $P(X_1 \given \doo(X_2), W)$, $P(Z_2, X_2 \given \doo(X_1))$ and $P(Z_1 \given \doo(X_1, Y), X_2)$ when all rules are available, but not when any individual rule is omitted. This can be verified by running the search algorithm presented at the beginning of Section~\ref{sect:search} or the more advanced algorithm of Section~\ref{sect:algo} with each rule turned off individually. 
+
+\subsubsection{Early Detection of Non-identifiable Instances}
+
+Worst-case performance of the search can be improved by detecting non-identifiable quantities directly based on the set of inputs before launching the search. The following theorem provides a sufficient criterion for non-identifiability.
+
+\begin{theorem} \label{thm:nonidsimple} Let $G$ be a semi-Markovian graph, let $Q = P(\+ Y \given \doo(\+ X ), \+ W)$ and let 
+\[
+  \+ P = \{P(\+ A_1 \given \doo(\+ B_1), \+ C_1), \ldots, P(\+ A_n \given \doo(\+ B_n), \+ C_n) \}.
+\] Then $Q$ is not identifiable from $\+ P$ in $G$ if 
+ \[
+ \+ Y \not\subseteq \bigcup_{i = 1}^n \+ A_i,
+ \]
+\end{theorem}
+
+\begin{proof}
+Since $ \+ Y \not\subseteq \bigcup_{i = 1}^n \+ A_i$, there exists a variable $Y^\prime \in \+ Y$ such that none of the sets $\+ A_i$ contain it. We construct two models, $M^1$ and $M^2$, such that $P^1(Y^\prime \given \doo(\Pa(Y^\prime)_G))=P^1(Y^\prime) = P^2(Y^\prime + c \given \doo(\Pa(Y^\prime)_G)) = P^2(Y^\prime + c )$ where $c \neq 0$ is a constant. For any child $V_i$ of $Y^\prime$, we define the structural equations so that $f_i^2(\Pa(V_i)_G \setminus Y^\prime,Y^\prime,U_i)=f_i^1(\Pa(V_i)_G \setminus Y^\prime,Y^\prime-c,U_i)$. For all other variables, the structural equations are the same for the models  $M^1$ and $M^2$. We have that $P^1(Y^\prime \given \doo(\+ X),\+ W) \neq P^2(Y^\prime \given \doo(\+ X), \+ W)$ while all inputs $\+ P$ are the same for the models $M^1$ and $M^2$. It follows that $P(\+ Y \given \doo(\+ X),\+ W)$ is not identifiable.
+\end{proof}
+In other words, Theorem~\ref{thm:nonidsimple} can be used to verify that the entire set $\+ Y$ of a target distribution $P(\+ Y \given \cdot)$ cannot be constructed from the inputs. If this is the case, the target quantity is not identifiable.
+
+\subsubsection{Heuristics} \label{sect:heuristic1}
+
+During the search, we always expand one term at a time through the rules and store the newly identified distributions. 
+In order for the search to perform fast, we need to decide which branches are the most promising and should therefore be expanded first. We can do this by defining a proximity function relating the source terms and the target query, and by always expanding the closest term first.
+% One way to define the proximity function is to select a flexible parametric function with unknown parameters and run a large number simulations to optimize these parameters. 
+%WE DO NOT WANT THE REVIEWERS TO ASK FOR THESE SIMULATIONS
+% AND WE DO NOT WANT TO UNDERLINE THE WEAK POINTS IN OUR WAY OF
+% TAKING JUST ONE
+%We choose a simpler approach and try to imitate
+Our suggestion here is motivated by the way an educated person might apply do-calculus in a manual derivation. Our chosen proximity function $h$ links the target distribution $P^{t} = P(\+ A_t \given \doo(\+ B_t),\+C_t)$ and a source distribution $P^{s} = P(\+ A_s \given \doo(\+B_s),\+ C_s)$ in the following way:
+\begin{align*}
+h(P^t,P^s) &= 10 |\+ A_t \cap \+ A_s| + 5 |\+ B_t \cap \+ B_s| + 3 |\+ C_t \cap \+ C_s| - 2|\+ A_t \setminus \+ A_s| - 2|\+ B_t \setminus \+ B_s| \\
+           &\quad - 2|\+ B_s \setminus \+ B_t| - |\+ C_t \setminus \+ C_s| - |\+ C_s \setminus \+ C_t|.
+\end{align*}
+Each input distribution and terms derived using the search are assigned into a priority queue, where the priority is determined by the value given by $h$. Distributions closer to the target are prioritized over other terms. 
+%The benefits of using the proximity function are realized in average performance, but worst-case performance is unaffected by the order in which the terms are expanded.
+%SUCH TALK SHOULD BE IN THE SIMULATIONS
+The weight 10 for the term $|\+ A_t \cap \+ A_s|$ indicates that having the correct response variables is considered as the first priority. Having the correct intervention is considered as the second priority (weight 5) and having the correct condition as the third priority (weight 3). The remaining terms in $h$ penalize variables that are in the target distribution but not in the source distribution or vice versa. Again, variables that are intervened on are considered to be more important than conditioning variables.
+
+\subsection{The Search Algorithm}\label{sect:algo}
+
+We take Algorithm~\ref{prog:naive} as our starting point and compile the results of Section~\ref{sect:improvements} into a new search algorithm called \texttt{do-search}. This algorithm is capable of solving generalized identifiability problems (row 7 in Table~\ref{tab:stateofart}) while streamlining the search process through a heuristic search order and elimination of redundant rules and subsets. The pseudo-code for \texttt{do-search} is shown in Algorithm~\ref{prog:do-search}.% which we implemented in C\texttt{++}.
+
+The algorithm begins by checking whether the query can be solved trivially without performing the search. This can happen if the target $Q$ is a member of the set of inputs or if Theorem~\ref{thm:nonidsimple} applies. Next, we note that each input distribution in the set $\+ P$ is marked as unexpanded at the beginning of the search. %A distribution is considered unexpanded if every rule of Table~\ref{tab:rules} has not yet been applied to it.% when it takes the role of the distribution in the Input column. 
+Distributions in $\+ P$ are expanded one at a time by applying every rule of Table~\ref{tab:rules} in every possible way.
+
+\begin{algorithm}[!t]
+  \begin{algorithmic}[1]
+  \INPUT{Target $Q = P(\+ Y \given \doo(\+ X),\+ W)$, a semi-Markovian graph $G$ and a set of known distributions $\+ P=\{P_1,\ldots,P_n\}$. }
+  \OUTPUT{A formula $F$ for $Q$ in terms of $\+ P$ or NA}
+  \State \textbf{if} $Q \in \+ P$, \textbf{return} $Q$
+  \State \textbf{if} target is non-identifiable by Theorem~\ref{thm:nonidsimple}, \textbf{then return} NA
+  \State \textbf{let} $\+ U$ be the set of unexpanded distributions, %add every $P_i \in \+ P$ to $\+ U$
+  initially $\+ U := \+ P$
+  \State \textbf{while} $\+ U \neq \emptyset$, \textbf{do}
+  %%%%
+    \State \quad \textbf{let} $P^\prime$ be the unexpanded distribution closest to the target: $P^\prime = \underset{P_i \in \+ U}{\mathrm{argmax}}\;h(Q, P_i)$
+    \State \quad \textbf{let} $\+ M$ be the set of rules of Table~\ref{tab:rules}
+    \State \quad Remove rules $1+$ and $1-$ from $\+ M$ 
+    \State \quad Remove those rules from $\+ M$ where termination criteria of Table~\ref{tab:validsets} hold for $P^\prime$
+    \State \quad \textbf{let} $\+ P^*$ be the set of all distributions derived from $P^\prime$ using the rules in $\+ M$
+    \State \quad \textbf{for} each new candidate distribution $P^* \in \+ P^*$, \textbf{do}
+    %%%%
+      \State \quad \quad \textbf{if} $P^*$ is already in $\+ P$, \textbf{then continue}
+      \State \quad \quad \textbf{if} conditions of Table~\ref{tab:validsets} are not satisfied by $P^*$, \textbf{then continue}
+      \State \quad \quad \textbf{if} an additional input is required that is not in $\+ P$, \textbf{then continue}
+      \State \quad \quad \textbf{if} d-separation criteria of Table~\ref{tab:rules} are not satisfied by $G$, \textbf{then continue}
+      \State \quad \quad \textbf{if} $P^* = Q$, \textbf{then}
+      \State \quad \quad \quad Derive a formula $F$ for $Q$ by backtracking.
+      \State \quad \quad \quad \textbf{return} $F$
+      \State \quad \quad Add $P^*$ to $\+ P$, add $P^*$ to $\+ U$
+    %%%%
+    \State \quad Mark $P^\prime$ as expanded: remove $P^\prime$ from $\+ U$
+  %%%%
+  \State \textbf{return} NA
+  \end{algorithmic}
+  \caption{\texttt{do-search}}
+  \label{prog:do-search}
+\end{algorithm}
+
+The iteration over the unexpanded distributions $\+ U$ %no longer proceeds in the order in which the distributions are derived. 
+proceeds as follows (lines 4--5).
+Each input distribution and terms derived from it using the search are assigned into a priority queue, where the priority is determined by the value given by the proximity function $h$. Distributions closer to the target are expanded first. In the implementation, only the actual memory addresses of the distribution objects are placed into the queue. The set $\+ P$ is implemented as a hash table that serves as a container for all input distributions and those derived from them. Each new distribution is assigned a unique index that also serves the hash function for this table. The distribution objects contained in the table are represented uniquely by three integers corresponding to the sets $\+ A, \+ B,$ and $\+ C$ of the general form $P(\+ A \given \doo(\+ B), \+ C)$. The distribution objects also contain additional auxiliary information such as which rule was used to derive it, whether it is expanded or not and from which distribution it was obtained. This information is used to construct the derivation if the target is found to be identifiable. %For missing data problems, a fourth integer is added to indicate which response indicators are currently enabled to distinguish distributions such as $P(R_X)$ and $P(R_X^1)$ from each other. 
+
+Multiple distributions can share the same value of the proximity function $h$. In the case that multiple candidates share the maximal value, the one that was derived the earliest takes precedence. When the unexpanded distribution currently closest to the target is determined, the rules of Table~\ref{tab:rules} are applied sequentially for all valid subsets dictated by Table~\ref{tab:validsets}. When rules one, two and three of do-calculus are considered the necessary d-separation criteria is checked in $G$ (line 14). 
+For the chain rule, the presence of the required second input is also verified. The reverse lookup is implemented by using another hash table, where the hash function is based on the unique representation of each distribution object. The values contained in the table are the indices of the derived distributions. The same hash table is also used to verify that we do not derive again distributions that have been previously found to be identifiable from the inputs.
+
+We construct a set $\+ M$ of applicable rules for each unexpanded distribution $P^\prime$ %through a reduction of the search space SEARCH SPACE IS NODES I THINK
+using the termination criteria of Table~\ref{tab:validsets} (lines 6--8). If all the necessary criteria have been found to hold for an applicable rule and a subset, the newly derived distribution $P^*$ is added to the set of known distributions and placed into the priority queue as an unexpanded distribution. When the applicable rules and subsets have been exhausted for the current distribution $P^\prime$, it is marked as expanded and removed from the queue (line 19). If the target distribution is found at any point (line 15), a formula is returned for it in terms of the original inputs. Alternatively, we can also continue deriving distributions to obtain different search paths to the target that can possibly produce different formulas for it. If instead we exhaust the set of unexpanded distributions by emptying the queue, the target is deemed non-identifiable by the search (line 20).
+
+%\begin{program}[H]
+%\begin{minipage}{8.3cm}
+%{\sffamily \small \vspace{2mm} {{\sffamily
+%\begin{list}{}{\leftmargin=0em}
+%\item Input: target $Q = P(\+ y \given \doo(\+ x),\+ w)$, a semi-Markovian graph $G$, and a set of known distributions $\+ P=\{P_1,\ldots,P_n\}$.
+%\item Initialize set $P$ as empty.
+%\item While some input distribution $P_k$ is not in $P$:
+%\begin{list}{}{\leftmargin=0.7em}
+%\item Put $P_k$ into the list $P$.% if it is not there already.
+%\item Apply Theorem~\ref{thm:nonidsimple} to the set $\+ P$, return NA if target is non-identifiable.
+%\item While $\+ P$ contains unexpanded distributions:
+%\begin{list}{}{\leftmargin=1em}
+%\item Let $P^\prime$ be the distribution that is closest to the target: $P^\prime = \underset{P_i \in \+ P}{\mathrm{argmax}}\;h(Q, P_i)$.
+%\item Derive the distributions from $P_i$ using the rules in Table~\ref{tab:rules} and require that:
+%\begin{itemize}{}{\leftmargin=1.3em}
+% \item The conditions of Table~\ref{tab:validsets} are satisfied.
+% \item The required d-separation conditions are satisfied by $G$.
+ %\item All vars appearing in the derived distr. are ancestors of $Y{} \cup W$.
+ %(see \citet{Shpitser_conditional})
+%\acomment{Is it clear that this happens in this general case?}
+%\item If an additional input is required, check that it is in $\+ P$.
+%\item The derived distribution is not already in $\+ P$.
+%\end{itemize}
+%%\item Add the new distributions to $\+ P$.
+%\item Mark $P_i$ as expanded.
+%\item If $P(\+ y \given \doo(\+ x),\+ w)$ was derived, return.
+%\end{list}
+%\end{list}
+%\item Return $\textrm{NA}$.
+%\end{list}
+%}}
+% \vspace{-2.7mm}
+%}
+%\end{minipage}
+%\caption{\texttt{do-search}.
+%\label{prog:do-search}}
+%\end{program}
+
+We keep track of the rules that were used to derive each new distribution in the search. This allows us to construct a graph of the derivation where each root node is a member of the original input set $\+ P$ and their descendants are the distributions derived from them during the search. Each edge represents a manipulation of the parent node(s) to obtain the child node. For an identifiable target quantity, the formula $F$ is obtained by backtracking the chain of manipulations recursively until the roots are reached (line 16). The derivation of the example in the beginning of Section~\ref{sect:search} depicted in Figure~\ref{fig:simple_search}(\subref{fig:derivation}) can be efficiently found by applying this procedure. %Representing marginalization and conditioning over distributions in the set of original inputs $\+ P$ is straightforward, but necessitates the use of summations to represent them in more complicated derivations. This feature was also shown in the example.
+
+\subsection{Soundness and Completeness Properties}
+We are ready to establish some key theoretical properties of \texttt{do-search}. The first theorem considers the correctness of the search.
+
+\begin{theorem}[Soundness] \label{thm:soundness} \emph{\texttt{do-search}} always terminates: if it returns an expression for the target $Q$, it is correct, if it returns NA then $Q$ is not identifiable with respect to the rules of do-calculus and standard probability manipulations (in Table~\ref{tab:rules}).
+\end{theorem}
+\begin{proof}
+Each new distribution is derived by using only well-defined manipulations as outlined by Table~\ref{tab:validsets} and by ensuring that the required d-separation criteria hold in $G$ when rules of do-calculus are concerned. It follows that if the search terminates and returns a formula for the target distribution, it was reached from the set input distributions through a chain of valid manipulations.
+If \texttt{do-search} terminates as a result of Theorem~\ref{thm:nonidsimple}, we are done.
+Suppose now that Theorem~\ref{thm:nonidsimple} does not apply. By definition, \texttt{do-search} enumerates every rule of Table~\ref{tab:rules} for every well-defined subset of Table~\ref{tab:validsets}. By Lemma~\ref{lem:termination}, no distributions are left out by applying the termination criteria of Table~\ref{tab:validsets}. We know that if rules $1-$ and $1+$ of Table~\ref{tab:validsets} are omitted, the distributions generated by these rules can be obtained by a combination of rules $2-, 2+, 3-$ and $3+$. Furthermore, the order in which the distributions are expanded has no effect, as every possible manipulation is still carried out. The search will eventually terminate, since distributions that have already been derived are not added again to the set of unexpanded distributions and there are only finitely many ways to apply the rules of Table~\ref{tab:rules}.
+\end{proof}
+
+%\begin{theorem}[Soundness] \label{thm:soundness} Whenever \texttt{do-search} returns an expression for the target $Q$, it is correct.
+%\end{theorem}
+%\begin{proof}
+%Each new distribution is derived by using only well-defined manipulations as outlined by Table~\ref{tab:validsets} and by ensuring that the required d-separation criteria hold in $G$ when rules of do-calculus are concerned. It follows that if the search terminates and returns a formula for the target distribution, it was reached from the set input distributions through a chain of valid manipulations.
+%\end{proof}
+%
+%
+%%CANNOT SAY DOES NOT RETURN SINCE THIS IS ALSO THE CASE IN INFINITE LOOP
+%\begin{theorem} \label{thm:completeness1} If \texttt{do-search} does not return an expression for the target $Q$, it is not identifiable with respect to the rules of do-calculus, standard probability manipulations \acomment{We cannot say this, we cannot be sure if we have implemented the whole of prob. calc. in fact we have not implemented context specific reasoning which can be argued to be part of prob calc.} \scomment{how about marginalization, conditioning and chain rule of probability instead of standard probability manipulations} and manipulations defined by missing data mechanisms.
+%\end{theorem}
+%\begin{proof}
+%If \texttt{do-search} terminates as a result of Theorem~\ref{thm:nonidsimple}, we are done.
+%Suppose now that Theorem~\ref{thm:nonidsimple} does not apply. By definition, \texttt{do-search} enumerates every rule of Table~\ref{tab:rules} for every well-defined subset of Table~\ref{tab:validsets}. By Lemma~\ref{lem:termination}, no distributions are left out by applying the termination criteria of Table~\ref{tab:validsets}. We know that if rules -1 and 1 of Table~\ref{tab:validsets} are omitted, the distributions generated by these rules can be obtained by a combination of rules -2, -3, 3 and 3. Furthermore, the order in which the distributions are expanded has no effect, as every possible manipulation is still carried out. The search will eventually terminate, since distributions that have already been derived are not added again to the set of unexpanded distributions and there are only finitely many ways to apply the rules of Table~\ref{tab:validsets}. 
+%\end{proof}
+%
+%\acomment{We could say something about not getting stuck in an infinite loop?} \scomment{This is mentioned in the above theorem}
+%
+%The following is now immediate. \acomment{I do not see the point in including the following corollary.}
+%
+%\begin{corollary} \label{thm:do-search} A causal effect $P(\+ y \given \doo(\+ x), \+ w)$ is identifiable (with respect to do-calculus, standard probability calculus and manipulations defined by missing data mechanisms) from a set of distributions $\+ P$ in $G$ if and only if \text{do-search} returns a formula for it.
+%\end{corollary}
+
+
+
+%Corollary~\ref{thm:do-search}
+
+The following theorem provides a completeness result in connection to existing identifiability results. Since do-calculus has been shown to be complete with respect to (conditional) causal effect identifiability, $z$-identifiability and transportability, it follows that \texttt{do-search} is complete for these problems as well. 
+\begin{theorem}[Completeness] \label{thm:completeness2} If \emph{\texttt{do-search}} returns NA in the settings in rows 1--4 in Table~\ref{tab:stateofart}, then the query is non-identifiable.
+\end{theorem}
+\begin{proof}
+Do-calculus has been shown complete in these settings. The rules of probability calculus encode what is used in the algorithms as can be seen for example from the proofs of Theorem~7 and Lemmas~4--8 of \citep{Shpitser}. %The parameterizations producing same observations but different query can be found in the original papers. ????
+\end{proof}
+It is not known whether the rules implemented in \texttt{do-search} are sufficient for other more general identifiability problems since it is conceivable that some additional rules might exist that would be required to achieve completeness. One such generalization is the inclusion of missing data in the causal model, which we present in Section~\ref{sect:missingness}. However, if one were to show that do-calculus (or any other set of rules included in \texttt{do-search}) is complete for some special case of the generalized identifiability problem, then \texttt{do-search} would be complete for this problem as well. In the following sections we will use the term \enquote{identifiable by \texttt{do-search}} to refer to causal queries that can be indentified by \texttt{do-search}.
+
+\subsection{Simulations}
+%\acomment{Lets make it quite short.}
+
+We implemented \texttt{do-search}  (Algorithm~\ref{prog:do-search}) in C\texttt{++}. Here we report the findings of a simulation study to assess the running time performance of \texttt{do-search} and the impact of the improvements outlined in Section~\ref{sect:improvements} as well as the search heuristic described in Section~\ref{sect:heuristic1}.
+
+Our synthetic simulation scenario consisted of $1071$ semi-Markovian causal graphs of $10$ vertices that were generated at random by first generating a random topological order of the vertices followed by a random lower triangular adjacency matrices for both directed and bidirected edges. Graphs without a directed path from $X$ to $Y$ were discarded. We sampled sequentially input distributions of the form $P(\+ A \given \doo(\+ B), \+ C)$ at random by generating disjoint subsets such that $\+ A$ is always non-empty. This was continued until the target quantity $P(Y \given \doo(X))$ was found to be identifiable by the search. Then for each graph, we recorded the search times for set of inputs that first resulted in the query to be identified and for the last set such that the target was non-identifiable. In other words, each graph generates two simulation instances, one for an identifiable query and one for a non-identifiable query. This setting directly corresponds to the setting of partially overlapping experimental data sets discussed in Section~\ref{sect:new_scenarios} for which no other algorithmic solutions exist.
+
+To understand the impact of the search heuristic and the various improvements, we compare four different search configurations: the basic \texttt{do-search} without the search heuristic or improvements\footnote{In this configuration, terms are expanded in the order they were identified; the conditions in Table~\ref{tab:validsets} are not checked.}, one that only uses the search heuristic, one that only uses the improvements of Section~\ref{sect:improvements} and one that uses them both. 
+
+\begin{figure}[!t]
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_id_hi.pdf}
+    \caption{}
+    \label{fig:scatter_id_hi}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_id_h.pdf}
+    \caption{}
+    \label{fig:scatter_id_h}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_id_i.pdf}
+    \caption{}
+    \label{fig:scatter_id_i}
+  \end{subfigure}
+  \caption{Scatter plots of the search times from identifiable instances under different search configurations compared to the basic \texttt{do-search} without a heuristic or improvements. %\scomment{There is no 4th scatter, there used to be an option for the increasing cardinality, but it was removed since it had no impact to the runtimes. This is now mentioned in the discussion in the list of discarded approaches} %\acomment{The benefit of the heuristic is clear, but obvious anyway. The improvements only show only very mild benefit. However it seems the benefit is larger when the running times get higher, hence it seems that if we were to run instances that take 1000s, the effect would be rather large. It would be great to run these, but we can also point this in the text. } \acomment{Would like to see the 4th scatter. In fact the idea was to plot the best and then each individual improvement off.} 
+  }
+  \label{fig:scatter_id}
+\end{figure}
+
+Figure~\ref{fig:scatter_id} shows the search times of the configurations compared to the basic configuration for identifiable instances. Most importantly, a vast majority of instances (93 \%) are solved faster than the basic configuration when both heuristics and improvements are used. The average search time with both heuristics and improvements enabled was 32.7 seconds and 75.2 seconds for the basic configuration. The search heuristic provides the greatest benefit for these instances as can be seen from Figure~\ref{fig:scatter_id}(\subref{fig:scatter_id_h}). Using a heuristic can also hinder performance by leading the search astray and by causing additional computational steps through the evaluation of the proximity function. For example, there is a small number of instances where the search time is over ten times slower than the basic configuration when using a heuristic. Fortunately, there are several instances in the opposite direction, where the heuristic provides over one hundred fold reduction in search time. Curiously, even using the improvements sometimes results in slower search times. This is most likely due to the elimination of rule 1 of do-calculus, since it may be the case that the basic search is able to use this rule to reach the target distribution faster. More importantly, Figure~\ref{fig:scatter_id}(\subref{fig:scatter_id_i}) shows that the improvements clearly benefit the search. Furthermore, the benefit tends to increase as the instances get harder. 
+
+Figure~\ref{fig:scatter_nonid} shows the search times of the configurations for non-identifiable instances. Relying only on a search heuristic provides no benefit here, as expected. The improvements to the search are most valuable for these instances, and in this scenario every non-identifiable instance was solved faster than baseline using the improvements, and when applied with the heuristic only three instance were slower than baseline. The average search time with both heuristic and improvements enabled was 105.2 seconds and 139.7 seconds for the basic configuration. The almost zero second instances are a result of Theorem~\ref{thm:nonidsimple} when no search has to be performed in order to determine the instance to be non-identifiable. The benefit of the improvements tends to increase as the instances get harder also for these instances. 
+
+\begin{figure}[!t]
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_nonid_hi.pdf}
+    \caption{}
+    \label{fig:scatter_nonid_hi}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_nonid_h.pdf}
+    \caption{}
+    \label{fig:scatter_nonid_h}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{scatter_nonid_i.pdf}
+    \caption{}
+    \label{fig:scatter_nonid_i}
+  \end{subfigure}
+  \caption{Scatter plots of the search times from non-identifiable instances under different search configurations compared to the baseline configuration. }
+  \label{fig:scatter_nonid}
+\end{figure}
+
+Finally we examined the average run time performance of \texttt{do-search}, with all improvements and heuristics enabled. We replicated the previously described simulation scenario with the same number of instances (1071) for graphs up to 10 vertices. Figure~\ref{fig:time_by_n} shows the boxplots of search times on a log-scale for graphs of different size, including both identifiable and non-identifiable instances. Note that for every graph size there are a number of easily solvable instances that show up as outliers in this plot. 10-node instances are solved routinely under 100 seconds. In this plot, the running times increase exponentially with increasing graph size (or number of variables).
+
+\begin{figure}[!t]
+  \centering
+  \includegraphics[width=0.45\textwidth]{time_by_n.pdf}
+  \caption{Boxplots of search times for both identifiable and non-identifiable instances in graphs of $n = 4,\ldots,10$ vertices. The vertical axis uses a logarithmic scaling. Instances where the search time was less than $10^{-5}$ seconds were omitted for clarity.}
+  \label{fig:time_by_n}
+\end{figure}
+%Based on the simulation results, the time complexity of \texttt{do-search} seems to be exponential.
+
+\section{New Causal Effect Identification Results} \label{sect:new_results}
+
+We present a number of results for various identifiability problems to showcase the versatility of \texttt{do-search}.
+
+\subsection{Multiple Data Sources with Partially Overlapping Variable Sets}
+Earlier generalizations of the identifiability problem assume nested experiments or entire distributions with the exception of surrogate outcome identifiability \citep{Tikka:surrogate} which also has its own intricate assumptions regarding the available distributions. None of these assumptions are needed in \texttt{do-search} and it can be used to solve identifiability problems from completely arbitrary collections of input distributions.
+%Generalizations of the identifiability problem typically consider a restricted set of available experimental distributions, such as in the case of $z$-identifiability where it is assumed that for a set $\+ Z$, every distribution of the form $P(\+ V \setminus \+ Z^\prime \given \doo(\+ Z^\prime)),\,\+ Z^\prime \subseteq \+ Z$ is available \citep{Bareinboim:zidentifiability}. Another assumption is that the full observed probability distribution $P(\+ V)$ over the observed variables is always available.
+
+%In some cases, a more general problem of combining experimental and observational data sources can be solved by representing and solving it as a transportability problem \citep{Tikka:surrogate}. Even though this formulation is more general than $z$-identifiability, several assumptions regarding the experimental distributions still have to be made. Fortunately, we can apply \texttt{do-search} for a completely arbitrary collection of input distributions.
+
+We showcase identifiability from multiple experimental distributions by two examples. In the first example we consider identifiability of $P(Y_1,Y_2 \given \doo(X_1,X_2))$ in the graph of Figure~\ref{fig:obsandexp_examples}(\subref{fig:obsandexp_1}) from $P(\+ V)$, $P(Y_1,Y_2 \given \doo(X_1),Z,W,X_2)$, $P(W \given \doo(X_1, X_2))$, $P(Z \given \doo(X_2))$ and $P(Y_2 \given \doo(X_1),Y_1,Z,W,X_2)$. The target quantity is identifiable and \texttt{do-search} produces the following formula for it
+\begin{align*}
+&\sum_{Z}\left( P(Z^\prime \given \doo(X_2))\sum_{W}\!P(W \given \doo(X_1,X_2))\left(\sum_{Y_2} P(Y_1,Y_2 \given \doo(X_1),Z,W,X_2) \right) \right. \, \times \\
+&\quad \left. \frac{P(Y_1,Y_2\given \doo(X_1),Z,W,X_2)}{\sum_{Y^\prime_2} P(Y_1,Y^\prime_2 \given \doo(X_1),Z,W,X_2)} \right).
+\end{align*}
+In the second example we consider identifiability of $P(Y_1,Y_2 \given \doo(X_1,X_2))$ in the graph of Figure~\ref{fig:obsandexp_examples}(\subref{fig:obsandexp_2}) from $P(\+ V)$, $P(Y_1 \given \doo(X_1),Y_2,W,Z,X_2)$, $P(X_2,W \given \doo(X_1))$, $P(X_2 \given \doo(X_1,W))$, $P(Y_2 \given \doo(X_1),Z,W,X_2)$, $P(Y_2 \given \doo(Z),X_1,W,X_2)$, and $P(Y_1,Y_2 \given \doo(Z),W,X_1,X_2)$. Again, the target quantity is identifiable and \texttt{do-search} outputs the following formula
+\begin{align*}
+\sum_{W}&\left(P(W \given \doo(X_1),X_2) \sum_{X_2} P(X_2 \given \doo(X_1,W)) \times \right. \\
+&\left.\frac{\sum_{Z}\! P(X_2,W,Z \given X_1)P(Y_1,Y_2 \given \doo(X_1),X_2,W,Z)}{\sum_{Y^\prime_1,Y^\prime_2,Z}\! P(X_2,W,Z \given X_1)P(Y^\prime_1,Y^\prime_2 \given \doo(X_1),X_2,W,Z)} \right).
+\end{align*}
+This example shows that a heuristic approach can also help us to find shorter formulas. If we run \texttt{do-search} again without the heuristic in this instance, the output formula is instead
+\begin{align*}
+&\sum_{W,Z} \left(P(Z)P(W \given X_2,X_1,Z) \sum_{X_2} P(X_2 \given X_1,Z) \sum_{Y_2} P(Y_2 \given \doo(X_1),X_2,W,Z)\right. \, \times \\
+&\quad\left. P(Y_1 \given \doo(X_1),X_2,Y_2,W,Z) \frac{P(Y_2 \given \doo(X_1),X_2,W,Z)P(Y_1 \given \doo(X_1),X_2,Y_2,W,Z)}{\sum_{Y^\prime_2} P(Y^\prime_2 \given \doo(X_1),X_2,W,Z)P(Y_1 \given \doo(X_1),X_2,Y^\prime_2,W,Z)} \right).
+\end{align*}
+
+\begin{figure}[!t]
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.6]
+    \node [dot = {0}{0}{X_1}{above left}] at (0,0) {};
+    \node [dot = {0}{0}{X_2}{above left}] at (1,0) {};
+    \node [dot = {-0.1}{-0.1}{Y_1}{above right}] at (2,-1) {};
+    \node [dot = {0}{0}{Y_2}{above right}] at (3,-1.5) {};
+    \node [dot = {0}{0}{Z}{above}] at (2,-0.5) {};
+    \node [dot = {0.1}{0.1}{W}{below left}] at (1,-0.5) {};
+
+    \draw [->] (X_1) -- (W);
+    \draw [->] (X_2) -- (Z);
+    \draw [->] (W) -- (Y_1);
+    \draw [->] (Z) -- (Y_1);
+    \draw [->] (Y_1) -- (Y_2);
+
+    \draw [<->,dashed] (X_1) to [bend right=50] (Y_1);
+    \draw [<->,dashed] (W) to [bend right=50] (Y_2);
+    \draw [<->,dashed] (W) to [bend left=30] (Y_1);
+    \draw [<->,dashed] (Y_1) to [bend right=30] (Y_2);
+    \draw [<->,dashed] (Y_2) to [bend right=30] (Z);
+
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:obsandexp_1}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.6]
+    \node [dot = {0}{0}{X_1}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{X_2}{above left}] at (1,1.5) {};
+    \node [dot = {0}{0}{Y_1}{above left}] at (2,1) {};
+    \node [dot = {0}{0}{Y_2}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{Z}{right}] at (2.5,0.5) {};
+    \node [dot = {0}{0}{W}{left}] at (1.5,0.5) {};
+
+    \draw [->] (X_2) -- (W);
+    \draw [->] (X_1) -- (Y_2);
+    \draw [->] (X_1) -- (X_2);
+    \draw [->] (W) -- (Y_1);
+    \draw [->] (W) -- (Y_2);
+    \draw [->] (Y_2) -- (Y_1);
+    \draw [->] (Z) -- (Y_2);
+
+    \draw [<->,dashed] (Y_2) to [bend right=30] (X_1);
+    \draw [<->,dashed] (X_2) to [bend left=50] (Z);
+    \draw [<->,dashed] (Y_1) to (Z);
+    \draw [<->,dashed] (Y_1) to [bend right=20] (X_1);
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:obsandexp_2}
+  \end{subfigure}
+  \caption{Graphs for the examples on identifiability problems combining both observational and experimental distributions.}
+  \label{fig:obsandexp_examples}
+\end{figure}
+
+
+\subsection{Combining Transportability and Selection Bias}
+Input distributions that originate from multiple sources while being simultaneously affected by selection bias can be considered with \texttt{do-search}. This kind of problem cannot be solved with algorithms RC or TR$^{\textrm{mz}}$ of Table~\ref{tab:stateofart}. As an example we consider one source domain and a target domain with two input data sets: a biased distribution $P(X,Y,Z \given S)$ from the target domain and an unbiased experimental distribution $P(Y,Z \given \doo(X), T)$ from the source domain. We evaluate the query $P(Y \given \doo(X))$ in the graph of Figure~\ref{fig:combine} using these inputs. In the figure transportability node $T$ is depicted as a gray square and selection bias node $S$ is depicted as an open double circle.
+\begin{figure}[!t]
+  \centering
+  \begin{tikzpicture}[scale=1.7]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Z}{above}] at (1,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [sb = {0}{0}{S}{below}] at (0,-0.5) {};
+    \draw [black, inner sep = 0.5pt] (0,-0.5) circle (1.15pt);
+    \node [tr = {0}{0}{T}{below}] at (1,-0.5) {};
+    \draw [->] (X) -- (Z);
+    \draw [->] (Z) -- (Y);
+    \draw [->] (X) -- (S);
+    \draw [->] (T) -- (Z);
+
+    \draw [<->,dashed] (X) to [bend left=50]  (Y);
+  \end{tikzpicture}
+  \caption{Graph that contains both selection bias and transportability nodes.}
+  \label{fig:combine}
+\end{figure}
+\noindent
+The query is identifiable and \texttt{do-search} outputs the following formula for it
+\[
+ P(Y \given \doo(X)) = \sum_{Z} P(Y \given \doo(X),Z,T) \sum_{Y^\prime} P(Z,Y^\prime \given X,S).
+\]
+
+\subsection{Recovering from Multiple Sources of Selection Bias}
+We present an example where bias originates from two sources with two input data sets: a distribution affected by both biasing mechanisms $P(X,Y,Z,W_1,W_2 \given S_1,S_2)$ and a distribution affected only by a single bias source $P(Z \given S_1)$. We evaluate the query $P(Y \given \doo(X))$ in the graph of Figure~\ref{fig:twobias} using the inputs.
+\begin{figure}[!t]
+  \centering
+  \begin{tikzpicture}[scale=1.3]
+    \node [dot = {0}{0}{X}{below}] at (0,0) {};
+    \node [dot = {0}{0}{Z}{above}] at (2,2) {};
+    \node [dot = {0}{0}{Y}{below right}] at (3,0) {};
+    \node [dot = {0}{0}{W_2}{below right}] at (1,1) {};
+    \node [dot = {0}{0}{W_1}{above left}] at (-0.5,1.5) {};
+    \node [sb = {0}{0}{S_1}{below}] at (-1,0) {};
+    \draw [black, inner sep = 0.5pt] (-1,-0) circle (1.40pt);
+    \node [sb = {0}{0}{S_2}{below}] at (2,1) {};
+    \draw [black, inner sep = 0.5pt] (2,1) circle (1.40pt);
+    \draw [->] (X) -- (Y);
+    \draw [->] (W_2) -- (X);
+    \draw [->] (Z) -- (W_2);
+    \draw [->] (Z) -- (Y);
+    \draw [->] (Z) -- (S_2);
+    \draw [->] (W_1) -- (X);
+    \draw [->] (W_1) -- (W_2);
+    \draw [->] (W_1) -- (S_1);
+  \end{tikzpicture}
+  \caption{Graph where two selection bias nodes are present.}
+  \label{fig:twobias}
+\end{figure}
+\noindent
+The query is identifiable and the following formula is obtained by  \texttt{do-search}
+\[
+ \sum_{Z} P(Z \given S_1)P(Y \given X,Z,W_1,W_2,S_1,S_2).
+\]
+
+\section{Extension to Missing Data Problems} \label{sect:missingness}
+
+The SCM framework can be extended to describe missing data mechanisms. For each variable $V_i$ that is not fully observed, two special vertices are added to the causal graph. The vertex $V_i^*$ is the observed proxy variable which is linked to the true variable $V_i$ via the missingness mechanism \citep{missing,Mohan2013}:
+\begin{equation} \label{eq:missingness}
+V_i^* = \begin{cases}
+  V_i, & \mathrm{if}\; R_{V_i} = 1, \\
+  \NA,  & \mathrm{if}\; R_{V_i} = 0,
+  \end{cases}
+\end{equation}
+where $\NA$ denotes a missing value and $R_{V_i}$ is called the response indicator (of $V_i$). In other words, the variable $V_i^*$ that is actually observed matches the true value $V_i$ if it is not missing ($R_{V_i} = 1$). Figure~\ref{fig:m2examples} depicts some examples of graphs containing missing data mechanisms.
+
+The observed vertices of the causal diagram are partitioned into four categories
+\[
+\+ V = \+ V_o \cup \+ V_m \cup \+ V^* \cup \+ R,
+\]
+where $\+ V_o$ is the set of fully observed variables, $\+ V_m$ is the set of partially observed variables, $\+ V^*$ is the set of all proxy variables and $\+ R$ is the set of response indicators. Our method is also capable of processing queries when the causal graph contains missing data mechanisms where the sets $\+ A_i, \+ B_i$ and $\+ C_i$ of the input distributions are restricted to contain observed variables in $\+ V^* \cup \+ V_o \cup \+ R$. An active response indicator $R_{V_i} = 1$ is denoted by $R_{V_i}^1$. Proxy variables are not explicitly shown in the graphs of this section for clarity.
+
+Determining identifiability is more challenging under missing data. As evidence of this, even some non-interventional queries require the application of do-calculus \citep{mohan2018}. Furthermore, the rules used in the search of Table~\ref{tab:rules} are no longer sufficient and deriving the desired quantity necessitates the use of additional rules that stem from the definition of the proxy variables and the response indicator. Each new partially observed variable also has a higher impact on computational complexity, since the corresponding response indicator and proxy variable are always added to the graph as well. 
+
+Table~\ref{tab:md_rules} extends the set of rules of Table~\ref{tab:rules} to missing data problems by providing manipulations related to the missingness mechanism. The missing data column lists extended requirements for the valid subset if missing data mechanisms are present in the graph. The following notation is used in the table: $\+ R^a$ is the set of active response indicators for the current term, $\+ V^t$ denotes the set of partially observed variables corresponding to the proxy variables present in the current term. and $\+ V^p$ denotes the set of proxy variables corresponding to the partially observed variables present in the current term. For example, if the current term is $P(Y,Z^* \given X^*),$ the aforementioned sets would be $\+ V^t = \{Z, X\}$ and $\+ V^p = \{Y^*\}$. The sets $\+ Z^t$ and $\+ Z^p$ are defined accordingly with respect to the set $\+ Z$. 
+
+\begin{table}[!t]
+\resizebox{1.00\textwidth}{!}{
+\begin{small}
+\begin{tabular}{lllll}
+ Rule & Input
+& Additional Input
+ & Output
+ & Description
+  \\
+\hline
+  $1+$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X), \+ Z, \+ W)$ & Insertion of observations \\
+  $1-$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X), \+ W \setminus \+ Z)$ & Deletion of observations \\
+  $2+$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X,\+ Z), \+ W \setminus \+ Z)$ & Obs. to action exchange \\
+  $2-$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X \setminus \+ Z),\+ Z, \+ W)$ & Action to obs. exchange \\
+  $3+$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X,\+ Z), \+ W)$ & Insertion of actions \\
+  $3-$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \given \doo(\+ X \setminus \+ Z), \+ W)$ & Deletion of actions \\
+\hline
+  $ 4$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \setminus \+ Z \given \doo(\+ X),\+ W)$ & Marginalization \\
+  $ 5$ & $P(\+Y \given \doo(\+X),\+W)$ && $P(\+ Y \setminus \+ Z \given \doo(\+ X),\+ Z,\+ W)$ & Conditioning \\
+  $6+$ & $P(\+Y \given \doo(\+X),\+W)$ & $P(\+ Z \given \doo(\+X),\+ W \setminus \+ Z)$ & $P(\+Y, \+Z \given \doo(\+ X),\+W)$ & Chain rule multiplication \\
+  $6-$ & $P(\+Y \given \doo(\+X),\+W)$ & $P(\+ Z \given \doo(\+ X), \+ Y,\+ W)$  & $P(\+Y, \+Z \given \doo(\+ X),\+W)$ & Chain rule multiplication \\
+\hline
+  $7+$  & $P(\+Y \given \doo(\+X),\+W)$ & $P(\+Z \given \doo(\+X),\+W)$           & $P(\+ Y \setminus \+ Z \given \doo(\+X),\+Z,\+W)$ & Chain rule conditioning\\
+  $7-$  & $P(\+Y \given \doo(\+X),\+W)$ & $P(\+Y, \+ Z \given \doo(\+X),\+W \setminus \+ Z)$       & $P(\+ Z \given \doo(\+X),\+W)$ & Chain rule conditioning    \\ 
+  $8.1$ & $P(\+Y \given \doo(\+X),\+W)$          &                                     & $P(\+Y \given \doo(\+X),\+W \setminus \+ Z, \+ Z^1)$ & Enable response indicators \\
+  $8.2$ & $P(\+Y \given \doo(\+ X),\+ W)$        &                                     & $P(\+Y \setminus \+ Z, \+ Z^1 \given \doo(\+ X),\+ W)$ & Enable response indicators  \\ 
+  $9.1$ & $P(\+ Y \given \doo(\+X),\+ W,\+ R_{\+ Z}^1)$ &                                    & $P(\+ Y \given \doo(\+X),\+ W \setminus \+ Z^*,\+ Z,\+ R_{\+ Z}^1)$ &Proxy variable exchange \\
+  $9.2$ & $P(\+ Y \given \doo(\+X),\+W,\+ R_{\+ Z}^1)$   &                                    & $P(\+ Y \setminus \+ Z^*,\+Z \given \doo(\+X),\+W,\+ R_{\+ Z}^1)$ & Proxy variable exchange  \\
+  $9.3$ & $P(\+ Y, \+ R_{\+ Z}^1 \given \doo(\+X),\+W)$  &                                    & $P(\+ Y \setminus \+ Z^*,\+Z, \+ R_{\+ Z}^1 \given \doo(\+X),\+W)$ & Proxy variable exchange
+\end{tabular}
+\end{small}
+}
+\caption{Extended set of rules for missing data problems used to manipulate input distributions.  Rules $1\pm, 2\pm, 3\pm, 4, 5$ and $6\pm$ are the same as in Table~\ref{tab:rules}. For rules $7\pm$, the additional input has also been identified. The sets $\+ Y, \+ X, \+ W$ and $\+ R_{\+ Z}$ are disjoint. The roles of the sets $\+ Z$ and $\+ R_{\+ Z}$ depend on the rule being applied.}
+\label{tab:md_rules}
+\end{table}
+\noindent
+
+Rules $7+$ and $7-$ perform conditioning using the chain rule. These rules are necessary in the case that set $\+ Z$ contains missing data mechanisms that have been enabled and thus cannot be marginalized over when attempting to use rule $5$. The input is then of the following form, for example in the case of rule $7+$:
+\[
+P(\+ Y ,\+ Z \given \doo(\+ X),\+ W) = P(\+ Y,\+ Z^\prime, \+ R^\prime \given \doo(\+ X),\+ W),
+\]
+where $\+Z^\prime$ does not contain any missing data mechanisms (or is possibly empty), $\+ R^\prime$ contains only active missing data mechanisms and $\+ Z = \+ Z^\prime \cup \+ R^\prime$. 
+
+Rules $8.1$ and $8.2$ are used to enable response indicators, which then facilitates the use of rules $9.1, 9.2$ and $9.3$. These three rules exchange proxy variables to their true counterparts when the corresponding response indicators are enabled. For example, rule $8.1$ can be used on $P(Y,X^*\given R_X)$ to first obtain $P(Y,X^* \given R^1_X)$ by enabling $R_X$. Then, rule $9.2$ can applied to this distribution to obtain $P(Y,X \given R^1_X)$ by exchanging $X^*$ for $X$.
+
+Similarly to Table~\ref{tab:validsets}, Table~\ref{tab:md_validsets} outlines the valid subsets $\+ Z$ for applying the extended rules of Table~\ref{tab:md_rules}. A major difference to the original validity and termination conditions is the addition of the missing data condition that outlines the additional requirements that must be satisfied when missingness mechanisms are present. For the rules that are shared by Tables~\ref{tab:rules} and \ref{tab:md_rules}, the missing data condition ensures that a true variable and its proxy counterpart never appear in the same term at the same time. For example, we cannot add an intervention on $X$ to $P(X^*)$. It also ensures that we do not carry out summation over enabled response indicators in the case of rules 4 and 5. When applying rules $8.1$ or $8.2$, the condition also ensures that we do not attempt to enable a response indicator that is already enabled. For rules $9.1, 9.2$ and $9.3$, the conditions guarantees that a proxy can only be exchanged to a true variable if its corresponding response indicator is enabled in the term.
+%
+
+\begin{table}[!t]
+\begin{center}
+\begin{small}
+\begin{tabular}{llll}
+Rule & Validity condition & Missing data condition & Termination condition \\
+\hline
+$1+$   & $\+ Z \cap (\+ X \cup \+ Y \cup \+ W) = \emptyset$                              & $\+ Z \cap (\+ V^t \cup \+ V^p \cup \+ Z^t \cup \+ Z^p) = \emptyset$ & \\
+$1-$  & $\+ Z \subseteq \+ W$                                                           &         & $\+ W = \emptyset$ \\
+$2+$   & $\+ Z \subseteq \+ W$                               & $\+ Z \cap \+ V^* = \emptyset$      & $\+ W = \emptyset$ \\
+$2-$  & $\+ Z \subseteq \+ X$                                                           &         & $\+ X = \emptyset$ \\
+$3+$   & $\+ Z \cap (\+ Y \cup \+ X \cup \+ W) = \emptyset$   & $\+ Z \cap (\+ V^* \cup \+ V^t) = \emptyset$        & \\
+$3-$  & $\+ Z \subseteq \+ X$                                                           &         & $\+ X = \emptyset$ \\ \hline
+$4$   & $\+ Z \subset \+ Y$                                                             & $\+ Z \cap (\+ R^a \cap \+ Y) = \emptyset$        & $|\+ Y| = 1$ \\
+$5$   & $\+ Z \subset \+ Y$                                                             & $ (\+ Y \setminus \+ Z) \cap (\+ R^a \cap \+ Y) = \emptyset$ & $|\+ Y| = 1$ \\
+$6+$   & $\+ Z \subseteq \+ W$                               &         & $\+ W = \emptyset$ \\
+$6-$  & $\+ Z \cap (\+ Y \cup \+ X \cup \+ W) = \emptyset$  & $\+ Z \cap (\+ V^t \cup \+ V^p \cup \+ Z^t \cup \+ Z^p) = \emptyset$ & \\ \hline
+$7+$   && $\+ Z \subset \+ Y$                                          & $|\+ Y| = 1$ \\
+$7-$  && $\+ Z \subseteq \+ W$                                        & $\+ W = \emptyset$\\
+$8.1$ && $\+ Z \subseteq \+ R \cap \+ W, \+ Z \cap \+ R^a = \emptyset$                            & $\+ R \cap \+ W = \emptyset$ \\
+$8.2$ && $\+ Z \subseteq \+ R \cap \+ Y, \+ Z \cap \+ R^a = \emptyset$                            & $\+ R \cap \+ Y = \emptyset$ \\
+$9.1$ && $\+ Z \subseteq \+ V^* \cap \+ W, \+ R_{\+ Z} \subseteq \+ R^a$                 & $\+ R^a = \emptyset$ \\
+$9.2$ && $\+ Z \subseteq \+ V^* \cap \+ Y, \+ R_{\+ Z} \subseteq \+ R^a$                 & $\+ R^a = \emptyset$ \\
+$9.3$ && $\+ Z \subseteq \+ V^* \cap \+ Y, \+ R_{\+ Z} \subseteq \+ R^a$                 & $\+ R^a = \emptyset$
+\end{tabular}
+\end{small}
+\end{center}
+\caption{The conditions for the enumerated subset $\+ Z$ for applying the rules of Table~\ref{tab:rules} to a term in the input column. For rules $6\pm$ and $7\pm$, the conditions specify valid variables of the second required term. Validity conditions for rules $1\pm,2\pm,3\pm,4,5$} and $6\pm$ are the same as in Table~\ref{tab:validsets}. %The content of the sets $\+ Y, \+ X$ and $\+ W$ depends on the rule being applied. For example, when rule 9.3 is applied, the set $\+ A$ contains true variables, proxy variables and active response indicators. For rules 6, -6, 7, -7 the conditions specify valid variables of the second required term. \scomment{I think we actually have to use A,B,C notation here, since the contents of the set A (and B and C) depend on the rule being used.}} 
+\label{tab:md_validsets}
+\end{table}
+
+Additional terminations conditions also apply to the new rules and their correctness is easily verified.
+\begin{lemma} \label{lem:md_termination} Let $G$ be a semi-Markovian graph and let $\+ Y, \+ X$ and $\+ W$ be disjoint subsets of $\+ V$. Then all of the following are true:
+\begin{itemize}
+\item[(i)]{If $\+ W = \emptyset$, then rule $7-$ of Table~\ref{tab:md_rules} cannot be used. }
+\item[(ii)]{If $\+ R \cap \+ W = \emptyset$ then rule $8.1$ of Table~\ref{tab:md_rules} cannot be used.}
+\item[(iii)]{If $\+ R \cap \+ Y = \emptyset$ then rule $8.2$ of Table~\ref{tab:md_rules} cannot be used.}
+\item[(iv)]{If $\+ R^a = \emptyset$, then rules $9.1, 9.2$ or $9.3$ of Table~\ref{tab:md_rules} cannot be used. }
+\end{itemize}
+\end{lemma}
+\begin{proof}
+For (i), the set $\+ W$ is empty so no subset $\+ Z \subset \+ W$ can exist for the second input. For (ii), and the set $\+R \cap \+ W$ is empty so no assignment $(\+ W \cap \+ R) = 1$ can be performed. Similarly for (iii), the set $\+ R \cap \+ Y$ is empty so no assignment $(\+ Y \cap \+ R) = 1$ can be performed. For (iv) the set of active response indicators $\+ R^a$ is empty, so no transformation from proxy variables to true variables via the missingness mechanism in \eqref{eq:missingness} can be made.
+\end{proof}
+The task of selecting a suitable heuristic becomes more difficult when missing data are involved with the identifiability problem. The approach of Section~\ref{sect:heuristic1} is no longer directly applicable due to the relation between proxy variables, response indicators and partially observed variables. The proximity function considers $X$ and $X^*$ as entirely different variables despite their connection and does not prefer the inclusion of response indicators. If the heuristic is applies as such, the search path will often involve a large number of manipulations which in turn leads to complicated expressions. For these reasons we do not apply a heuristic to missing data problems, but expand terms in the order in which they were identified. The improvements described in Section~\ref{sect:improvements} still apply. 
+
+
+%One approach is to use a similar heuristic as the one presented in Section~\ref{sect:heuristic1} with the modification that a partially observed variable and its proxy are considered the same variable when computing the value of the proximity function. This often has benefits in average performance, but . 
+% The proximity function has to be placed under careful consideration to avoid leading the search astray. One has to consider for example whether $P(X)$ and $P(X^*)$ are closer than $P(X)$ and $P(Y)$. In general, the queries of identifiability problems under missing data contain partially observed variables and the data contain a mix of partially observed variables, proxy variables and response indicators. It is not enough to simply enable the necessary response indicators and obtain the desired partially observed variables and then perform the search as if missing data were not present. Sometimes manipulations using distributions that involve proxy variables have to be made before using the response indicators to make the exchange into partially observed variables.
+
+
+It is straightforward to adapt \texttt{do-search} to the new extended set of rules. In the pseudo-code shown in Algorithm~\ref{prog:do-search}, we simply replace all references to Tables~\ref{tab:rules} and \ref{tab:validsets} by references to Tables~\ref{tab:md_rules} and Tables~\ref{tab:md_validsets}, respectively. When the validity condition is checked, we also verify that the missing data condition holds. Lemma~\ref{lem:md_termination} guarantees the correctness of the new termination criteria. Theorem~\ref{thm:nonidsimple} is also valid when the sets $\+ A_i$ are replaced by $\+ A_i \cup \+ A_i^t$, since it may be possible to exchange some proxy variable to a true variable that is present in the set $\+ Y$ of the target $P(\+ Y \given \doo(\+ X), \+ W)$.
+
+\subsection{Systematic Analysis of Bivariate Missing Data Problems} \label{sect:systematic}
+We apply \texttt{do-search} using the extended rule set of Table~\ref{tab:md_rules} for all identifiability problems in bivariate missingness graphs. By bivariate missingness graphs we mean semi-Markovian graphs for two variables, $X$ and $Y$, and their missingness indicators, $R_X$ and $R_Y$. Noting that edges from $\{R_X, R_Y \}$ to $\{X, Y \}$ are not allowed, there are 9216 such graphs. We consider only 6144 graphs of which 3072 have the edge $X \rightarrow Y$ and 3072 do not have an edge between $X$ and $Y$. Graphs with the edge  $Y \rightarrow X$ are obtained from the studied graphs by swapping the roles of $X$ and $Y$. The maximum number of edges in a bivariate missingness graph is 12 (when a bidirected edge is counted as a single edge).
+
+The available theoretical results for missing data problems include a theorem by \citet{Mohan2013} that gives a sufficient and necessary condition for the identifiability of the joint distribution $P(\+ V)$ but is restricted to graphs that do not have edges between the missingness indicators (row 8 of Table~\ref{tab:stateofart}). In our example, 5120 graphs out of 6144 have such edges. The algorithm by \citet{Shpitser2015} does not have this restriction but it is not known if the algorithm is complete (row 9 of Table~\ref{tab:stateofart}). Similarly, it is not known if rules of Table~\ref{tab:md_rules} are complete for missing data problems or if some additional rules or tools are needed for identification in general. Differently from the theorem by \citet{Mohan2013} and the algorithm by \citet{Shpitser2015}, \texttt{do-search} can also address missing data problems where we consider identification of a marginal or conditional distribution.
+
+The queries $P(X,Y)$, $P(X)$, $P(Y)$, $P(Y \given X)$ and $P(Y \given \doo(X))$ were evaluated using \texttt{do-search} in these 6144 graphs with the input distribution $P(X^*, Y^*, R_X, R_Y)$. The results are summarized by Venn diagrams in Figure~\ref{fig:m2venn}. The results are also available as a data set \texttt{bivariate\_missingness} in the R package implementing \texttt{do-search}. Using this data set we are able to prove some non-identifiability results and find interesting special cases.
+The following theorem gives sufficient conditions for non-identifiability in terms of the number of edges.
+\begin{theorem}
+Let $K$ denote the number of edges in a bivariate missingness graph that does not have edge $Y \rightarrow X$. The joint distribution $P(X,Y)$ is not identifiable by \texttt{do-search} if $K>5$, marginal distribution $P(X)$ is not identifiable by \texttt{do-search} if \mbox{$K>9$}, marginal distribution $P(Y)$ and conditional distribution $P(Y \given X)$ are not identifiable by \texttt{do-search} if \mbox{$K>8$}.
+\end{theorem}
+\begin{proof}
+By direct evaluation in every possible bivariate missingness graph.
+\end{proof}
+The next result specifies the graph with the largest number of edges where both the joint distribution of $X$ and $Y$ and the causal effect of $X$ on $Y$ can be identified.
+\begin{theorem} \label{th:jointanddo5edges}
+The graph in Figure~\ref{fig:m2examples}(\subref{fig:jointanddo5edges}) is the 
+only bivariate missingness graph that (i) has edge $X \rightarrow Y$, (ii) has five edges, and (iii) allows for the identification of $P(X,Y)$ and $P(Y \given \doo(X))$ by \texttt{do-search}.
+\end{theorem}
+\begin{proof}
+By direct evaluation in every possible bivariate missingness graph.
+\end{proof}
+The third result specifies the graph with the largest number of edges where the marginal distributions are identifiable while the joint distribution and the causal effect of $X$ on $Y$ are non-identifiable. 
+\begin{theorem} \label{th:marginalsonly5edges}
+The graph in Figure~\ref{fig:m2examples}(\subref{fig:marginalsonly5edges}) is the
+only bivariate missingness graph that (i) has five edges, and (ii) allows for the identification of $P(X)$ and $P(Y)$, and (iii) does not allow for the identification of $P(X,Y)$ or $P(Y \given \doo(X))$ by \texttt{do-search}. No bivariate missingness graph that has more than five edges fulfills the conditions (ii) and (iii).
+\end{theorem}
+\begin{proof}
+By direct evaluation in every possible bivariate missingness graph.
+\end{proof}
+
+\begin{figure}[!t]
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{venn_arrowXtoY.pdf}
+    \caption{Graphs with arrow $X \rightarrow Y$.}
+    \label{fig:m2venn_arrowXtoY}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{venn_noarrowXtoY.pdf}
+    \caption{Graphs without arrow $X \rightarrow Y$ or $Y \rightarrow X$.}
+    \label{fig:m2venn_noarrowXtoY}
+  \end{subfigure}
+  \caption{Venn diagrams indicating the number of graphs were different distributions can be identified \texttt{do-search}. The intersection of $P(X)$ and $P(Y \given X)$ shows the number of graphs were $P(X,Y)$ can be identified. The total number of possible graphs is 3072 in both cases.}
+  \label{fig:m2venn}
+\end{figure}
+
+Some interesting examples are shown in Figure~\ref{fig:m2examples}. Graphs (a) and (b) are the unique graphs that fulfill the conditions specified in Theorems~\ref{th:jointanddo5edges} and \ref{th:marginalsonly5edges}, respectively. Graph (c) is the smallest graph were marginals $P(X)$ and $P(Y)$ can be identified but the joint distribution $P(X,Y)$ or causal effect $P(Y \given \doo(X))$ cannot be identified by \texttt{do-search}. In graph (d), $P(X)$, $P(Y)$, $P(X,Y)$ and $P(Y \given \doo(X))$ are not identifiable by \texttt{do-search} but the conditional distribution $P(Y \given X)$ can be identified as follows
+\begin{equation} \label{eq:cross1and2}
+ P(Y \given X) = \frac{ P(Y \given R_Y=1) P(X \given Y, R_X=1, R_Y=1) } {\sum_{Y^\prime} P(Y^\prime \given R_Y=1) P(X \given Y^\prime, R_X=1, R_Y=1)}.
+\end{equation}
+In equation~\eqref{eq:cross1and2}, the numerator resembles the joint distribution $P(X,Y \given R_X = 1,R_Y = 1)$ but is different because $Y$ and $R_X$ are not independent. The denominator is the marginal of this pseudo joint distribution.
+In graph (e), $P(X)$, $P(Y)$ and $P(X,Y)$ are not identifiable by \texttt{do-search} but $P(Y \given X)$ and $P(Y \given \doo(X))$ are identifiable and can be both estimated with equation~\eqref{eq:cross1and2}. In graph (f), $P(X,Y)$, $P(X)$ and $P(Y \given \doo(X))$ are not identifiable by \texttt{do-search} but $P(Y)$ and $P(Y \given X)$ can be identified as follows
+\begin{align}
+ P(Y) &= \sum_{R_X,X^*} P(Y\given X^*, R_X, R_Y=1) P(R_X,X^*), \label{eq:openboxY}\\
+ P(Y \given X) &= P(Y \given X, R_X=1, R_Y=1) \nonumber
+\end{align}
+In equation~\eqref{eq:openboxY}, the summation also goes over the cases where $X^* = \textrm{NA}$ and the distribution of $Y$ must be estimated also on the condition that $X$ is not observed.
+
+
+\begin{figure}[!t]
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+
+    \draw [->] (R_X) -- (R_Y) ;
+    \draw [->] (X) -- (R_Y) ;
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (X) to [bend right=30] (R_Y) ;
+    \draw [<->,dashed] (R_X) to [bend left=30] (R_Y) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:jointanddo5edges}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+    \draw [->] (R_Y) -- (R_X) ;
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (X) to [bend right=30] (Y) ;
+    \draw [<->,dashed] (Y) to [bend left=30] (R_X) ;
+    \draw [<->,dashed] (R_X) to [bend left=30] (R_Y) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:marginalsonly5edges}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (Y) to [bend left=30] (R_X) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:minimal}
+  \end{subfigure}
+
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+
+    \draw [->] (R_Y) -- (R_X) ;
+    \draw [->] (X) -- (R_Y) ;
+    \draw [->] (Y) -- (R_X) ;
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (X) to [bend right=30] (Y) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:cross1}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+
+    \draw [->] (R_Y) -- (R_X) ;
+    \draw [->] (X) -- (R_Y) ;
+    \draw [->] (Y) -- (R_X) ;
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (X) to [bend right=30] (R_Y) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:cross2}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+    \node [dot = {0}{0}{X}{below left}] at (0,0) {};
+    \node [dot = {0}{0}{Y}{below right}] at (2,0) {};
+    \node [dot = {0}{0}{R_X}{above left}] at (0,2) {};
+    \node [dot = {0}{0}{R_Y}{above right}] at (2,2) {};
+
+    \draw [->] (R_X) -- (R_Y) ;
+    \draw [->] (X) -- (R_X) ;
+    \draw [->] (X) -- (Y) ;
+    \draw [<->,dashed] (X) to [bend right=30] (Y) ;
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:openbox}
+  \end{subfigure}
+  \caption{Missingness graphs used as example cases. Proxy variables are omitted for clarity.}
+  \label{fig:m2examples}
+\end{figure}
+
+
+\subsection{Causal Inference under Case-control Design}
+Case-control design \citep{Breslow1996casecontrol} is commonly used in epidemiology to study risk factors of rare diseases. In the basic setup, a fixed number of disease cases and a fixed number of controls are selected for the risk factor measurements. When the disease is rare, this design leads to substantial savings in the sample size compared to simple random sampling. Figure~\ref{fig:ccexample}(\subref{fig:simplecc}) shows the missingness graph for a situation where the inclusion to the study (indicator $R_Y$) depends on the disease endpoint $Y$. The risk factors $X$ are measured for the subset $R_Y=1$ but occasionally the values are missing (indicator $R_X$). It is immediately seen that neither the causal effect $P(Y \given \doo(X))$ nor conditional distribution $P(Y \given X)$ can be identified because of the arrow $Y \rightarrow R_Y$. However, if the prevalence of the disease in population, i.e., the marginal distribution $P(Y)$, is known, the causal effect $P(Y \given \doo(X))$ can be identified. The result is provided by \texttt{do-search}
+\begin{equation} \label{eq:simplecc}
+ P(Y \given \doo(X)) = \frac{P(Y)P(X \given Y, R_Y=1, R_X=1)}{\sum_{Y^\prime} P(Y^\prime)P(X \given Y^\prime, R_Y=1, R_X = 1)}.
+\end{equation}
+In typical applications response $Y$ is binary but in the non-parametric formula of equation~\eqref{eq:simplecc} response can be discrete or continuous.
+
+\begin{figure}[!t]
+\begin{subfigure}[t]{0.40\textwidth}
+ \centering
+  \begin{tikzpicture}[scale=1.0]
+\node [dot = {0}{0}{X}{below}] at (0,0) {};
+\node [dot = {0}{0}{Y}{below}] at (1.6,0) {};
+
+\node [dot = {0}{0}{R_Y}{left}] at (1.8,1) {};
+\node [dot = {0}{0}{R_X}{left}] at (2.0,2) {};
+
+\draw [->] (X) -- (Y) ;
+\draw [->] (Y) -- (R_Y) ;
+\draw [->] (R_Y) -- (R_X) ;
+\end{tikzpicture}
+  \caption{Basic case-control design.}
+  \label{fig:simplecc}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.55\textwidth}
+\centering
+ \begin{tikzpicture}[scale=1.0]
+\node [dot = {0}{0}{X}{below}] at (0,0) {};
+\node [dot = {0}{0}{Z}{below}] at (1.6,0) {};
+\node [dot = {0}{0}{Y}{below}] at (3.2,0) {};
+
+\node [dot = {0}{0}{R_Y}{left}] at (3.4,1) {};
+\node [dot = {0}{0}{R_X}{left}] at (3.6,2) {};
+\node [dot = {0}{0}{R_Z}{right}] at (4.0,2) {};
+
+\draw [->] (X) -- (Z) ;
+\draw [->] (Z) -- (Y) ;
+\draw [->] (Y) -- (R_Y) ;
+\draw [->] (R_Y) -- (R_X) ;
+\draw [->] (R_Y) -- (R_Z) ;
+\draw [<->,dashed] (X) to [bend left=30] (Y) ;
+\end{tikzpicture}
+ \caption{Case-control design for the front-door situation.}
+  \label{fig:frontdoorcc}
+\end{subfigure}
+ \caption{Missingness graph for the case-control examples.}
+  \label{fig:ccexample}
+\end{figure}
+
+A more complicated example is shown in Figure~\ref{fig:ccexample}(\subref{fig:frontdoorcc}) where the causal effect of risk factor $X$ on disease endpoint $Y$ fulfills the front-door criterion \citep{pearl1995causal} with respect to mediator $Z$ and the data are collected from a case-control design where the selection depends $Y$ and there is occasional item non-response in $X$ and $Z$. We observe data $P(Y^*,X^*,Z^*,R_Y,R_X,R_Z)$ and know the marginal distribution $P(Y)$ from other sources. Applying \texttt{do-search} we obtain the result
+\begin{equation}
+\begin{aligned}
+&  P(Y \given \doo(X)) = \\
+&\quad \sum_Z \left[ \frac{\sum_{Y^\prime} P(Y^\prime)P(X,Z \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1)}{\sum_{Z^\prime,Y^\prime} P(Y^\prime)P(X,Z^\prime \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1)}\, \right. \times \\
+&\qquad \sum_{X^\prime} \left( \sum_{Y^\prime,Z^\prime} P(Y^\prime)P(X^\prime,Z^\prime \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1)\, \right. \times \\
+&\quad\qquad \left. \left. \frac{P(Y)P(X^\prime,Z \given Y, R_X = 1, R_Y = 1,R_Z = 1)}{\sum_{Y^\prime} P(Y^\prime)P(X^\prime,Z \given Y^\prime,R_X = 1,R_Y = 1,R_Z = 1)} \vphantom{\sum_{Z^\prime}}\right) \right].
+\end{aligned}
+\label{eq:frontdoorcc}
+\end{equation}
+Expression~\eref{eq:frontdoorcc} follows the general structure of the front-door adjustment
+\[
+ P(Y \given \doo(X)) = \sum_Z P(Z \given X) \sum_{X^\prime} P(X^\prime) P(Y \given X^\prime,Z),
+\]
+where
+\begin{align*}
+  P(Z \given X) &= \frac{\sum_{Y^\prime} P(Y^\prime)P(X,Z \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1)}{\sum_{Z^\prime,Y^\prime} P(Y^\prime)P(X,Z^\prime \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1)}, \\
+  P(X) &= \sum_{Y^\prime,Z^\prime} P(Y^\prime)P(X,Z^\prime \given Y^\prime,R_X = 1, R_Y = 1, R_Z = 1), \\
+  P(Y \given X,Z) &= \frac{P(Y)P(X,Z \given Y,R_X = 1,R_Y = 1,R_Z = 1)}{\sum_{Y^\prime} P(Y^\prime)P(X,Z \given Y^\prime,R_X = 1,R_Y = 1,R_Z = 1)}.
+\end{align*}
+Note that $P(X,Y,Z) = P(Y)P(X,Z \given Y,R_X = 1,R_Y = 1,R_Z = 1)$. In \citep{Karvanen2015studydesign}, a similar example was studied assuming that $X$, $Z$ and $Y$ are binary but in expression~\eref{eq:frontdoorcc} there are no such restrictions.
+
+\section{Discussion} \label{sect:discussion}
+
+The presented algorithm, \texttt{do-search}, removes the need for manual application of do-calculus, which is time-consuming and prone to errors. Systematic analyses such as the one in Section~\ref{sect:systematic} are practically unreachable with manual application of do-calculus. Superiority of \texttt{do-search} over a simple forwards breadth-first search was attained through a combination of a search heuristic and a reduction of the search space. Some further approaches were attempted but later discarded as non-beneficial. These include caching d-separation criteria that hold in the graph after they are first evaluated, pre-computing valid subsets for each subset size and enumerating subsets in an order of increasing cardinality.
+
+As the simulations showed, our intuitive heuristic yielded
+significant improvements in search performance. The proximity function defined in Section~\ref{sect:heuristic1} uses only the information contained in the distributions themselves. One approach could be to also take the structure of the graph into account in the proximity function. Further study is needed for finding a heuristic that performs well when missing data mechanisms are present in the graph.
+
+The scalability of \texttt{do-search} is limited due to vast search space of possibly identified causal effects. Currently, algorithms with polynomial complexity currently exist only for the simpler problems (see Table~\ref{tab:stateofart}). However, based on the simulation results, \texttt{do-search} solves identifiability problems in graphs of ten vertices in under two minutes on average. Typically graphs analyzed in literature related to identifiability problems have fewer vertices. The theoretical computational complexity of  the general form of the causal identifiability problem defined in Section~\ref{sect:problem} remains an important and interesting question. 
+
+The search could also be used to obtain formulas that are in some sense simpler than those produced by existing identifiability algorithms. A simplification algorithm by \citet{Tikka:simplifying} functions as a post-processing step after the identifying formula has already been obtained by the ID algorithm, but has exponential complexity. Given a measure of simplicity, the search heuristic could be adjusted to find simple formulas directly without resorting to separate simplification procedures. In some specific contexts, such as the standard causal effect identifiability problem, an approach known as pruning \citep{Tikka:pruning} could be incorporated into the search. Pruning refers to the removal of vertices from the graph, that are not required for determining identifiability.
+
+Finally we note that identifiability has also been studied under the assumption that the functional relationships depicted by the causal model are linear \citep{angrist1996,zander2016,chen2017} or non-parametric with additive error terms \citep{peters2014,pena2017} and when the causal graph is not completely known \citep{IDA,ENTNER,hyttinen2015,perkovic2015,MALINSKY,jaber2018}. Extending the search in these directions is an interesting line of future research.
+
+\section{Conclusion} \label{sect:conclusion}
+
+We presented \texttt{do-search}: a do-calculus based search capable of solving identifiability problems for which no known solutions exist. This contribution is especially useful for researchers working in the field of causal inference to confirm theoretical results or to find counterexamples to identifiability claims. In practical terms, the search can also provide solutions to complicated problems such as combining transportability and selection bias, recovering from multiple bias sources or identifying causal quantities in the presence of missing data that cannot be solved by any other existing method. An R package providing an implementation of \texttt{do-search} is available on CRAN.
+
+\section*{Acknowledgments} This work belongs to the thematic research area \enquote{Decision analytics utilizing causal models and multiobjective optimization} (DEMO) supported by Academy of Finland (grant number 311877). AH was supported by Academy of Finland through grant 295673. The authors wish to acknowledge CSC -- IT Center for Science, Finland, for computational resources.
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}
