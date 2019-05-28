@@ -2,7 +2,7 @@
 
 using namespace std;
 
-dosearch::dosearch(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, dd, da, fa, verb) {
+dosearch::dosearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, tl, bm, dd, da, fa, verb) {
 }
 
 dosearch::~dosearch() {
@@ -17,22 +17,22 @@ void dosearch::set_graph(dcongraph* g_) {
     g = g_;
 }
 
-void dosearch::set_options(const vector<int>& r) {
+void dosearch::set_options(const vector<int>& rule_vec) {
     trivial_id = false;
     format_do = true;
     index = 0;
     lhs = 0;
+
     md_s = g->get_md_switches();
     md_p = g->get_md_proxies();
     md_t = md_s >> 1;
-    md_u = 0;
     md = md_s > 0;
 
     tr = g->get_trnodes();
     sb = g->get_sbnodes();
     trsb = tr | sb;
 
-    if ( r.size() > 0 ) rules = r;
+    if ( rule_vec.size() > 0 ) rules = rule_vec;
     else {
         // Additional rules for missing data problems
         if ( md ) {
@@ -880,7 +880,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
 // dosearch_heuristic
 
-dosearch_heuristic::dosearch_heuristic(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb):dosearch(n_, dd, da, fa, verb) {
+dosearch_heuristic::dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):dosearch(n_, tl, bm, dd, da, fa, verb) {
 }
 
 dosearch_heuristic::~dosearch_heuristic() {

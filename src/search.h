@@ -35,7 +35,7 @@ struct distr {
 
 class search {
 public:
-    search(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    search(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
     Rcpp::List initialize();
     void find();
     void set_derivation(derivation* d_);
@@ -43,6 +43,7 @@ public:
     string make_key(const p& pp) const;
     bool equal_p(const p& p1, const p& p2) const;
     void draw(const distr& dist, const bool& recursive, derivation& d);
+    bool enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining);
 
     virtual void add_distribution(distr& nquery) = 0;
     virtual void add_known(const int& a, const int& b, const int& c, const int& d) = 0;
@@ -52,7 +53,7 @@ public:
     virtual bool separation_criterion() = 0;
     virtual int rule_limit(const int& ruleid, const unsigned int& z_size) = 0;
     virtual void set_target(const int& a, const int& b, const int& c, const int& d) = 0;
-    virtual void set_options(const vector<int>& r) = 0;
+    virtual void set_options(const vector<int>& rule_vec) = 0;
     virtual void set_labels(const Rcpp::StringVector& lab) = 0;
     virtual bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid) = 0;
     virtual string derive_formula(distr& dist) = 0;
@@ -66,22 +67,24 @@ public:
     virtual ~search();
 
     const int n;
+    const double time_limit;
+    const bool benchmark;
     const bool draw_derivation;
     const bool draw_all;
     const bool formula;
     const bool verbose;
 
     p target;
+    int index, lhs;
     derivation *deriv;
     vector<distr> target_dist;
     vector<string> labels;
     vector<int> z_sets;
     vector<int> rules;
     vector<double> rule_times;
-    double time_limit;
-    bool trivial_id;
+    bool trivial_id, format_do;
     unordered_map<int, distr> L;
-    unordered_map<std::string, int> ps;
+    unordered_map<string, int> ps;
     stack<int> candidates;
     output info;
 };

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-csisearch::csisearch(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, dd, da, fa, verb) {
+csisearch::csisearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, tl, bm, dd, da, fa, verb) {
 }
 
 csisearch::~csisearch() {
@@ -17,13 +17,13 @@ void csisearch::set_graph(ldag* g_) {
     g = g_;
 }
 
-void csisearch::set_options(const vector<int>& r) {
+void csisearch::set_options(const vector<int>& rule_vec) {
     trivial_id = false;
     format_do = true;
     index = 0;
     lhs = 0;
 
-    if ( r.size() > 0 ) rules = r;
+    if ( rule_vec.size() > 0 ) rules = rule_vec;
     else {
         rules = {0, 1, -3, 3, -4, 4, -5, 5, 6, -7, 7, -8, 8, -2, 2};
     }
@@ -743,7 +743,7 @@ void csisearch::get_ruleinfo(const int& ruleid, const int& y, const int& x, cons
 
 // csisearch_heuristic
 
-csisearch_heuristic::csisearch_heuristic(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb):csisearch(n_, dd, da, fa, verb) {
+csisearch_heuristic::csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):csisearch(n_, tl, bm, dd, da, fa, verb) {
 }
 
 csisearch_heuristic::~csisearch_heuristic() {

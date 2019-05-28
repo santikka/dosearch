@@ -12,20 +12,21 @@
 # cache           : A logical value. If TRUE, derived separation criteria are stored and not evaluated again
 # formula         : A logical value. If TRUE, a formula for an identifiable effect is provided. If false, the output is a boolean instead.
 # heuristic       : A logical value. If TRUE, a search heuristic is applied.
-# replace         : A logical value. If TRUE, distributions are replaced in the derivation if a simpler formula is found.
 # rules           : A numeric vector of do-calculus/probability rules used in the search.
+# time_limit      : A numeric value for maximum search time (in hours). Will only be in effect if benchmark = TRUE.
 # verbose         : A logical value. If TRUE, various diagnostic information is printed to the console during the search.
 
 get_derivation_ldag <- function(
     data, query, graph, control = list()) {
 
-    if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
-    if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
-    if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- TRUE
-    if (is.null(control$cache)            || typeof(control$cache) != "logical"            || length(control$cache) > 1)            control$cache <- TRUE
+    if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
     if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
     if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
-    if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
+    if (is.null(control$cache)            || typeof(control$cache) != "logical"            || length(control$cache) > 1)            control$cache <- TRUE
+    if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
+    if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- TRUE
+    if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
+    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- -1.0
     if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
 
     dir_lhs <- c()
@@ -419,7 +420,9 @@ get_derivation_ldag <- function(
         to_dec(nums[con_vars], n),
         to_dec(nums[intv_vars], n),
         n,
+        control$time_limit,
         control$rules,
+        control$benchmark,
         control$draw_derivation,
         control$draw_all,
         control$formula,

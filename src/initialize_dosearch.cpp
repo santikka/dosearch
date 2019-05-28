@@ -41,7 +41,9 @@ Rcpp::List initialize_dosearch(
     const int& sb,
     const int& md_s,
     const int& md_p,
+    const int& time_limit,
     const std::vector<int>& rules,
+    const bool& benchmark,
     const bool& draw_derivation,
     const bool& draw_all,
     const bool& formula,
@@ -70,8 +72,8 @@ Rcpp::List initialize_dosearch(
     derivation* d = new derivation();
 
     dosearch *s;
-    if ( heuristic ) s = new dosearch_heuristic(n, draw_derivation, draw_all, formula, verbose);
-    else s = new dosearch(n, draw_derivation, draw_all, formula, verbose);
+    if ( heuristic ) s = new dosearch_heuristic(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
+    else s = new dosearch(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
 
     if ( draw_derivation ) s->set_derivation(d);
 

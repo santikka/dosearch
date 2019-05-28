@@ -37,7 +37,9 @@ Rcpp::List initialize_csisearch(
     const int& con_vars,
     const int& intv_vars,
     const int& n,
+    const int& time_limit,
     const std::vector<int>& rules,
+    const bool& benchmark,
     const bool& draw_derivation,
     const bool& draw_all,
     const bool& formula,
@@ -58,8 +60,8 @@ Rcpp::List initialize_csisearch(
     derivation* d = new derivation();
 
     csisearch *s;
-    if ( heuristic ) s = new csisearch_heuristic(n, draw_derivation, draw_all, formula, verbose);
-    else s = new csisearch(n, draw_derivation, draw_all, formula, verbose);
+    if ( heuristic ) s = new csisearch_heuristic(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
+    else s = new csisearch(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
 
     if ( draw_derivation ) s->set_derivation(d);
 

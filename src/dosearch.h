@@ -9,11 +9,10 @@ using namespace std;
 
 class dosearch: public search {
 public:
-    dosearch(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb);
-    int md_s, md_p, md_t, md_u, tr, sb, trsb, index, lhs;
+    dosearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    int md_s, md_p, md_t, tr, sb, trsb;
     char md_sym;
-    bool md, trivial_id, format_do;
-    p target;
+    bool md;
     dcongraph* g;
 
     virtual void add_distribution(distr& nquery);
@@ -25,7 +24,7 @@ public:
     int rule_limit(const int& ruleid, const unsigned int& z_size);
     void set_target(const int& a, const int& b, const int& c, const int& d);
     void set_graph(dcongraph* g_);
-    void set_options(const vector<int>& r);
+    void set_options(const vector<int>& rule_vec);
     void set_labels(const Rcpp::StringVector& lab);
     void set_md_symbol(const char& mds);
     bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid);
@@ -49,11 +48,11 @@ public:
             return d1->score < d2->score;
         }
     };
-    dosearch_heuristic(const int& n_, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
     void add_distribution(distr& nquery);
     void add_known(const int& a, const int& b, const int& c, const int& d);
     distr& next_distribution(const int& j);
-    ~dosearch_heuristic();
+    virtual ~dosearch_heuristic();
 private:
     int compute_score(const p& pp) const;
     int compute_score_md(const p& pp) const;

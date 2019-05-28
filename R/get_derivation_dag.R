@@ -10,13 +10,13 @@
 # control is a list that accepts the following components
 #
 # benchmark       : A logical value. If TRUE, record time it took for the search (in milliseconds).
-# draw_derivation : A logical value. If TRUE, a string representing the derivation steps as a dot graph is also provided.
 # draw_all        : A logical value. If TRUE, all steps of the search are drawn. If FALSE, only steps resulting in the identifying formula are drawn.
+# draw_derivation : A logical value. If TRUE, a string representing the derivation steps as a dot graph is also provided.
 # formula         : A logical value. If TRUE, a formula for an identifiable effect is provided. If false, the output is a boolean instead.
 # heuristic       : A logical value. If TRUE, a search heuristic is applied.
-# improve         : A logical value. If TRUE, various improvements to the application of do-calculus are applied via removing unnecessary sets.
 # md_sym          : A single character describing the value that a missing data mechanism attains when it is enabled (defaults to "1")
 # rules           : A numeric vector of do-calculus/probability rules used in the search.
+# time_limit      : A numeric value for maximum search time (in hours). Will only be in effect if benchmark = TRUE.
 # verbose         : A logical value. If TRUE, various diagnostic information is printed to the console during the search.
 # warn            : A logical value. If TRUE, gives warnings on possibly mistyped/unwanted input data
 
@@ -25,13 +25,14 @@ get_derivation_dag <- function(
     transportability = NULL, selection_bias = NULL, missing_data = NULL,
     control = list()) {
 
-    if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
-    if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
-    if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
-    if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
     if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
-    if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
+    if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
+    if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
+    if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
     if (is.null(control$md_sym)           || typeof(control$md_sym) != "character"         || length(control$verbose) > 1)          control$md_sym <- "1"
+    if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
+    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- 0.5
+    if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
     if (is.null(control$warn)             || typeof(control$warn) != "logical"             || length(control$warn) > 1)             control$warn <- TRUE
     # Default value for heuristic is set later after checking for missing data mechanisms
 
@@ -390,7 +391,9 @@ get_derivation_dag <- function(
         sb,
         md_s,
         md_p,
+        control$time_limit,
         control$rules,
+        control$benchmark,
         control$draw_derivation,
         control$draw_all,
         control$formula,

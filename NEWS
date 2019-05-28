@@ -1,5 +1,9 @@
 Changes from version 1.0.3 to 1.1.0
- * Now supports labeled directed acyclic graphs (LDAGs)
+ * Now supports context specific independences (CSIs) via labeled directed acyclic graphs (LDAGs). See the documentation for more details.
+ * The function 'get_derivation' can now also be called as 'dosearch'.
+ * Added a new control option, 'time_limit', which will terminate the search when the amount of time (in hours) has passed (only when benchmark = TRUE).
+ * Some redundant control options have been removed.
+ * Fixed an issue regarding missing data.
 
 Changes from version 1.0.2 to 1.0.3
  * Fixed an issue with derivation rules when missing data was present.
