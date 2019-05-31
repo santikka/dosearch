@@ -75,8 +75,7 @@ The \code{control} argument is a list that can supply any of the following compo
   \item{\code{formula}}{A logical value. If \code{TRUE}, a string representing the identifiable query is returned. If \code{FALSE}, only a logical value is returned that takes the value \code{TRUE} for an identifiable target and \code{FALSE} otherwise. Defaults to \code{TRUE}. }
   \item{\code{heuristic}}{A logical value. If \code{TRUE}, new distributions are expanded according to a search heuristic (see the vignette for details). Otherwise, distributions are expanded in the order in which they were identified. Defaults to \code{TRUE} unless missing data mechanisms are provided in \code{missing_data}. }
   \item{\code{md_sym}}{A single character describing the symbol to use for active missing data mechanisms. Defaults to \code{"1"}. }
-  \item{\code{replace}}{A logical value. If \code{TRUE}, the search will continue deriving new distributions after the target has been reached in order to possibly find a shorter search path. Defaults to \code{FALSE}. }
-  \item{\code{rules}}{A numeric vector describing a subset of the search rules to be used. Must be a subset of \code{c(-1,-2,-3,1,2,3,4,5,-6,6,-7,7,8,9)} (see the vignette for details). }
+  \item{\code{time_limit}}{A numeric value giving a time limit for the search (in hours) when \code{benchmark} is enabled. The default value is \code{0.5}. }
   \item{\code{verbose}}{A logical value. If \code{TRUE}, diagnostic information is printed to the console during the search. Defaults to \code{FALSE}. }
   \item{\code{warn}}{A logical value. If \code{TRUE}, a warning is issued for possibly unintentionally misspecified but syntactically correct input distributions. }
 }

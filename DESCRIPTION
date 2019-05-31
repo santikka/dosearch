@@ -22,7 +22,9 @@ Description: Identification of causal effects from arbitrary observational and e
     Allows for the presence of mechanisms related to selection bias (Bareinboim, E. and Tian, J. (2015) 
     <http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>), transportability (Bareinboim, E. and Pearl, J. (2014) 
     <http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>), missing data (Mohan, K. and Pearl, J. and Tian., J. 
-    (2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and arbitrary combinations of these.
+    (2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and arbitrary combinations of these. Also supports
+    identification in the presence of context-specific independence (CSI) relations through labeled directed
+    acyclic graphs (LDAG). For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>.
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.19)
 LinkingTo: Rcpp
