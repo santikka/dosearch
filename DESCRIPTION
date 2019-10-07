@@ -1,7 +1,7 @@
 Package: dosearch
 Type: Package
-Version: 1.1.0
-Date: 2019-05-20
+Version: 1.0.3
+Date: 2019-10-07
 Title: Causal Effect Identification from Multiple Incomplete Data Sources
 Authors@R: c(
     person(given = "Santtu",
@@ -25,6 +25,7 @@ Description: Identification of causal effects from arbitrary observational and e
     (2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and arbitrary combinations of these. Also supports
     identification in the presence of context-specific independence (CSI) relations through labeled directed
     acyclic graphs (LDAG). For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>.
+    For further information on the search-based approach see Tikka et al. (2019) <https://arxiv.org/abs/1902.01073>. 
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.19)
 LinkingTo: Rcpp

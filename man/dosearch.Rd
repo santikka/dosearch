@@ -2,7 +2,7 @@
 \alias{dosearch}
 \alias{get_derivation}
 \title{Identify a causal effect from arbitrary experiments and observations}
-\description{Identify a causal \code{query} from available \code{data} in a causal model described by a \code{graph} that is a semi-Markovian DAG or a labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related to transportability of causal effects, recoverability from selection bias and identifiability under missing data can also be included in the model. }
+\description{Identify a causal \code{query} from available \code{data} in a causal model described by a \code{graph} that is a semi-Markovian DAG or a labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related to transportability of causal effects, recoverability from selection bias and identifiability under missing data can also be included. }
 
 \usage{dosearch(data, query, graph, transportability = NULL, selection_bias = NULL,
   missing_data = NULL, control = list())}
@@ -10,10 +10,10 @@
 \arguments{
   \item{data}{a character string describing the available distributions in the package syntax. See \sQuote{Details}}
   \item{query}{a character string describing the target distribution in the package syntax. See \sQuote{Details}}
-  \item{graph}{a character string describing the graph in the package syntax. See \sQuote{Details}}
-  \item{transportability}{a character string describing the transportability nodes of the model in the package syntax. See \sQuote{Details}}
-  \item{selection_bias}{a character string describing the selection bias nodes of the model in the package syntax. See \sQuote{Details}}
-  \item{missing_data}{a character string describing the missing data mechanisms of the model in the package syntax. See \sQuote{Details}}
+  \item{graph}{a character string describing either a DAG or an LDAG in the package syntax. See \sQuote{Details}}
+  \item{transportability}{a character string describing the transportability nodes of the model in the package syntax (for DAGs only). See \sQuote{Details}}
+  \item{selection_bias}{a character string describing the selection bias nodes of the model in the package syntax (for DAGs only). See \sQuote{Details}}
+  \item{missing_data}{a character string describing the missing data mechanisms of the model in the package syntax (for DAGs only). See \sQuote{Details}}
   \item{control}{a \link{list} of control parameters. See \sQuote{Details}. }
 }
 
@@ -38,19 +38,29 @@ should be given as follows:
 
 The use of multiple do-operators is not permitted. Furthermore, when both conditioning variables and a do-operator are present, every conditioning variable must either precede the do-operator or follow it. When \code{graph} is an LDAG, the do-operation is represented by an intervention node, i.e.,
 
-\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}
+\ifelse{html}{\out{<p>P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)</p>}}{\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}}
+
+For example, in the case of the previous example in an LDAG, the three input distributions become:
+\preformatted{
+> data <- "
++  P(Z|X,I_X = 1)
++  P(W,Y|Z,X,I_X=1,I_Z=1)
++  P(W,Y,X|Z)
++"
+}
+The intervention nodes \eqn{I_X} and \eqn{I_Z} must be explicitly defined in the \code{graph} along with the relevant labels for the edges.
 
 \code{query} is the target distribution of the search. It has the same syntax as \code{data}, but only a single distribution should be given.
 
-\code{graph} is a description of a directed acyclic graph where directed edges are denoted by \code{->} and bidirected arcs corresponding to unobserved confounders are denoted by \code{--}. As an example, a DAG with two directed edges and one bidirected arc is constructed as follows: 
+\code{graph} is a description of a directed acyclic graph where directed edges are denoted by \code{->} and bidirected arcs corresponding to unobserved confounders are denoted by \code{<->} (or by \code{--}). As an example, a DAG with two directed edges and one bidirected edge is constructed as follows: 
 \preformatted{
 > graph <- "
 +  X -> Z
 +  Z -> Y
-+  X -- Y
++  X <-> Y
 +"
 }
-LDAGs are constructed similarly with the addition of labels. As an example, an LDAG with one label can be constructed as follows:
+LDAGs are constructed similarly with the addition of labels and with the omission bidirected edges (latent variables must be explicitly defined). As an example, an LDAG with two labeled edges can be constructed as follows:
 \preformatted{
   > graph <- "
 +  X -> Z : A = 0
@@ -72,8 +82,8 @@ The \code{control} argument is a list that can supply any of the following compo
   \item{\code{benchmark}}{A logical value. If \code{TRUE}, the search time is recorded and returned (in milliseconds). Defaults to \code{FALSE}. }
   \item{\code{draw_derivation}}{A logical value. If \code{TRUE}, a string representing the derivation steps as a DOT graph is returned. The graph can be exported as an image for example by using \code{\link[DOT]{dot}}. Defaults to \code{FALSE}. }
   \item{\code{draw_all}}{A logical value. If \code{TRUE} and if \code{draw_derivation = TRUE}, the derivation will contain every step taken by the search. If \code{FALSE}, only steps that resulted in an identifiable target are returned. Defaults to \code{FALSE}. }
-  \item{\code{formula}}{A logical value. If \code{TRUE}, a string representing the identifiable query is returned. If \code{FALSE}, only a logical value is returned that takes the value \code{TRUE} for an identifiable target and \code{FALSE} otherwise. Defaults to \code{TRUE}. }
-  \item{\code{heuristic}}{A logical value. If \code{TRUE}, new distributions are expanded according to a search heuristic (see the vignette for details). Otherwise, distributions are expanded in the order in which they were identified. Defaults to \code{TRUE} unless missing data mechanisms are provided in \code{missing_data}. }
+  \item{\code{formula}}{A logical value. If \code{TRUE}, a string representing the identifiable query is returned when the target query is identifiable. If \code{FALSE}, only a logical value is returned that takes the value \code{TRUE} for an identifiable target and \code{FALSE} otherwise. Defaults to \code{TRUE}. }
+  \item{\code{heuristic}}{A logical value. If \code{TRUE}, new distributions are expanded according to a search heuristic (see Tikka et al. (2019) for details). Otherwise, distributions are expanded in the order in which they were identified. Defaults to \code{TRUE} unless missing data mechanisms are provided in \code{missing_data}. }
   \item{\code{md_sym}}{A single character describing the symbol to use for active missing data mechanisms. Defaults to \code{"1"}. }
   \item{\code{time_limit}}{A numeric value giving a time limit for the search (in hours) when \code{benchmark} is enabled. The default value is \code{0.5}. }
   \item{\code{verbose}}{A logical value. If \code{TRUE}, diagnostic information is printed to the console during the search. Defaults to \code{FALSE}. }
@@ -122,6 +132,7 @@ graph1 <- "
 
 dosearch(data1, query1, graph1)
 
+
 # Selection bias
 
 data2 <- "
@@ -141,6 +152,7 @@ graph2 <- "
 
 dosearch(data2, query2, graph2, selection_bias = "s")
 
+
 # Transportability
 
 data3 <- "
@@ -155,9 +167,9 @@ graph3 <- "
   z_1 -> x
   x   -> z_2
   z_2 -> y
-  z_1 -- x
-  z_1 -- z_2
-  z_1 -- y
+  z_1 <-> x
+  z_1 <-> z_2
+  z_1 <-> y
   t_1 -> z_1
   t_2 -> z_2
   t_3 -> y
@@ -165,7 +177,9 @@ graph3 <- "
 
 dosearch(data3, query3, graph3, transportability = "t_1, t_2, t_3")
 
+
 # Missing data
+# Proxy variables are denoted by an asterisk (*)
 
 data4 <- "
   p(x*,y*,z*,m_x,m_y,m_z)
@@ -179,7 +193,7 @@ graph4 <- "
   x -> m_z
   y -> m_z
   y -> m_x
-  z -- y
+  z <-> y
 "
 
 dosearch(data4, query4, graph4, missing_data = "m_x : x, m_y : y, m_z : z")
@@ -202,11 +216,38 @@ graph5 <- "
   Q -> Y : Z = 0
 "
 
-doearch(data5, query5, graph5)
+dosearch(data5, query5, graph5)
+
+
+# A more complicated LDAG
+# with multiple assignments for the edge X -> Z
+
+data6 <- "P(X,Y,Z,A,W)"
+
+query6 <- "P(Y|X,I_X=1)"
+
+graph <- "
+  I_X -> X
+  I_Z -> Z
+  A -> W
+  Z -> Y
+  A -> Z
+  X -> Z : I_Z = 1; A = 1
+  X -> Y : A = 0
+  W -> X : I_X = 1
+  W -> Y : A = 0
+  A -> Y
+  U -> X : I_X = 1
+  U -> Y : A = 1
+"
+
+dosearch(data6, query6, graph6)
+
 
 # Export the DOT diagram of the derivation as an SVG file
-# to the working directory via the DOT package
-# PostScript format is also supported
+# to the working directory via the DOT package.
+# By default, only the identifying part is plotted.
+# PostScript format is also supported.
 
 \dontrun{
 d <- get_derivation(data1, query1, graph1, control = list(draw_derivation = TRUE))

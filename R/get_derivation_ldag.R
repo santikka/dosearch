@@ -50,7 +50,7 @@ get_derivation_ldag <- function(
     # transform the graph
     if (nchar(graph) == 0) stop("Invalid graph: the graph is empty. \n")
     else {
-        row_pattern <- "^(.+(?>->|--)[^\\:]+)(?>\\:(.+))?$"
+        row_pattern <- "^(.+(?>->|--|<->)[^\\:]+)(?>\\:(.+))?$"
         graph_split <- strsplit(graph, "\r|\n")[[1]]
         graph_split <- gsub("\\s", "", graph_split)
         valid_rows <- grep(row_pattern, graph_split, perl = TRUE)
