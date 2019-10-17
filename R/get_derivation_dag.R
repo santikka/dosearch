@@ -63,17 +63,17 @@ get_derivation_dag <- function(
     if ( nchar(graph) == 0 ) {
         if ( is.null(missing_data) ) stop("Invalid graph: the graph is empty.\n")
     } else {
-        graph <- gsub("--", "<->", graph)
+        graph <- gsub("<->", "--", graph)
         graph_split <- strsplit(strsplit(graph, "\r|\n")[[1]], "\\s+")
         line_lengths <- sapply(graph_split, length)
         graph_split <- graph_split[line_lengths > 2]
-        arrow_indices <- sapply(graph_split, grep, pattern = "(->)|(<->)")
+        arrow_indices <- sapply(graph_split, grep, pattern = "(->)|(--)")
         graph_split <- lapply(1:length(graph_split), function(x) {
             graph_split[[x]][-1:1 + arrow_indices[x]]
         })
         graph_split <- sapply(graph_split, paste, collapse = "")
         directed <- strsplit(graph_split[grep("(.+)?->(.+)?", graph_split)], "->")
-        bidirected <- strsplit(graph_split[grep("(.+)?<->(.+)?", graph_split)], "<->")
+        bidirected <- strsplit(graph_split[grep("(.+)?--(.+)?", graph_split)], "--")
         if ( length(directed) > 0 ) {
             dir_lhs <- sapply(directed, "[[", 1)
             dir_rhs <- sapply(directed, "[[", 2)
@@ -327,9 +327,6 @@ get_derivation_dag <- function(
             err <- TRUE
         } else if ( bitwAnd(p_list[[i]][3], sb) > 0 ) {
             msg <- "cannot intervene on a selection bias node.\n"
-            err <- TRUE
-        } else if ( bitwAnd(p_list[[i]][3], md_s) > 0 ) {
-            msg <- "cannot intervene on a missing data mechanism.\n"
             err <- TRUE
         } else if (bitwAnd(p_list[[i]][4], md_s) != p_list[[i]][4] ) {
             msg <- "cannot set value of non-missing data mechanism.\n"

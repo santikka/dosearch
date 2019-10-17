@@ -109,7 +109,7 @@ void dosearch::derive_distribution(const distr& iquery, const distr& required, c
         if ( verbose ) {
             if ( info.rp.a > 0 ) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
             else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
-            Rcpp::Rcout << "!!!! Managed to hit the target !!!!" << endl;
+            Rcpp::Rcout << "Target found" << endl;
             Rcpp::Rcout << "index = " << index << endl;
         }
         target_dist.push_back(nquery);
@@ -198,9 +198,9 @@ string dosearch::derive_formula(distr& dist) {
                 if ( rsq == 36 ) {
                     if ( paf1.length() < paf2.length() ) formula = paf1 + "*" + paf2;
                     else formula = paf2 + "*" + paf1;
-                } else if ( r == 7 ) {
+                } else if ( rsq == 49 ) {
                     formula = "[[" + paf1 + "]/[" + paf2 + "]]";
-                } else if ( r == -7 ) {
+                } else if ( rsq == 64 ) {
                     formula = "[[" + paf2 + "]/[" + paf1 + "]]";
                 }
             }
@@ -213,8 +213,8 @@ string dosearch::derive_formula(distr& dist) {
                     if ( rsq == 25 ) {
                         formula = "[[" + paf1 + "]/[sum_{" + dec_to_text(dist.pp.a, 0) + "} " + paf1 + "]]";
                     } else if ( rsq == 16 ) {
-                        formula =  "[sum_{" + dec_to_text(pa1.pp.a - dist.pp.a, 0) + "} [" +paf1 + "]]";
-                    } else if ( rsq >= 64 ) {
+                        formula =  "[sum_{" + dec_to_text(pa1.pp.a - dist.pp.a, 0) + "} [" + paf1 + "]]";
+                    } else if ( rsq >= 81 ) {
                         formula = paf1;
                     }
                 }
@@ -367,12 +367,14 @@ bool dosearch::valid_rule(const int& ruleid, const int& a, const int& b, const i
 
         case 8 : {
             // Every variable must be an enabled missing data mechanism
+            // Otherwise ordinary conditioning via rule 5 works
             if ( (a & d) != a ) return false;
             else return true;
         }
 
         case -8 : {
             // Every variable must be an enabled missing data mechanism
+            // Otherwise ordinary conditioning via rule 5 works
             if ( (a & d) != a ) return false;
             else return true;
         }
@@ -559,7 +561,7 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
                 j = (z & md_p) >> 2;
                 if ( (j & z) != 0) return; // cannot add both x and x*
                 k = (z & md_t) << 2;
-                if ( (k & z) != 0) return;// cannot add both x and x*
+                if ( (k & z) != 0) return; // cannot add both x and x*
             }
 
             break;
@@ -791,7 +793,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
         }
 
-        // Conditioning (Numerator)
+        // Conditioning (Numerator) Have P(Y|X), Require P(Z|X), Obtain P(Y|X)/P(Z|X) = P(Y \ Z | X, Z)
         case 7 : {
 
             int xwz = xw | z;
@@ -805,7 +807,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
         }
 
-        // Conditioning (Numerator)
+        // Conditioning (Numerator) Have P(Y|X), Require P(Z|X,Y\Z), Obtain P(Y|X)/P(Z|X,Y\Z) = P(Y \ Z | X)
         case -7 : {
 
             int ymz = y & ~z;
@@ -819,7 +821,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
         }
 
-        // Conditioning (Denominator)
+        // Conditioning (Denominator) Have P(Y|X), Require P(Y,Z|X), Obtain P(Y,Z|X)/P(Y|X) = P(Z|X,Y)
         case 8 : {
 
             info.to.a = z;     info.to.b = xw | y; info.to.c = x; info.to.d = d;
@@ -832,7 +834,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
         }
 
-        // Conditioning (Denominator)
+        // Conditioning (Denominator) Have P(Y|X,Z), Require P(Y,Z|X), Obtain P(Y,Z|X)/P(Y|X,Z) = P(Z|X)
         case -8 : {
 
             int xwmz = xw & ~z;
