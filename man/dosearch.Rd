@@ -104,9 +104,9 @@ The \code{control} argument is a list that can supply any of the following compo
 \author{Santtu Tikka}
 
 \examples{
+\dontrun{
 
 # Multiple input distributions (both observational and interventional)
-
 data1 <- "
   p(z_2,x_2|do(x_1))
   p(z_1|x_2,do(x_1,y))
@@ -226,7 +226,7 @@ data6 <- "P(X,Y,Z,A,W)"
 
 query6 <- "P(Y|X,I_X=1)"
 
-graph <- "
+graph6 <- "
   I_X -> X
   I_Z -> Z
   A -> W
@@ -249,7 +249,6 @@ dosearch(data6, query6, graph6)
 # By default, only the identifying part is plotted.
 # PostScript format is also supported.
 
-\dontrun{
 d <- get_derivation(data1, query1, graph1, control = list(draw_derivation = TRUE))
 DOT::dot(d$derivation, "derivation.svg")
 }

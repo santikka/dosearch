@@ -1,10 +1,12 @@
 Changes from version 1.0.2 to 1.0.3
  * Now supports context specific independences (CSIs) via labeled directed acyclic graphs (LDAGs). See the documentation and examples for more details.
  * The function 'get_derivation' can now also be called via 'dosearch'.
+ * Bidirected edges can now also be given as '<->'.
  * Added a new control option, 'time_limit', which will terminate the search when the given amount of time (in hours) has passed (only when benchmark = TRUE).
  * Some redundant control options have been removed.
  * Fixed an issue with derivation rules when missing data was present.
  * Fixed an another minor issue regarding missing data.
+ * Fixed a rare issue with formula generation.
 
 Changes from version 1.0.1 to 1.0.2
  * Added an example on how to produce an image from the DOT derivation.
