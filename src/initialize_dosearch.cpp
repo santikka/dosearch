@@ -41,7 +41,7 @@ Rcpp::List initialize_dosearch(
     const int& sb,
     const int& md_s,
     const int& md_p,
-    const int& time_limit,
+    const double& time_limit,
     const std::vector<int>& rules,
     const bool& benchmark,
     const bool& draw_derivation,

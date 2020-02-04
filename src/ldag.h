@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
+#include <string>
 #include "set.h"
 
 using namespace std;

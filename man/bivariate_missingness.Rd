@@ -18,5 +18,5 @@
     \item{YdoX}{identifiability of the causal effect of \eqn{X} on \eqn{Y} }
 } % END DESCRIBE
 } % END FORMAT
-\source{See the Vignette, Section 5.1.}
+\source{Tikka et. al. (2019) <arXiv:1902.01073>}
 \keyword{datasets}

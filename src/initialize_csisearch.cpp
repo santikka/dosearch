@@ -37,7 +37,7 @@ Rcpp::List initialize_csisearch(
     const int& con_vars,
     const int& intv_vars,
     const int& n,
-    const int& time_limit,
+    const double& time_limit,
     const std::vector<int>& rules,
     const bool& benchmark,
     const bool& draw_derivation,

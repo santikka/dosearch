@@ -1,3 +1,14 @@
+Changes from version 1.0.4 to 1.0.5
+ * The resulting list of the 'dosearch' function call now has the class 'dosearch' with print and summary methods.
+ * Added accessor functions 'get_formula', 'get_benchmark' and 'is_identifiable' to query an object of class 'dosearch'.
+ * The function 'get_derivation' is now repurposed as an accessor function, only 'dosearch' is now supported for query identification.
+ * The 'graph' argument of 'dosearch' now supports the igraph format used by the 'causaleffect' package (see 'dosearch' examples).
+ * The 'graph' argument of 'dosearch' now supports DAGs created using the 'dagitty' package (see 'dosearch' examples).
+ * Fixed an issue when using control(benchmark = TRUE).
+
+Changes from version 1.0.3 to 1.0.4
+ * Fixed compilation issues on some platforms.
+
 Changes from version 1.0.2 to 1.0.3
  * Now supports context specific independences (CSIs) via labeled directed acyclic graphs (LDAGs). See the documentation and examples for more details.
  * The function 'get_derivation' can now also be called via 'dosearch'.
