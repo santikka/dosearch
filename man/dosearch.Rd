@@ -105,7 +105,6 @@ The \code{control} argument is a list that can supply any of the following compo
 \author{Santtu Tikka}
 
 \examples{
-
 ## Simple back-door formula
 data1 <- "P(x,y,z)"
 query1 <- "P(y|do(x))"
@@ -194,7 +193,6 @@ graph4 <- "
 "
 dosearch(data4, query4, graph4, selection_bias = "s")
 
-
 ## Transportability
 data5 <- "
   p(x,y,z_1,z_2)
@@ -230,7 +228,6 @@ graph6 <- "
   z <-> y
 "
 dosearch(data6, query6, graph6, missing_data = "m_x : x, m_y : y, m_z : z")
-
 
 ## An LDAG
 data7 <- "P(X,Y,Z)"

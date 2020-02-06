@@ -210,8 +210,8 @@ string csisearch::derive_formula(distr& dist) {
             if ( dist.primitive ) formula = to_string(dist.pp);
             else {
                 if ( rsq == 4 ) {
-                    if ( paf1.length() < paf2.length() ) formula = "\\left(" + paf1 + "*" + paf2  + "\\right)";
-                    else formula = "\\left(" + paf2 + "*" + paf1 + "\\right)";
+                    if ( paf1.length() < paf2.length() ) formula = "\\left(" + paf1 + paf2  + "\\right)";
+                    else formula = "\\left(" + paf2 + paf1 + "\\right)";
                 } else if ( rsq == 25 ) {
                     formula = "\\left[" + paf1 + " /\\ " + paf2 + "\\right]";
                 } else if ( rsq == 36 ) {

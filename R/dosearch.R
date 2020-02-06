@@ -37,10 +37,8 @@ summary.dosearch <- function(object, ...) {
     g <- gsub("\n", "\n\t", trimws(object$call$graph, which = "both"))
     g <- gsub(" ", "", g)
     g <- gsub("->", " -> ", g)
-    g <- gsub("<->", " <-> ", g)
-    g <- gsub("--", " -- ", g)
-    f <- ifelse(is.null(object$formula), "", object$formula)
-    ans <- list(result = list(identifiable = object$identifiable, formula = f),
+    g <- gsub("--", " <-> ", g)
+    ans <- list(result = list(identifiable = object$identifiable, formula = object$formula),
                 call = object$call,
                 time = took,
                 units = units,
@@ -51,15 +49,13 @@ summary.dosearch <- function(object, ...) {
     return(ans)
 }
 
-print.summary.dosearch <- function(x, ..., maxchar = 72) {
+print.summary.dosearch <- function(x) {
     res <- x$result
     y <- x$call
     cat("The query", y$query, "is", ifelse(res$identifiable, "identifiable.", "non-identifiable."), "\n")
     if (identical(res$formula, "")) cat("Formula: NA\n")
     else {
-        f <- res$formula
-        if (nchar(f) > maxchar) f <- paste0(substr(res$formula, 0, maxchar), "...")
-        cat("Formula:\n\t", f, "\n", sep = "")
+        cat("Formula:\n\t", res$formula, "\n", sep = "")
     }
     if (!is.na(x$time)) cat("Derivation took", x$time, x$units, "\n")
     cat("Input data:\n")
