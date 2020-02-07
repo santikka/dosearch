@@ -3,8 +3,7 @@
 \title{Identify a causal effect from arbitrary experiments and observations}
 \description{Identify a causal \code{query} from available \code{data} in a causal model described by a \code{graph} that is a semi-Markovian DAG or a labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related to transportability of causal effects, recoverability from selection bias and identifiability under missing data can also be included. }
 
-\usage{dosearch(data, query, graph, transportability = NULL, selection_bias = NULL,
-  missing_data = NULL, control = list())}
+\usage{dosearch(data, query, graph, transportability, selection_bias, missing_data, control)}
 
 \arguments{
   \item{data}{a character string describing the available distributions in the package syntax. Alternatively, a list of character vectors. See \sQuote{Details}.}

@@ -2,12 +2,29 @@
 
 dosearch <- function(
     data, query, graph, 
-    transportability = NULL, selection_bias = NULL, missing_data = NULL,
-    control = list()) {
+    transportability, selection_bias, missing_data,
+    control) {
 
     data <- parse_data(data)
     query <- parse_distribution(query)
     graph <- parse_graph(graph)
+
+    if (missing(transportability) || is.null(transportability)) transportability <- NULL
+    else {
+        if (!is.character(transportability)) stop("Invalid transportability nodes: ", transportability)
+    }
+    if (missing(selection_bias) || is.null(selection_bias)) selection_bias <- NULL
+    else {
+        if (!is.character(selection_bias)) stop("Invalid selection bias nodes: ", selection_bias)
+    }
+    if (missing(missing_data) || is.null(missing_data)) missing_data <- NULL
+    else {
+        if (!is.character(missing_data)) stop("Invalid missing data mechanisms: ", missing_data)
+    }
+    if (missing(control) || is.null(control)) control <- list()
+    else {
+        if (!is.list(control)) stop("Argument 'control' expects a list.")
+    }
 
     if (!is.null(transportability) || !is.null(selection_bias) || !is.null(missing_data)) {
         return(get_derivation_dag(data, query, graph, transportability, selection_bias, missing_data, control))
@@ -49,7 +66,7 @@ summary.dosearch <- function(object, ...) {
     return(ans)
 }
 
-print.summary.dosearch <- function(x) {
+print.summary.dosearch <- function(x, ...) {
     res <- x$result
     y <- x$call
     cat("The query", y$query, "is", ifelse(res$identifiable, "identifiable.", "non-identifiable."), "\n")

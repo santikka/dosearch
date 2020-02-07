@@ -1,7 +1,7 @@
 Package: dosearch
 Type: Package
 Version: 1.0.5
-Date: 2020-02-04
+Date: 2020-02-07
 Title: Causal Effect Identification from Multiple Incomplete Data Sources
 Authors@R: c(
     person(given = "Santtu",
