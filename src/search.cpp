@@ -120,15 +120,15 @@ void search::find() {
 
                     required.primitive = TRUE;
                     z = z_sets[z_ind];
-                    if ( !enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining) ) continue;
+                    enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+
+                    if ( found ) break;
 
                 }
 
                 t2 = chrono::high_resolution_clock::now();
                 ms = t2 - t1;
                 rule_times[r] += ms.count();
-
-                if ( found ) break;
 
             }
 
@@ -160,11 +160,11 @@ void search::find() {
 
                     required.primitive = TRUE;
                     z = z_sets[z_ind];
-                    if ( !enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining) ) continue;
+                    enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+
+                    if ( found ) break;
 
                 }
-
-                if ( found ) break;
 
             }
 
@@ -176,11 +176,11 @@ void search::find() {
 
 }
 
-bool search::enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining) {
+void search::enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining) {
 
     apply_rule(ruleid, a, b, c, d, z);
 
-    if ( !info.valid ) return false;;
+    if ( !info.valid ) return;
 
     if ( info.enumerate ) {
         enumerate_candidates();
@@ -195,9 +195,9 @@ bool search::enumerate_distribution(const int& ruleid, const int& a, const int& 
         }
     } else {
         exist = ps[make_key(info.to)];
-        if ( exist > 0 ) return false;
+        if ( exist > 0 ) return;
         if ( info.ri.x > 0 ) {
-            if ( !separation_criterion() ) return false;;
+            if ( !separation_criterion() ) return;
         }
         if ( info.rp.a > 0 ) {
             req = ps[make_key(info.rp)];
@@ -210,7 +210,7 @@ bool search::enumerate_distribution(const int& ruleid, const int& a, const int& 
         }
     }
 
-    return true;
+    return;
 
 }
 

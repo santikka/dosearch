@@ -43,7 +43,7 @@ public:
     string make_key(const p& pp) const;
     bool equal_p(const p& p1, const p& p2) const;
     void draw(const distr& dist, const bool& recursive, derivation& d);
-    bool enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining);
+    void enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining);
 
     virtual void add_distribution(distr& nquery) = 0;
     virtual void add_known(const int& a, const int& b, const int& c, const int& d) = 0;

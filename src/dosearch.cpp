@@ -94,7 +94,9 @@ distr& dosearch::next_distribution(const int& i) {
 }
 
 void dosearch::derive_distribution(const distr& iquery, const distr& required, const int& ruleid, int& remaining, bool& found) {
+    index++;
     distr nquery;
+    nquery.index = index;
     nquery.pp = info.to;
     nquery.primitive = is_primitive(iquery.primitive, required.primitive, ruleid);
     nquery.pa1 = iquery.index;
@@ -119,9 +121,7 @@ void dosearch::derive_distribution(const distr& iquery, const distr& required, c
             if ( info.rp.a > 0 ) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
             else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
         }
-        index++;
         remaining++;
-        nquery.index = index;
         add_distribution(nquery);
     }
 }
