@@ -93,6 +93,8 @@ void search::find() {
         chrono::high_resolution_clock::time_point start;
         chrono::duration<double, std::milli> ms;
 
+        start = chrono::high_resolution_clock::now();
+
         while ( remaining > 0 && !found ) {
 
             distr& iquery = next_distribution(i);
@@ -116,6 +118,7 @@ void search::find() {
 
                     t3 = chrono::high_resolution_clock::now();
                     total = t3 - start;
+
                     if ( total.count() > time_limit ) return;
 
                     required.primitive = TRUE;

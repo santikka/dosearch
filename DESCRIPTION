@@ -1,7 +1,7 @@
 Package: dosearch
 Type: Package
-Version: 1.0.3
-Date: 2019-10-18
+Version: 1.0.5
+Date: 2020-02-07
 Title: Causal Effect Identification from Multiple Incomplete Data Sources
 Authors@R: c(
     person(given = "Santtu",
@@ -27,7 +27,7 @@ Description: Identification of causal effects from arbitrary observational and e
     acyclic graphs (LDAG). For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>.
     For further information on the search-based approach see Tikka et al. (2019) <arXiv:1902.01073>. 
 License: GPL (>= 2)
-Imports: Rcpp (>= 0.12.19)
+Imports: Rcpp (>= 0.12.19), igraph, dagitty
 LinkingTo: Rcpp
 SystemRequirements: C++11
 NeedsCompilation: yes

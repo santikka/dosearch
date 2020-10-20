@@ -6,7 +6,7 @@
 using namespace Rcpp;
 
 // initialize_csisearch
-Rcpp::List initialize_csisearch(const std::vector<int>& dir_lhs, const std::vector<int>& dir_rhs, const Rcpp::StringVector& lab, const Rcpp::List& p_list, const std::vector<int>& q_vec, const Rcpp::List& label_map, const Rcpp::List& local_csi, const int& con_vars, const int& intv_vars, const int& n, const int& time_limit, const std::vector<int>& rules, const bool& benchmark, const bool& draw_derivation, const bool& draw_all, const bool& formula, const bool& heuristic, const bool& cache, const bool& verbose);
+Rcpp::List initialize_csisearch(const std::vector<int>& dir_lhs, const std::vector<int>& dir_rhs, const Rcpp::StringVector& lab, const Rcpp::List& p_list, const std::vector<int>& q_vec, const Rcpp::List& label_map, const Rcpp::List& local_csi, const int& con_vars, const int& intv_vars, const int& n, const double& time_limit, const std::vector<int>& rules, const bool& benchmark, const bool& draw_derivation, const bool& draw_all, const bool& formula, const bool& heuristic, const bool& cache, const bool& verbose);
 RcppExport SEXP _dosearch_initialize_csisearch(SEXP dir_lhsSEXP, SEXP dir_rhsSEXP, SEXP labSEXP, SEXP p_listSEXP, SEXP q_vecSEXP, SEXP label_mapSEXP, SEXP local_csiSEXP, SEXP con_varsSEXP, SEXP intv_varsSEXP, SEXP nSEXP, SEXP time_limitSEXP, SEXP rulesSEXP, SEXP benchmarkSEXP, SEXP draw_derivationSEXP, SEXP draw_allSEXP, SEXP formulaSEXP, SEXP heuristicSEXP, SEXP cacheSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -21,7 +21,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int& >::type con_vars(con_varsSEXP);
     Rcpp::traits::input_parameter< const int& >::type intv_vars(intv_varsSEXP);
     Rcpp::traits::input_parameter< const int& >::type n(nSEXP);
-    Rcpp::traits::input_parameter< const int& >::type time_limit(time_limitSEXP);
+    Rcpp::traits::input_parameter< const double& >::type time_limit(time_limitSEXP);
     Rcpp::traits::input_parameter< const std::vector<int>& >::type rules(rulesSEXP);
     Rcpp::traits::input_parameter< const bool& >::type benchmark(benchmarkSEXP);
     Rcpp::traits::input_parameter< const bool& >::type draw_derivation(draw_derivationSEXP);
@@ -35,7 +35,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // initialize_dosearch
-Rcpp::List initialize_dosearch(const std::vector<int>& dir_lhs, const std::vector<int>& dir_rhs, const std::vector<int>& bi_lhs, const std::vector<int>& bi_rhs, const Rcpp::StringVector& lab, const Rcpp::List& p_list, const std::vector<int>& q_vec, const int& n, const int& tr, const int& sb, const int& md_s, const int& md_p, const int& time_limit, const std::vector<int>& rules, const bool& benchmark, const bool& draw_derivation, const bool& draw_all, const bool& formula, const bool& heuristic, const char& md_sym, const bool& verbose);
+Rcpp::List initialize_dosearch(const std::vector<int>& dir_lhs, const std::vector<int>& dir_rhs, const std::vector<int>& bi_lhs, const std::vector<int>& bi_rhs, const Rcpp::StringVector& lab, const Rcpp::List& p_list, const std::vector<int>& q_vec, const int& n, const int& tr, const int& sb, const int& md_s, const int& md_p, const double& time_limit, const std::vector<int>& rules, const bool& benchmark, const bool& draw_derivation, const bool& draw_all, const bool& formula, const bool& heuristic, const char& md_sym, const bool& verbose);
 RcppExport SEXP _dosearch_initialize_dosearch(SEXP dir_lhsSEXP, SEXP dir_rhsSEXP, SEXP bi_lhsSEXP, SEXP bi_rhsSEXP, SEXP labSEXP, SEXP p_listSEXP, SEXP q_vecSEXP, SEXP nSEXP, SEXP trSEXP, SEXP sbSEXP, SEXP md_sSEXP, SEXP md_pSEXP, SEXP time_limitSEXP, SEXP rulesSEXP, SEXP benchmarkSEXP, SEXP draw_derivationSEXP, SEXP draw_allSEXP, SEXP formulaSEXP, SEXP heuristicSEXP, SEXP md_symSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -52,7 +52,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int& >::type sb(sbSEXP);
     Rcpp::traits::input_parameter< const int& >::type md_s(md_sSEXP);
     Rcpp::traits::input_parameter< const int& >::type md_p(md_pSEXP);
-    Rcpp::traits::input_parameter< const int& >::type time_limit(time_limitSEXP);
+    Rcpp::traits::input_parameter< const double& >::type time_limit(time_limitSEXP);
     Rcpp::traits::input_parameter< const std::vector<int>& >::type rules(rulesSEXP);
     Rcpp::traits::input_parameter< const bool& >::type benchmark(benchmarkSEXP);
     Rcpp::traits::input_parameter< const bool& >::type draw_derivation(draw_derivationSEXP);
