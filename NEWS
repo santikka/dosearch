@@ -1,3 +1,6 @@
+Changes from version 1.0.5 to 1.0.6
+ * Fixed a case where the search would continue unnecessarily for some time after discovering the target distribution.
+
 Changes from version 1.0.4 to 1.0.5
  * The resulting list of the 'dosearch' function call now has the class 'dosearch' with print and summary methods.
  * Added accessor functions 'get_formula', 'get_benchmark' and 'is_identifiable' to query an object of class 'dosearch'.
