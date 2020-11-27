@@ -8,7 +8,7 @@ arbitrary combinations of these. Also supports identification in the presence of
 through labeled directed acyclic graphs (LDAG). 
 
 For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>. 
-For further information on the search-based approach see the paper [Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-based Approach](https://arXiv:1902.01073).
+For further information on the search-based approach see the paper [Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-based Approach](https://arxiv.org/abs/1902.01073).
 
 ## Installation
 You can install the latest release version from CRAN:
