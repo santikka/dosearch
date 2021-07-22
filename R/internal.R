@@ -486,6 +486,12 @@ get_derivation_dag <- function(
     if (err) {
         stop(paste0(c("Invalid query: ", msg)))
     }
+    
+    if (!is.null(control$improve)) {
+        if (control$improve) {
+            control$rules = c(4, 5, -2, -3, 2, 3, 6, -6)
+        }
+    }
 
     res <- initialize_dosearch(
         as.numeric(nums[dir_lhs]),

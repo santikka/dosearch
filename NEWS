@@ -1,3 +1,6 @@
+Changes from version 1.0.6 to 1.0.7
+ * Restored a legacy control parameter for internal use
+
 Changes from version 1.0.5 to 1.0.6
  * Fixed a case where the search would continue unnecessarily for some time after discovering the target distribution.
 
