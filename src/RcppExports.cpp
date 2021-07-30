@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // initialize_csisearch
 Rcpp::List initialize_csisearch(const std::vector<int>& dir_lhs, const std::vector<int>& dir_rhs, const Rcpp::StringVector& lab, const Rcpp::List& p_list, const std::vector<int>& q_vec, const Rcpp::List& label_map, const Rcpp::List& local_csi, const int& con_vars, const int& intv_vars, const int& n, const double& time_limit, const std::vector<int>& rules, const bool& benchmark, const bool& draw_derivation, const bool& draw_all, const bool& formula, const bool& heuristic, const bool& cache, const bool& verbose);
 RcppExport SEXP _dosearch_initialize_csisearch(SEXP dir_lhsSEXP, SEXP dir_rhsSEXP, SEXP labSEXP, SEXP p_listSEXP, SEXP q_vecSEXP, SEXP label_mapSEXP, SEXP local_csiSEXP, SEXP con_varsSEXP, SEXP intv_varsSEXP, SEXP nSEXP, SEXP time_limitSEXP, SEXP rulesSEXP, SEXP benchmarkSEXP, SEXP draw_derivationSEXP, SEXP draw_allSEXP, SEXP formulaSEXP, SEXP heuristicSEXP, SEXP cacheSEXP, SEXP verboseSEXP) {
