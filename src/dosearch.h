@@ -9,7 +9,7 @@ using namespace std;
 
 class dosearch: public search {
 public:
-    dosearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    dosearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
     int md_s, md_p, md_t, tr, sb, trsb;
     char md_sym;
     bool md;
@@ -48,7 +48,7 @@ public:
             return d1->score < d2->score;
         }
     };
-    dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
     void add_distribution(distr& nquery);
     void add_known(const int& a, const int& b, const int& c, const int& d);
     distr& next_distribution(const int& j);

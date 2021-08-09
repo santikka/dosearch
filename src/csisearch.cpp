@@ -2,7 +2,7 @@
 
 using namespace std;
 
-csisearch::csisearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, tl, bm, dd, da, fa, verb) {
+csisearch::csisearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb):search(n_, tl, bm, br, dd, da, fa, im, verb) {
 }
 
 csisearch::~csisearch() {
@@ -743,7 +743,7 @@ void csisearch::get_ruleinfo(const int& ruleid, const int& y, const int& x, cons
 
 // csisearch_heuristic
 
-csisearch_heuristic::csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):csisearch(n_, tl, bm, dd, da, fa, verb) {
+csisearch_heuristic::csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb):csisearch(n_, tl, bm, br, dd, da, fa, im, verb) {
 }
 
 csisearch_heuristic::~csisearch_heuristic() {

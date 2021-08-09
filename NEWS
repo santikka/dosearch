@@ -1,4 +1,6 @@
 Changes from version 1.0.6 to 1.0.7
+ * Implemented minor performance tweaks to the search
+ * Added more options for benchmarking
  * Restored a legacy control parameter for internal use
  * Moved 'igraph' and 'dagitty' packages to 'Suggests'
 

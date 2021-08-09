@@ -2,7 +2,7 @@
 
 using namespace std;
 
-dosearch::dosearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):search(n_, tl, bm, dd, da, fa, verb) {
+dosearch::dosearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb):search(n_, tl, bm, br, dd, da, fa, im, verb) {
 }
 
 dosearch::~dosearch() {
@@ -36,9 +36,11 @@ void dosearch::set_options(const vector<int>& rule_vec) {
     else {
         // Additional rules for missing data problems
         if ( md ) {
-            rules = {4, 5, 9, 10, -1, -2, -3, 1, 2, 3, 6, -6, 7, -7, 8, -8};
+            if ( improve ) rules = {4, 5, 9, 10, -2, -3, 2, 3, 6, -6, 7, -7, 8, -8};
+            else rules = {4, 5, 9, 10, -1, -2, -3, 1, 2, 3, 6, -6, 7, -7, 8, -8};
         } else {
-            rules = {4, 5, -1, -2, -3, 1, 2, 3, 6, -6};
+            if ( improve ) rules = {4, 5, -2, -3, 2, 3, 6, -6};
+            else rules = {4, 5, -1, -2, -3, 1, 2, 3, 6, -6};
         }
     }
 
@@ -459,7 +461,6 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
             if ( (z & c) != 0 ) return;
             if ( (z & b) != z ) return;
             if ( (z & md_p) != 0 ) return;
-            if ( (z & trsb) != 0 ) return;
             break;
 
         }
@@ -481,7 +482,6 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
 
             if ( (z & a) != 0 ) return;
             if ( (z & b) != 0 ) return;
-            if ( (z & trsb) != 0 ) return;
 
             if ( md ) {
                 if ( (z & md_p) != 0 ) return; // z intersection m = 0
@@ -882,7 +882,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
 // dosearch_heuristic
 
-dosearch_heuristic::dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb):dosearch(n_, tl, bm, dd, da, fa, verb) {
+dosearch_heuristic::dosearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb):dosearch(n_, tl, bm, br, dd, da, fa, im, verb) {
 }
 
 dosearch_heuristic::~dosearch_heuristic() {

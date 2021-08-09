@@ -35,7 +35,7 @@ struct distr {
 
 class search {
 public:
-    search(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    search(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
     Rcpp::List initialize();
     void find();
     void set_derivation(derivation* d_);
@@ -69,9 +69,11 @@ public:
     const int n;
     const double time_limit;
     const bool benchmark;
+    const bool benchmark_rules;
     const bool draw_derivation;
     const bool draw_all;
     const bool formula;
+    const bool improve;
     const bool verbose;
 
     p target;

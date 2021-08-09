@@ -121,9 +121,11 @@ parse_graph <- function(graph) {
 # control is a list that accepts the following components
 #
 # benchmark       : A logical value. If TRUE, record time it took for the search (in milliseconds).
+# benchmark_rules : A logical value. If TRUE, include total time taken by each rule in the benchmark.
 # draw_all        : A logical value. If TRUE, all steps of the search are drawn. If FALSE, only steps resulting in the identifying formula are drawn.
 # draw_derivation : A logical value. If TRUE, a string representing the derivation steps as a dot graph is also provided.
 # formula         : A logical value. If TRUE, a formula for an identifiable effect is provided. If false, the output is a boolean instead.
+# improve         : A logical value. If TRUE, various enhancements of the search are enabled.
 # heuristic       : A logical value. If TRUE, a search heuristic is applied.
 # md_sym          : A single character describing the value that a missing data mechanism attains when it is enabled (defaults to "1")
 # rules           : A numeric vector of do-calculus/probability rules used in the search.
@@ -137,9 +139,12 @@ get_derivation_dag <- function(
     control = list()) {
 
     if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
+    if (is.null(control$benchmark_rules)  || typeof(control$benchmark_rules) != "logical"  || length(control$benchmark_rules) > 1)  control$benchmark_rules <- FALSE
     if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
     if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
     if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
+    if (is.null(control$improve)          || typeof(control$improve) != "logical"          || length(control$improve) > 1)          control$improve <- TRUE
+    if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- FALSE
     if (is.null(control$md_sym)           || typeof(control$md_sym) != "character"         || length(control$verbose) > 1)          control$md_sym <- "1"
     if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
     if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- 0.5
@@ -222,13 +227,11 @@ get_derivation_dag <- function(
         md_s <- to_dec(md_switch_nums, n)
         md_p <- to_dec(md_proxy_nums, n)
         md_t <- bitwShiftR(md_p, 2)
-        if (is.null(control$heuristic) || typeof(control$heuristic) != "logical" || length(control$heuristic) > 1) control$heuristic <- FALSE
     } else {
         n <- length(vars)
         nums <- 1:n
         names(vars) <- nums
         names(nums) <- vars
-        if (is.null(control$heuristic) || typeof(control$heuristic) != "logical" || length(control$heuristic) > 1) control$heuristic <- TRUE
     }
 
     # parse transportability nodes
@@ -486,12 +489,6 @@ get_derivation_dag <- function(
     if (err) {
         stop(paste0(c("Invalid query: ", msg)))
     }
-    
-    if (!is.null(control$improve)) {
-        if (control$improve) {
-            control$rules = c(4, 5, -2, -3, 2, 3, 6, -6)
-        }
-    }
 
     res <- initialize_dosearch(
         as.numeric(nums[dir_lhs]),
@@ -509,9 +506,11 @@ get_derivation_dag <- function(
         control$time_limit,
         control$rules,
         control$benchmark,
+        control$benchmark_rules,
         control$draw_derivation,
         control$draw_all,
         control$formula,
+        control$improve,
         control$heuristic,
         control$md_sym,
         control$verbose
@@ -532,8 +531,7 @@ get_derivation_dag <- function(
         control$formula,
         control$draw_derivation,
         control$benchmark,
-        control$benchmark,
-        TRUE
+        control$benchmark_rules
     )], class = "dosearch"))
 
 }
@@ -547,9 +545,11 @@ get_derivation_dag <- function(
 # control is a list that accepts the following components
 #
 # benchmark       : A logical value. If TRUE, record time it took for the search (in milliseconds).
+# benchmark_rules : A logical value. If TRUE, include total time taken by each rule in the benchmark.
 # draw_derivation : A logical value. If TRUE, a string representing the derivation steps as a dot graph is also provided.
 # draw_all        : A logical value. If TRUE, all steps of the search are drawn. If FALSE, only steps resulting in the identifying formula are drawn.
-# cache           : A logical value. If TRUE, derived separation criteria are stored and not evaluated again
+# cache           : A logical value. If TRUE, derived separation criteria are stored and not evaluated again.
+# improve         : A logical value. If TRUE, various enhancements of the search are enabled.
 # formula         : A logical value. If TRUE, a formula for an identifiable effect is provided. If false, the output is a boolean instead.
 # heuristic       : A logical value. If TRUE, a search heuristic is applied.
 # rules           : A numeric vector of do-calculus/probability rules used in the search.
@@ -560,10 +560,12 @@ get_derivation_ldag <- function(
     data, query, graph, control = list()) {
 
     if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
+    if (is.null(control$benchmark_rules)  || typeof(control$benchmark_rules) != "logical"  || length(control$benchmark_rules) > 1)  control$benchmark_rules <- FALSE
     if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
     if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
     if (is.null(control$cache)            || typeof(control$cache) != "logical"            || length(control$cache) > 1)            control$cache <- TRUE
     if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
+    if (is.null(control$improve)          || typeof(control$improve) != "logical"          || length(control$improve) > 1)          control$improve <- TRUE
     if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- TRUE
     if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
     if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- 0.5
@@ -963,9 +965,11 @@ get_derivation_ldag <- function(
         control$time_limit,
         control$rules,
         control$benchmark,
+        control$benchmark_rules,
         control$draw_derivation,
         control$draw_all,
         control$formula,
+        control$improve,
         control$heuristic,
         control$cache,
         control$verbose
@@ -986,11 +990,9 @@ get_derivation_ldag <- function(
         control$formula,
         control$draw_derivation,
         control$benchmark,
-        control$benchmark,
-        TRUE
+        control$benchmark_rules
     )], class = "dosearch"))
 
 }
 
 is_dosearch <- function(x) inherits(x, "dosearch")
-

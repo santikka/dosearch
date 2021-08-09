@@ -18,10 +18,14 @@
   sb                : a set representing selection bias nodes
   md_s              : a set representing missing data switches
   md_p              : a set representing missing data proxies
+  time_limit        : time limit for the search (in hours)
   rules             : overrides the set of default rules
+  benchmark         : record the search time
+  benchmark_rules   : record time taken by each individual rule
   draw_derivation   : form a string representing the derivation steps (as dot)
   draw_all          : draw every distribution that was derived (vs only those that were used to derive the effect)
   formula           : output formula as string
+  improve           : enable search enhancements
   heuristic         : use search heuristic
   md_sym            : symbol used to represent active missing data mechanisms
   verbose           : print diagnostics during search
@@ -44,9 +48,11 @@ Rcpp::List initialize_dosearch(
     const double& time_limit,
     const std::vector<int>& rules,
     const bool& benchmark,
+    const bool& benchmark_rules,
     const bool& draw_derivation,
     const bool& draw_all,
     const bool& formula,
+    const bool& improve,
     const bool& heuristic,
     const char& md_sym,
     const bool& verbose)
@@ -72,8 +78,8 @@ Rcpp::List initialize_dosearch(
     derivation* d = new derivation();
 
     dosearch *s;
-    if ( heuristic ) s = new dosearch_heuristic(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
-    else s = new dosearch(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
+    if ( heuristic ) s = new dosearch_heuristic(n, time_limit, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, verbose);
+    else s = new dosearch(n, time_limit, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, verbose);
 
     if ( draw_derivation ) s->set_derivation(d);
 

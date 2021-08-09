@@ -99,6 +99,7 @@ get_formula <- function(x, run_again = FALSE) {
         else {
             if (run_again) {
                 y <- x$call
+                y$control$formula <- TRUE
                 z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, y$control)
                 return(z$formula)
             }
@@ -113,10 +114,9 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
         else {
             if (run_again) {
                 y <- x$call
-                control <- y$control
-                control$draw_derivation <- TRUE
-                control$draw_all <- draw_all
-                z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, control)
+                y$control$draw_derivation <- TRUE
+                y$control$draw_all <- draw_all
+                z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, y$control)
                 return(z$derivation)
             }
             cat("No derivation is available.\n")
@@ -126,13 +126,12 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 
 get_benchmark <- function(x, run_again = FALSE) {
     if (is_dosearch(x)) {
-        if (!is.null(x$time)) return(list(x$time, x$rule_times))
+        if (!is.null(x$time)) return(x$time)
         else {
             if (run_again) {
                 y <- x$call
-                control <- y$control
-                control$benchmark <- TRUE
-                z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, control)
+                y$control$benchmark <- TRUE
+                z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, y$control)
                 return(list(z$time, z$rule_times))
             }
             cat("No benchmark is available.\n")

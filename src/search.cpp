@@ -2,8 +2,8 @@
 
 using namespace std;
 
-search::search(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb): 
-  n(n_), time_limit(tl), benchmark(bm), draw_derivation(dd), draw_all(da), formula(fa), verbose(verb) {
+search::search(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb): 
+  n(n_), time_limit(tl), benchmark(bm), benchmark_rules(br), draw_derivation(dd), draw_all(da), formula(fa), improve(im), verbose(verb) {
 }
 
 search::~search() {
@@ -17,14 +17,14 @@ Rcpp::List search::initialize() {
     info.ri.x   = 0; info.ri.y   = 0; info.ri.z   = 0; info.ri.u   = 0; info.ri.v = 0;
     info.valid = false; info.enumerate = false;
 
-    string formula = "";
+    string formula_str = "";
     string derivation = "";
 
-    bool trivial = check_trivial();
-    if ( trivial ) {
+    bool trivial_nonid = check_trivial();
+    if ( improve && trivial_nonid ) {
         return Rcpp::List::create(
             Rcpp::Named("identifiable") = false,
-            Rcpp::Named("formula") = formula,
+            Rcpp::Named("formula") = formula_str,
             Rcpp::Named("derivation") = derivation,
             Rcpp::Named("time") = 0,
             Rcpp::Named("rule_times") = rule_times
@@ -46,7 +46,9 @@ Rcpp::List search::initialize() {
 
     bool identifiable = target_dist.size() > 0;
 
-    if ( identifiable ) formula = derive_formula(target_dist[0]);
+    if ( identifiable && formula ) {
+        formula_str = derive_formula(target_dist[0]);
+    }
     if ( draw_derivation ) {
         deriv->init();
         if ( draw_all ) {
@@ -67,7 +69,7 @@ Rcpp::List search::initialize() {
 
     return Rcpp::List::create(
         Rcpp::Named("identifiable") = identifiable,
-        Rcpp::Named("formula") = formula,
+        Rcpp::Named("formula") = formula_str,
         Rcpp::Named("derivation") = derivation,
         Rcpp::Named("time") = total_time.count(),
         Rcpp::Named("rule_times") = rule_times
@@ -76,7 +78,6 @@ Rcpp::List search::initialize() {
 }
 
 void search::find() {
-
     distr required;
     bool found = false;
     bool primi = true;
@@ -85,99 +86,125 @@ void search::find() {
     unsigned int z_size = z_sets.size();
     int a, b, c, d, z, cd, req, ruleid, exist;
     int remaining = L.size();
-    chrono::duration<double, std::ratio<3600>> total;
-
-    if ( benchmark ) {
-
-        chrono::high_resolution_clock::time_point t1, t2, t3;
-        chrono::high_resolution_clock::time_point start;
-        chrono::duration<double, std::milli> ms;
-
+    bool enable_limit = time_limit > 0;
+    if ( enable_limit ) {
+        chrono::high_resolution_clock::time_point start, current;
+        chrono::duration<double, std::ratio<3600>> total;
         start = chrono::high_resolution_clock::now();
-
-        while ( remaining > 0 && !found ) {
-
-            distr& iquery = next_distribution(i);
-            remaining--;
-            a = iquery.pp.a;
-            b = iquery.pp.b;
-            c = iquery.pp.c;
-            d = iquery.pp.d;
-            primi = iquery.primitive;
-
-            for ( unsigned int r = 0; r < rules.size(); r++ ) {
-
-                t1 = chrono::high_resolution_clock::now();
-                ruleid = rules[r];
-
-                if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
-
-                z_lim = rule_limit(ruleid, z_size);
-
-                for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
-
-                    t3 = chrono::high_resolution_clock::now();
-                    total = t3 - start;
-
-                    if ( total.count() > time_limit ) return;
-
-                    required.primitive = TRUE;
-                    z = z_sets[z_ind];
-                    enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
-
-                    if ( found ) break;
-
+        if (benchmark_rules) {
+            chrono::high_resolution_clock::time_point t1, t2;
+            chrono::duration<double, std::milli> ms;
+            while ( remaining > 0 && !found ) {
+                current = chrono::high_resolution_clock::now();
+                total = current - start;
+                if ( total.count() > time_limit ) return;
+                distr& iquery = next_distribution(i);
+                remaining--;
+                a = iquery.pp.a;
+                b = iquery.pp.b;
+                c = iquery.pp.c;
+                d = iquery.pp.d;
+                primi = iquery.primitive;
+                for ( unsigned int r = 0; r < rules.size(); r++ ) {
+                    t1 = chrono::high_resolution_clock::now();
+                    ruleid = rules[r];
+                    if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
+                    z_lim = rule_limit(ruleid, z_size);
+                    for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
+                        required.primitive = TRUE;
+                        z = z_sets[z_ind];
+                        enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+                        if ( found ) break;
+                    }
+                    t2 = chrono::high_resolution_clock::now();
+                    ms = t2 - t1;
+                    rule_times[r] += ms.count();
+                    if ( found ) return;
                 }
-
-                t2 = chrono::high_resolution_clock::now();
-                ms = t2 - t1;
-                rule_times[r] += ms.count();
-
+                i++;
             }
-
-            i++;
-
+        } else {
+            while ( remaining > 0 && !found ) {
+                current = chrono::high_resolution_clock::now();
+                total = current - start;
+                if ( total.count() > time_limit ) return;
+                distr& iquery = next_distribution(i);
+                remaining--;
+                a = iquery.pp.a;
+                b = iquery.pp.b;
+                c = iquery.pp.c;
+                d = iquery.pp.d;
+                primi = iquery.primitive;
+                for ( unsigned int r = 0; r < rules.size(); r++ ) {
+                    ruleid = rules[r];
+                    if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
+                    z_lim = rule_limit(ruleid, z_size);
+                    for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
+                        required.primitive = TRUE;
+                        z = z_sets[z_ind];
+                        enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+                        if ( found ) return;
+                    }
+                }
+                i++;
+            }
         }
-
     } else {
-
-        while ( remaining > 0 && !found ) {
-
-            distr& iquery = next_distribution(i);
-            remaining--;
-            a = iquery.pp.a;
-            b = iquery.pp.b;
-            c = iquery.pp.c;
-            d = iquery.pp.d;
-            primi = iquery.primitive;
-
-            for ( unsigned int r = 0; r < rules.size(); r++ ) {
-
-                ruleid = rules[r];
-
-                if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
-
-                z_lim = rule_limit(ruleid, z_size);
-
-                for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
-
-                    required.primitive = TRUE;
-                    z = z_sets[z_ind];
-                    enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
-
-                    if ( found ) break;
-
+        if (benchmark_rules) {
+            chrono::high_resolution_clock::time_point t1, t2;
+            chrono::duration<double, std::milli> ms;
+            while ( remaining > 0 && !found ) {
+                distr& iquery = next_distribution(i);
+                remaining--;
+                a = iquery.pp.a;
+                b = iquery.pp.b;
+                c = iquery.pp.c;
+                d = iquery.pp.d;
+                primi = iquery.primitive;
+                for ( unsigned int r = 0; r < rules.size(); r++ ) {
+                    t1 = chrono::high_resolution_clock::now();
+                    ruleid = rules[r];
+                    if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
+                    z_lim = rule_limit(ruleid, z_size);
+                    for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
+                        required.primitive = TRUE;
+                        z = z_sets[z_ind];
+                        enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+                        if ( found ) break;
+                    }
+                    t2 = chrono::high_resolution_clock::now();
+                    ms = t2 - t1;
+                    rule_times[r] += ms.count();
+                    if ( found ) return;
                 }
-
+                i++;
             }
-
-            i++;
-
+        } else {
+            while ( remaining > 0 && !found ) {
+                distr& iquery = next_distribution(i);
+                remaining--;
+                a = iquery.pp.a;
+                b = iquery.pp.b;
+                c = iquery.pp.c;
+                d = iquery.pp.d;
+                primi = iquery.primitive;
+                for ( unsigned int r = 0; r < rules.size(); r++ ) {
+                    ruleid = rules[r];
+                    if ( !valid_rule(ruleid, a, b, c, d, primi) ) continue;
+                    z_lim = rule_limit(ruleid, z_size);
+                    for ( unsigned int z_ind = 0; z_ind < z_lim; z_ind++ ) {
+                        required.primitive = TRUE;
+                        z = z_sets[z_ind];
+                        enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
+                        if ( found ) return;
+                    }
+                }
+                i++;
+            }
         }
-
     }
-
 }
+
 
 void search::enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining) {
 

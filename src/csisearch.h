@@ -9,7 +9,7 @@ using namespace std;
 
 class csisearch : public search {
 public:
-    csisearch(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    csisearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
     int con_vars, intv_vars;
     ldag* g;
 
@@ -47,7 +47,7 @@ public:
             return d1->score < d2->score;
         }
     };
-    csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& dd, const bool& da, const bool& fa, const bool& verb);
+    csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
     void add_distribution(distr& nquery);
     void add_known(const int& a, const int& b, const int& c, const int& d);
     distr& next_distribution(const int& i);

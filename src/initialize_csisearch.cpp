@@ -11,15 +11,19 @@
   lab               : vector of labels for vertices
   p_list            : a list of known distributions
   q_vec             : vector of vertices representing the causal query
-  n                 : number of vertices
   label_map         : a list of edge labels
+  local_csi         : local CSI statements
   con_vars          : a set of variables that have assignments in labels (non-interventional)
   intv_vars         : a set of of interventional variables
+  n                 : number of vertices
+  time_limit        : time limit for the search (in hours)
   rules             : overrides the set of default rules
+  benchmark         : record the search time
+  benchmark_rules   : record time taken by each individual rule
   draw_derivation   : form a string representing the derivation steps (as dot)
   draw_all          : draw every distribution that was derived (vs only those that were used to derive the effect)
   formula           : output formula as string
-  improve           : remove redundant sets from do-calculus operations
+  improve           : enable search enhancements
   heuristic         : use search heuristic
   cache             : use caching for separation criteria
   verbose           : print diagnostics during search
@@ -40,9 +44,11 @@ Rcpp::List initialize_csisearch(
     const double& time_limit,
     const std::vector<int>& rules,
     const bool& benchmark,
+    const bool& benchmark_rules,
     const bool& draw_derivation,
     const bool& draw_all,
     const bool& formula,
+    const bool& improve,
     const bool& heuristic,
     const bool& cache,
     const bool& verbose)
@@ -60,8 +66,8 @@ Rcpp::List initialize_csisearch(
     derivation* d = new derivation();
 
     csisearch *s;
-    if ( heuristic ) s = new csisearch_heuristic(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
-    else s = new csisearch(n, time_limit, benchmark, draw_derivation, draw_all, formula, verbose);
+    if ( heuristic ) s = new csisearch_heuristic(n, time_limit, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, verbose);
+    else s = new csisearch(n, time_limit, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, verbose);
 
     if ( draw_derivation ) s->set_derivation(d);
 
