@@ -147,7 +147,7 @@ get_derivation_dag <- function(
     if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- FALSE
     if (is.null(control$md_sym)           || typeof(control$md_sym) != "character"         || length(control$verbose) > 1)          control$md_sym <- "1"
     if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
-    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- 0.5
+    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- -1.0
     if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
     if (is.null(control$warn)             || typeof(control$warn) != "logical"             || length(control$warn) > 1)             control$warn <- TRUE
     # Default value for heuristic is set later after checking for missing data mechanisms
@@ -527,11 +527,12 @@ get_derivation_dag <- function(
     )
 
     return(structure(res[c(
-        TRUE,
+        TRUE, # always include identifiability
         control$formula,
         control$draw_derivation,
         control$benchmark,
-        control$benchmark_rules
+        control$benchmark_rules,
+        TRUE # always include the call
     )], class = "dosearch"))
 
 }
@@ -568,7 +569,7 @@ get_derivation_ldag <- function(
     if (is.null(control$improve)          || typeof(control$improve) != "logical"          || length(control$improve) > 1)          control$improve <- TRUE
     if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- TRUE
     if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
-    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- 0.5
+    if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- -1.0
     if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
 
     dir_lhs <- c()
@@ -986,11 +987,12 @@ get_derivation_ldag <- function(
     )
 
     return(structure(res[c(
-        TRUE,
+        TRUE, # always include identifiability
         control$formula,
         control$draw_derivation,
         control$benchmark,
-        control$benchmark_rules
+        control$benchmark_rules,
+        TRUE # always include the call
     )], class = "dosearch"))
 
 }

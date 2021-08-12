@@ -80,12 +80,13 @@ Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when \eq
 The \code{control} argument is a list that can supply any of the following components:
 \describe{
   \item{\code{benchmark}}{A logical value. If \code{TRUE}, the search time is recorded and returned (in milliseconds). Defaults to \code{FALSE}. }
+  \item{\code{benchmark_rules}}{A logical value. If \code{TRUE}, the time taken by each individual inference rule is also recorded in the benchmark (in milliseconds). Defaults to \code{FALSE}. }
   \item{\code{draw_derivation}}{A logical value. If \code{TRUE}, a string representing the derivation steps as a DOT graph is returned. The graph can be exported as an image for example by using the \code{DOT} package. Defaults to \code{FALSE}. }
   \item{\code{draw_all}}{A logical value. If \code{TRUE} and if \code{draw_derivation = TRUE}, the derivation will contain every step taken by the search. If \code{FALSE}, only steps that resulted in an identifiable target are returned. Defaults to \code{FALSE}. }
   \item{\code{formula}}{A logical value. If \code{TRUE}, a string representing the identifiable query is returned when the target query is identifiable. If \code{FALSE}, only a logical value is returned that takes the value \code{TRUE} for an identifiable target and \code{FALSE} otherwise. Defaults to \code{TRUE}. }
-  \item{\code{heuristic}}{A logical value. If \code{TRUE}, new distributions are expanded according to a search heuristic (see Tikka et al. (2019) for details). Otherwise, distributions are expanded in the order in which they were identified. Defaults to \code{TRUE} unless missing data mechanisms are provided in \code{missing_data}. }
+  \item{\code{heuristic}}{A logical value. If \code{TRUE}, new distributions are expanded according to a search heuristic (see Tikka et al. (2019) for details). Otherwise, distributions are expanded in the order in which they were identified. Defaults to \code{FALSE}. }
   \item{\code{md_sym}}{A single character describing the symbol to use for active missing data mechanisms. Defaults to \code{"1"}. }
-  \item{\code{time_limit}}{A numeric value giving a time limit for the search (in hours) when \code{benchmark} is enabled. The default value is \code{0.5}. }
+  \item{\code{time_limit}}{A numeric value giving a time limit for the search (in hours). Defaults to a negative value that disables the limit. }
   \item{\code{verbose}}{A logical value. If \code{TRUE}, diagnostic information is printed to the console during the search. Defaults to \code{FALSE}. }
   \item{\code{warn}}{A logical value. If \code{TRUE}, a warning is issued for possibly unintentionally misspecified but syntactically correct input distributions. }
 }

@@ -1,8 +1,9 @@
 Changes from version 1.0.6 to 1.0.7
- * Implemented minor performance tweaks to the search
- * Added more options for benchmarking
- * Restored a legacy control parameter for internal use
- * Moved 'igraph' and 'dagitty' packages to 'Suggests'
+ * Changed the default option of the search heuristic to FALSE for all instances.
+ * Implemented minor performance tweaks to the search.
+ * Added more options for benchmarking.
+ * Restored a legacy control parameter for internal use.
+ * Moved 'igraph' and 'dagitty' packages to 'Suggests'.
 
 Changes from version 1.0.5 to 1.0.6
  * Fixed a case where the search would continue unnecessarily for some time after discovering the target distribution.

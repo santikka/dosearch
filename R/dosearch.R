@@ -74,7 +74,7 @@ print.summary.dosearch <- function(x, ...) {
     else {
         cat("Formula:\n\t", res$formula, "\n", sep = "")
     }
-    if (!is.na(x$time)) cat("Derivation took", x$time, x$units, "\n")
+    if (!is.na(x$time)) cat("Search took", x$time, x$units, "\n")
     cat("Input data:\n")
     cat("\t", x$data, "\n", sep = "")
     cat("Input graph:\n")
@@ -124,17 +124,24 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
     } else stop("Object is not of class 'dosearch': ", x)
 }
 
-get_benchmark <- function(x, run_again = FALSE) {
+get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
     if (is_dosearch(x)) {
-        if (!is.null(x$time)) return(x$time)
-        else {
+        if (!is.null(x$time)) {
+            if (!is.null(x$rule_times)) {
+                return(list(time = x$time, rule_times = x$rule_times))
+            } else {
+                return(list(time = x$time))
+            }
+        } else {
             if (run_again) {
                 y <- x$call
                 y$control$benchmark <- TRUE
+                y$control$benchmark_rules <- include_rules
                 z <- dosearch(y$data, y$query, y$graph, y$transportability, y$selection_bias, y$missing_data, y$control)
-                return(list(z$time, z$rule_times))
+                return(get_benchmark(z, run_again = FALSE))
+            } else {
+                cat("No benchmark is available.\n")
             }
-            cat("No benchmark is available.\n")
         }
     } else stop("Object is not of class 'dosearch': ", x)
 }

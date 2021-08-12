@@ -24,6 +24,13 @@ devtools::install_github("santikka/dosearch")
 
 ## Recent changes (for all changes, see NEWS file).
 
+### dosearch 1.0.7
+ * Changed the default option of the search heuristic to FALSE for all instances.
+ * Implemented minor performance tweaks to the search.
+ * Added more options for benchmarking.
+ * Restored a legacy control parameter for internal use.
+ * Moved 'igraph' and 'dagitty' packages to 'Suggests'.
+
 ### dosearch 1.0.6
  * Fixed a case where the search would continue unnecessarily for some time after discovering the target distribution.
 
@@ -34,17 +41,4 @@ devtools::install_github("santikka/dosearch")
  * The 'graph' argument of 'dosearch' now supports the igraph format used by the 'causaleffect' package (see 'dosearch' examples).
  * The 'graph' argument of 'dosearch' now supports DAGs created using the 'dagitty' package (see 'dosearch' examples).
  * Fixed an issue when using control(benchmark = TRUE).
-
-### dosearch 1.0.4
- * Fixed compilation issues on some platforms.
-
-### dosearch 1.0.3
- * Now supports context specific independences (CSIs) via labeled directed acyclic graphs (LDAGs). See the documentation and examples for more details.
- * The function 'get_derivation' can now also be called via 'dosearch'.
- * Bidirected edges can now also be given as '<->'.
- * Added a new control option, 'time_limit', which will terminate the search when the given amount of time (in hours) has passed (only when benchmark = TRUE).
- * Some redundant control options have been removed.
- * Fixed an issue with derivation rules when missing data was present.
- * Fixed an another minor issue regarding missing data.
- * Fixed a rare issue with formula generation.
 
