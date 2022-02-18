@@ -74,7 +74,7 @@ int dosearch::proxy_to_true(const int& p) const {
     int t = 0;
     for( unsigned i = 0; i < md_map.size(); i++ ) {
         if ((md_map[i][2] & p) == md_map[i][2]) {
-            t += md_map[i][0];
+            t = t | md_map[i][0];
         }
     }
     return(t);
@@ -84,7 +84,7 @@ int dosearch::true_to_proxy(const int& t) const {
     int p = 0;
     for( unsigned i = 0; i < md_map.size(); i++ ) {
         if ((md_map[i][0] & t) == md_map[i][0]) {
-            p += md_map[i][2];
+            p = p | md_map[i][2];
         }
     }
     return(p);
@@ -94,7 +94,7 @@ int dosearch::switch_to_proxy(const int& s) const {
     int p = 0;
     for( unsigned i = 0; i < md_map.size(); i++ ) {
         if ((md_map[i][1] & s) == md_map[i][1]) {
-            p += md_map[i][2];
+            p = p | md_map[i][2];
         }
     }
     return(p);
@@ -104,7 +104,7 @@ int dosearch::proxy_to_switch(const int& p) const {
     int s = 0;
     for( unsigned i = 0; i < md_map.size(); i++ ) {
         if ((md_map[i][2] & p) == md_map[i][2]) {
-            s += md_map[i][1];
+            s = s | md_map[i][1];
         }
     }
     return(s);
