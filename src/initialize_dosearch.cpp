@@ -83,13 +83,13 @@ Rcpp::List initialize_dosearch(
     s->set_labels(lab); // Can't print anything before setting labels
     s->set_sb(sb); // Assign selection bias nodes
     s->set_tr(tr); // Assign transportability nodes
+    s->set_md(md_t, md_s, md_p); // Set missing data nodes
     s->set_graph(g); // Assing graph object
     s->set_options(rules); // Set global parameters & compute necessary sets
     s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]); // Set the target distribution of the search
     s->set_md_symbol(md_sym);
 
     if ( md_s > 0 ) {
-        s->set_md(md_t, md_s, md_p);
         for ( int i = 0; i < md_map.nrow(); i++ ) {
             s->add_md_map_row(md_map(i, 0), md_map(i, 1), md_map(i, 2));
         }
