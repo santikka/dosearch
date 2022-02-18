@@ -4,7 +4,7 @@
 \title{Causal Effect Identification from Multiple Incomplete Data Sources}
 
 \description{
-Solves causal effect identifiability problems from arbitrary observational and experimental data using a heuristic search. Allows for the presence of advanced data-generating mechanims. See the Vignette for further details.
+Solves causal effect identifiability problems from arbitrary observational and experimental data using a heuristic search. Allows for the presence of advanced data-generating mechanims. See Tikka et al. (2021) <doi:10.18637/jss.v099.i05> for further details.
 }
 
 \author{Santtu Tikka, Antti Hyttinen, Juha Karvanen}
@@ -112,9 +112,11 @@ S. Tikka and J. Karvanen. Identifying causal effects with the R package causalef
 
 S. Tikka and J. Karvanen. Simplifying probabilistic expressions in causal inference. \emph{Journal of Machine Learning Research}, 18(36):1--30, 2017b.
 
-S. Tikka and J. Karvanen. Enhancing identification of causal effects by pruning. \emph{Journal of Machine Learning Research}, 18(194):1--23, 2018a.
+S. Tikka and J. Karvanen. Enhancing identification of causal effects by pruning. \emph{Journal of Machine Learning Research}, 18(194):1--23, 2018.
 
-S. Tikka and J. Karvanen. Surrogate outcomes and transportability. Submitted manuscript, http://arxiv.org/abs/1806.07172, 2018b.
+S. Tikka and J. Karvanen. Surrogate outcomes and transportability. \emph{International Journal of Approximate Reasoning}, 108:21--37, 2019.
+
+S. Tikka, A. Hyttinen and J. Karvanen. Causal effect identification from multiple incomplete data sources: a general search-based approach. \emph{Journal of Statistical Software}, 99(5):1--40, 2021.
 
 R. Tillman and P. Spirtes. Learning equivalence classes of acyclic models with latent and selection variables from multiple datasets with overlapping variables. In \emph{Proceedings of the 14th International Conference on Artificial Intelligence and Statistics}, 3--15, 2011.
 
