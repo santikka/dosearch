@@ -25,7 +25,6 @@ dosearch <- function(
     else {
         if (!is.list(control)) stop("Argument 'control' expects a list.")
     }
-
     if (!is.null(transportability) || !is.null(selection_bias) || !is.null(missing_data)) {
         return(get_derivation_dag(data, query, graph, transportability, selection_bias, missing_data, control))
     }

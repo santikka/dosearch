@@ -214,19 +214,22 @@ get_derivation_dag <- function(
         if (any(md_switch %in% dir_lhs[dir_rhs %in% md_true])) stop("Missing data mechanism cannot be a parent of a true variable.\n")
         dir_lhs <- c(dir_lhs, md_true, md_switch)
         dir_rhs <- c(dir_rhs, md_proxy, md_proxy)
-        vars_md <- as.vector(rbind(md_true, md_switch, md_proxy))
+        u_switch <- unique(md_switch)
+        vars_md <- c(md_true, u_switch, md_proxy)
         vars <- c(vars_md, vars[!(vars %in% vars_md)])
         n <- length(vars)
         nums <- 1:n
         names(vars) <- nums
         names(nums) <- vars
-        md_switch_nums <- nums[md_switch]
+        md_true_nums <- nums[md_true]
+        md_switch_nums <- nums[u_switch]
         md_proxy_nums <- nums[md_proxy]
         if (any(is.na(md_switch_nums))) stop("Invalid missing data mechanisms.\n")
         if (any(is.na(md_proxy_nums))) stop("Invalid missing data mechanisms.\n")
+        md_t <- to_dec(md_true_nums, n)
         md_s <- to_dec(md_switch_nums, n)
         md_p <- to_dec(md_proxy_nums, n)
-        md_t <- bitwShiftR(md_p, 2)
+        md_map <- cbind(md_true_nums, nums[md_switch], md_proxy_nums)
     } else {
         n <- length(vars)
         nums <- 1:n
@@ -501,8 +504,10 @@ get_derivation_dag <- function(
         n,
         tr,
         sb,
+        md_t,
         md_s,
         md_p,
+        md_map,
         control$time_limit,
         control$rules,
         control$benchmark,

@@ -13,6 +13,7 @@ public:
     int md_s, md_p, md_t, tr, sb, trsb;
     char md_sym;
     bool md;
+    vector<vector<int>> md_map;
     dcongraph* g;
 
     virtual void add_distribution(distr& nquery);
@@ -24,9 +25,17 @@ public:
     int rule_limit(const int& ruleid, const unsigned int& z_size);
     void set_target(const int& a, const int& b, const int& c, const int& d);
     void set_graph(dcongraph* g_);
+    void set_tr(const int& tr_);
+    void set_sb(const int& sb_);
     void set_options(const vector<int>& rule_vec);
     void set_labels(const Rcpp::StringVector& lab);
     void set_md_symbol(const char& mds);
+    void set_md(const int& t, const int& s, const int& p);
+    void add_md_map_row(const int& t, const int& s, const int& p);
+    int proxy_to_true(const int& p) const;
+    int true_to_proxy(const int& t) const;
+    int switch_to_proxy(const int& s) const;
+    int proxy_to_switch(const int& p) const;
     bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid);
     string derive_formula(distr& dist);
     string dec_to_text(const int& dec, const int& enabled) const;

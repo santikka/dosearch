@@ -188,39 +188,3 @@ bool dcongraph::edge(const int& from, const int& to) const {
 bool dcongraph::conf(const int& from, const int& to) const {
     return Ce[to-1][from-1];
 }
-
-void dcongraph::set_trnodes(const int& t) {
-    tr = t;
-}
-
-int dcongraph::get_trnodes() const {
-    return tr;
-}
-
-void dcongraph::set_sbnodes(const int& s) {
-    sb = s;
-}
-
-int dcongraph::get_sbnodes() const {
-    return sb;
-}
-
-void dcongraph::set_md_switches(const int& m) {
-    md_s = m;
-}
-
-int dcongraph::get_md_switches() const {
-    return md_s;
-}
-
-void dcongraph::set_md_proxies(const int& m) {
-    md_p = m;
-}
-
-int dcongraph::get_md_proxies() const {
-    return md_p;
-}
-
-void dcongraph::initialize_datanodes() {
-    tr = 0; sb = 0; md_s = 0; md_p = 0;
-}

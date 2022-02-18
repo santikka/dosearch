@@ -18,6 +18,7 @@
   sb                : a set representing selection bias nodes
   md_s              : a set representing missing data switches
   md_p              : a set representing missing data proxies
+  md_map            : a matrix connecting proxies, switches and true variables
   time_limit        : time limit for the search (in hours)
   rules             : overrides the set of default rules
   benchmark         : record the search time
@@ -43,8 +44,10 @@ Rcpp::List initialize_dosearch(
     const int& n,
     const int& tr,
     const int& sb,
+    const int& md_t,
     const int& md_s,
     const int& md_p,
+    const Rcpp::NumericMatrix& md_map,
     const double& time_limit,
     const std::vector<int>& rules,
     const bool& benchmark,
@@ -59,7 +62,6 @@ Rcpp::List initialize_dosearch(
 {
     dcongraph* g = new dcongraph(n);
     g->add_ivars();
-    g->initialize_datanodes();
 
     // Add directed edges
     for ( unsigned i = 0; i < dir_rhs.size(); i++ ) {
@@ -69,11 +71,6 @@ Rcpp::List initialize_dosearch(
     for ( unsigned i = 0; i < bi_rhs.size(); i++ ) {
         g->add_conf(bi_lhs[i], bi_rhs[i]);
     }
-    // Add special vertices
-    if ( tr > 0 ) g->set_trnodes(tr);
-    if ( sb > 0 ) g->set_sbnodes(sb);
-    if ( md_s > 0 ) g->set_md_switches(md_s);
-    if ( md_p > 0 ) g->set_md_proxies(md_p);
 
     derivation* d = new derivation();
 
@@ -84,10 +81,19 @@ Rcpp::List initialize_dosearch(
     if ( draw_derivation ) s->set_derivation(d);
 
     s->set_labels(lab); // Can't print anything before setting labels
+    s->set_sb(sb); // Assign selection bias nodes
+    s->set_tr(tr); // Assign transportability nodes
     s->set_graph(g); // Assing graph object
     s->set_options(rules); // Set global parameters & compute necessary sets
     s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]); // Set the target distribution of the search
     s->set_md_symbol(md_sym);
+
+    if ( md_s > 0 ) {
+        s->set_md(md_t, md_s, md_p);
+        for ( int i = 0; i < md_map.nrow(); i++ ) {
+            s->add_md_map_row(md_map(i, 0), md_map(i, 1), md_map(i, 2));
+        }
+    }
 
     // Add known distributions
     for ( int i = 0; i < p_list.size(); i++ ) {

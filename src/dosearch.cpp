@@ -22,14 +22,6 @@ void dosearch::set_options(const vector<int>& rule_vec) {
     format_do = true;
     index = 0;
     lhs = 0;
-
-    md_s = g->get_md_switches();
-    md_p = g->get_md_proxies();
-    md_t = md_s >> 1;
-    md = md_s > 0;
-
-    tr = g->get_trnodes();
-    sb = g->get_sbnodes();
     trsb = tr | sb;
 
     if ( rule_vec.size() > 0 ) rules = rule_vec;
@@ -55,8 +47,67 @@ void dosearch::set_labels(const Rcpp::StringVector& lab) {
     }
 }
 
+void dosearch::set_tr(const int& tr_) {
+    tr = tr_;
+}
+
+void dosearch::set_sb(const int& sb_) {
+    sb = sb_;
+}
+
 void dosearch::set_md_symbol(const char& mds) {
     md_sym = mds;
+}
+
+void dosearch::set_md(const int& t, const int& s, const int& p) {
+    md_t = t;
+    md_s = s;
+    md_p = p;
+    md = md_s > 0;
+}
+
+void dosearch::add_md_map_row(const int& t, const int& s, const int& p) {
+    md_map.push_back({unary(t), unary(s), unary(p)});
+}
+
+int dosearch::proxy_to_true(const int& p) const {
+    int t = 0;
+    for( unsigned i = 0; i < md_map.size(); i++ ) {
+        if ((md_map[i][2] & p) == md_map[i][2]) {
+            t += md_map[i][0];
+        }
+    }
+    return(t);
+}
+
+int dosearch::true_to_proxy(const int& t) const {
+    int p = 0;
+    for( unsigned i = 0; i < md_map.size(); i++ ) {
+        if ((md_map[i][0] & t) == md_map[i][0]) {
+            p += md_map[i][2];
+        }
+    }
+    return(p);
+}
+    
+int dosearch::switch_to_proxy(const int& s) const {
+    int p = 0;
+    for( unsigned i = 0; i < md_map.size(); i++ ) {
+        if ((md_map[i][1] & s) == md_map[i][1]) {
+            p += md_map[i][2];
+        }
+    }
+    return(p);
+}
+
+int dosearch::proxy_to_switch(const int& p) const {
+    int s = 0;
+    for( unsigned i = 0; i < md_map.size(); i++ ) {
+        if ((md_map[i][2] & p) == md_map[i][2]) {
+            s += md_map[i][1];
+        }
+    }
+    return(s);
 }
 
 void dosearch::add_known(const int& a, const int& b, const int& c, const int& d) {
@@ -77,7 +128,7 @@ void dosearch::add_known(const int& a, const int& b, const int& c, const int& d)
         trivial_id = true;
         target_dist.push_back(L[index]);
     }
-    if ( md ) lhs = (lhs | a) | ((a & md_p) >> 2);
+    if ( md ) lhs = (lhs | a) | proxy_to_true(a & md_p);
     else lhs = lhs | a;
     if ( verbose ) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
 }
@@ -416,14 +467,14 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
             if ( (z & b) != 0 ) return;
 
             if ( md ) {
-                j = ((a | b) & md_p) >> 2;
+                j = proxy_to_true((a | b) & md_p);
                 if ( (j & z) != 0 ) return; // cannot add x if x* exists
-                k = ((a | b) & md_t) << 2;
+                k = true_to_proxy((a | b) & md_t);
                 if ( (k & z) != 0 ) return; // cannot add x* if x exists
 
-                j = (z & md_p) >> 2;
+                j = proxy_to_true(z & md_p);
                 if ( (j & z) != 0) return; // cannot add both x and x*
-                k = (z & md_t) << 2;
+                k = true_to_proxy(z & md_t);
                 if ( (k & z) != 0) return;// cannot add both x and x*
             }
 
@@ -486,14 +537,14 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
             if ( md ) {
                 if ( (z & md_p) != 0 ) return; // z intersection m = 0
 
-                j = ((a | b) & md_p) >> 2;
+                j = proxy_to_true((a | b) & md_p);
                 if ( (j & z) != 0 ) return; // cannot add x if x* exists
-                k = ((a | b) & md_t) << 2;
+                k = true_to_proxy((a | b) & md_t);
                 if ( (j & z) != 0 ) return; // cannot add x* if x exists
 
-                j = (z & md_p) >> 2;
+                j = proxy_to_true(z & md_p);
                 if ( (j & z) != 0) return; // cannot add both x and x*
-                k = (z & md_t) << 2;
+                k = true_to_proxy(z & md_t);
                 if ( (k & z) != 0) return; // cannot add both x and x*
             }
 
@@ -553,14 +604,14 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
             if ( (z & trsb) != 0 ) return; // z intersection s = 0
 
             if ( md ) {
-                j = ((a | b) & md_p) >> 2;
+                j = proxy_to_true((a | b) & md_p);
                 if ( (j & z) != 0 ) return; // cannot add x if x* exists
-                k = ((a | b) & md_t) << 2;
+                k = true_to_proxy((a | b) & md_t);
                 if ( (k & z) != 0 ) return; // cannot add x* if x exists
 
-                j = (z & md_p) >> 2;
+                j = proxy_to_true(z & md_p);
                 if ( (j & z) != 0) return; // cannot add both x and x*
-                k = (z & md_t) << 2;
+                k = true_to_proxy(z & md_t);
                 if ( (k & z) != 0) return; // cannot add both x and x*
             }
 
@@ -637,10 +688,10 @@ void dosearch::apply_rule(const int &ruleid, const int &a, const int &b, const i
             j = a & d; // Get missing data mechanisms that have been enabled p(r_j = 0|.)
             k = b & d; // Get missing data mechanisms that have been enabled p(.|r_k = 0)
             /* Check whether all proxy variables in z can be replaced
-             * Proxy variables p(u*|.) can be replaced by true variables either if p(r_u = 0,u*|.) or p(u*|r_u* = 0)
-             * However, proxies p(.|v*) can only be replaced by true variables if p(.|v*,r_v* = 0)
+             * Proxy variables p(u*|.) can be replaced by true variables either if p(r_u = 0,u*|.) or p(u*|r_u = 0)
+             * However, proxies p(.|v*) can only be replaced by true variables if p(.|v*,r_v = 0)
              */
-            if ( (((j | k) << 1) & u) != u || ((k << 1) & v) != v ) return;
+            if ( (switch_to_proxy(j | k) & u) != u || (switch_to_proxy(k) & v) != v ) return;
 
             break;
 
@@ -867,7 +918,7 @@ void dosearch::get_ruleinfo(const int& ruleid, const int& y, const int& xw, cons
 
             int v = y & z;
             int k = xw & z;
-            info.to.a = (y & ~v) | (v >> 2); info.to.b = (xw & ~k) | (k >> 2); info.to.c = x; info.to.d = d;
+            info.to.a = (y & ~v) | proxy_to_true(v); info.to.b = (xw & ~k) | proxy_to_true(k); info.to.c = x; info.to.d = d;
             info.rp.a = 0;
 
             info.ri.x = 0;
@@ -923,7 +974,7 @@ void dosearch_heuristic::add_known(const int& a, const int& b, const int& c, con
         trivial_id = true;
         target_dist.push_back(L[index]);
     }
-    if ( md ) lhs = (lhs | a) | ((a & md_p) >> 2);
+    if ( md ) lhs = (lhs | a) | proxy_to_true(a & md_p);
     else lhs = lhs | a;
     if ( verbose ) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
 }
@@ -959,17 +1010,17 @@ int dosearch_heuristic::compute_score_md(const p& pp) const {
 
     int proxy_total = proxy_u | proxy_w;
     int switch_total = (pp.a | pp_w) & md_s;
-    int proxy_needed = switch_total << 1;
-    int switch_needed = proxy_total >> 1;
+    int proxy_needed = switch_to_proxy(switch_total);
+    int switch_needed = proxy_to_switch(proxy_total);
 
     int proxy_match = proxy_total & proxy_needed;
     int proxy_mismatch = proxy_total - proxy_needed;
     int switch_match = switch_total & switch_needed;
     int switch_mismatch = switch_total - switch_needed;
-    int common_y = ((pp.a - proxy_u) | (proxy_u >> 2)) & target.a;
+    int common_y = ((pp.a - proxy_u) | (proxy_to_true(proxy_u) & target.a));
     int common_x = pp.c & target.c;
     int target_w = target.b - target.c;
-    int common_z = ((pp_w - proxy_w) | (proxy_w >> 2)) & target_w;
+    int common_z = ((pp_w - proxy_w) | (proxy_to_true(proxy_w) & target_w));
 
     score += 10 * set_size(common_y);
     score += 6 * set_size(proxy_match);
