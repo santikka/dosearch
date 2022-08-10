@@ -1,14 +1,26 @@
 # dosearch: an R package for causal effect identification from multiple incomplete data sources
 
-Identification of causal effects from arbitrary observational and experimental probability distributions via do-calculus and standard probability manipulations 
-using a search-based algorithm. Allows for the presence of mechanisms related to selection bias (Bareinboim, E. and Tian, J. (2015) <http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>), 
-transportability (Bareinboim, E. and Pearl, J. (2014) <http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>), 
-missing data (Mohan, K. and Pearl, J. and Tian., J. (2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and 
-arbitrary combinations of these. Also supports identification in the presence of context-specific independence (CSI) relations 
-through labeled directed acyclic graphs (LDAG). 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/santikka/dosearch/workflows/R-CMD-check/badge.svg)](https://github.com/santikka/dosearch/actions)
+[![Codecov test coverage](https://codecov.io/gh/santikka/dosearch/branch/master/graph/badge.svg)](https://app.codecov.io/gh/santikka/dosearch?branch=master)
+<!-- badges: end -->
 
-For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>. 
-For further information on the search-based approach see the paper [Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-based Approach](https://arxiv.org/abs/1902.01073).
+Identification of causal effects from arbitrary observational and experimental 
+probability distributions via do-calculus and standard probability manipulations 
+using a search-based algorithm. Allows for the presence of mechanisms related
+to selection bias (Bareinboim, E. and Tian, J. (2015) 
+<http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>), 
+transportability (Bareinboim, E. and Pearl, J. (2014) 
+<http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>), 
+missing data (Mohan, K. and Pearl, J. and Tian., J. (2013) 
+<http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and 
+arbitrary combinations of these. Also supports identification in the presence 
+of context-specific independence (CSI) relations 
+through labeled directed acyclic graphs (LDAG). For details on CSIs see 
+Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>. 
+For further information on the search-based approach see the paper 
+[Causal Effect Identification from Multiple Incomplete Data Sources: 
+A General Search-based Approach](https://arxiv.org/abs/1902.01073).
 
 ## Installation
 You can install the latest release version from CRAN:
@@ -16,10 +28,10 @@ You can install the latest release version from CRAN:
 install.packages("dosearch")
 ```
 
-Alternatively, you can install the latest development version by using the devtools package:
+Alternatively, you can install the latest development version:
 ```R
 install.packages("devtools")
-devtools::install_github("santikka/dosearch")
+remotes::install_github("santikka/dosearch")
 ```
 
 ## Recent changes (for all changes, see NEWS file).
