@@ -1,429 +1,41 @@
-# Function to call the search from R
-#
-# data             : A string describing the known distributions.
-# query            : A string describing the target distribution.
-# graph            : A string describing the graph.
-#
-# control is a list that accepts the following components
-#
-# benchmark       : A logical value. If TRUE, record time it took for the search (in milliseconds).
-# benchmark_rules : A logical value. If TRUE, include total time taken by each rule in the benchmark.
-# draw_derivation : A logical value. If TRUE, a string representing the derivation steps as a dot graph is also provided.
-# draw_all        : A logical value. If TRUE, all steps of the search are drawn. If FALSE, only steps resulting in the identifying formula are drawn.
-# cache           : A logical value. If TRUE, derived separation criteria are stored and not evaluated again.
-# improve         : A logical value. If TRUE, various enhancements of the search are enabled.
-# formula         : A logical value. If TRUE, a formula for an identifiable effect is provided. If false, the output is a boolean instead.
-# heuristic       : A logical value. If TRUE, a search heuristic is applied.
-# rules           : A numeric vector of do-calculus/probability rules used in the search.
-# time_limit      : A numeric value for maximum search time (in hours). Will only be in effect if benchmark = TRUE.
-# verbose         : A logical value. If TRUE, various diagnostic information is printed to the console during the search.
-
-get_derivation_ldag <- function(
-    data, query, graph, control = list()) {
-  
-  if (is.null(control$benchmark)        || typeof(control$benchmark) != "logical"        || length(control$benchmark) > 1)        control$benchmark <- FALSE
-  if (is.null(control$benchmark_rules)  || typeof(control$benchmark_rules) != "logical"  || length(control$benchmark_rules) > 1)  control$benchmark_rules <- FALSE
-  if (is.null(control$draw_derivation)  || typeof(control$draw_derivation) != "logical"  || length(control$draw_derivation) > 1)  control$draw_derivation <- FALSE
-  if (is.null(control$draw_all)         || typeof(control$draw_all) != "logical"         || length(control$draw_all) > 1)         control$draw_all <- FALSE
-  if (is.null(control$cache)            || typeof(control$cache) != "logical"            || length(control$cache) > 1)            control$cache <- TRUE
-  if (is.null(control$formula)          || typeof(control$formula) != "logical"          || length(control$formula) > 1)          control$formula <- TRUE
-  if (is.null(control$improve)          || typeof(control$improve) != "logical"          || length(control$improve) > 1)          control$improve <- TRUE
-  if (is.null(control$heuristic)        || typeof(control$heuristic) != "logical"        || length(control$heuristic) > 1)        control$heuristic <- TRUE
-  if (is.null(control$rules)            || class(control$rules) != "numeric"             || length(control$rules) == 0)           control$rules <- numeric(0)
-  if (is.null(control$time_limit)       || class(control$time_limit) != "numeric"        || length(control$time_limit) == 0)      control$time_limit <- -1.0
-  if (is.null(control$verbose)          || typeof(control$verbose) != "logical"          || length(control$verbose) > 1)          control$verbose <- FALSE
-  
-  dir_lhs <- c()
-  dir_rhs <- c()
-  bi_lhs <- c()
-  bi_rhs <- c()
-  vars <- c()
-  nums <- c()
-  n <- 0
-  con_vars <- c()
-  intv_vars <- c()
-  parents <- list()
-  contexts <- c()
-  target <- NULL
-  label_map <- NULL
-  local_csi <- NULL
-  dist_pattern <- character(2)
-  dist_pattern[1] <- "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$" # Pattern for p(y)
-  dist_pattern[2] <- "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)[|]([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$" # Pattern for p(y|z)
-  
-  # transform the graph
-  if (nchar(graph) == 0) stop("Invalid graph: the graph is empty. \n")
-  else {
-    row_pattern <- "^(.+(?>->|--|<->)[^\\:]+)(?>\\:(.+))?$"
-    graph_split <- strsplit(graph, "\r|\n")[[1]]
-    graph_split <- gsub("\\s", "", graph_split)
-    valid_rows <- grep(row_pattern, graph_split, perl = TRUE)
-    graph_split <- graph_split[valid_rows]
-    graph_match <- regexec(row_pattern, graph_split, perl = TRUE)
-    split_rows <- regmatches(graph_split, graph_match)
-    edges <- sapply(split_rows, "[[", 2)
-    directed <- strsplit(grep("(.+)->(.+)", edges, value = TRUE), "->")
-    if (length(directed) > 0) {
-      dir_lhs <- sapply(directed, "[[", 1)
-      dir_rhs <- sapply(directed, "[[", 2)
-      if (any(dir_lhs == dir_rhs)) stop("Invalid graph: no self loops are allowed.\n")
-    }
-    contexts_split <- list()
-    contextuals <- which(nchar(sapply(split_rows, "[[", 3)) > 0)
-    labels_split <- list()
-    if (length(contextuals) > 0) {
-      edges_split <- strsplit(edges, "(->)")
-      labels <- sapply(split_rows[contextuals], "[[", 3)
-      labels_split <- strsplit(labels, "[;]")
-      labels_split <- lapply(labels_split, strsplit, "[,]")
-      targets <- lapply(1:length(labels_split), function(i) {
-        c("from" = edges_split[[contextuals[i]]][1],
-          "to" = edges_split[[contextuals[i]]][2])
-      })
-    }
-    labels <- labels_split
-    vars <- unique(c(dir_rhs, dir_lhs))
-    n <- length(vars)
-    intv <- dir_lhs[substr(dir_lhs, 1, 2) == "I_"]
-    ivar <- which(vars %in% intv)
-    vars <- vars[c(setdiff(1:n, ivar), ivar)]
-    intv_vars <- vars[which(vars %in% intv)]
-    nums <- 1:n
-    names(vars) <- nums
-    names(nums) <- vars
-    for (v in vars) {
-      parents[[v]] <- character(0)
-    }
-    for (i in seq_along(dir_rhs)) {
-      parents[[dir_rhs[i]]] <- union(parents[[dir_rhs[i]]], dir_lhs[i])
-    }
-  }
-  
-  # parse labels
-  if (length(labels) > 0) {
-    input_labels <- matrix(0, sum(sapply(labels, length)), 5)
-    index <- 0
-    index_csi <- 0
-    inferred <- 0
-    inferred_labels <- matrix(0, 0, 5)
-    local_csi <- list()
-    vanishing <- matrix(0, 0, 2)
-    for (i in seq_along(labels)) { # Labels
-      from <- targets[[i]]["from"]
-      to <- targets[[i]]["to"]
-      pa <- setdiff(parents[[to]], from)
-      npa <- length(pa)
-      if (npa == 0) stop(paste0("Invalid label for edge", from, " -> ", to, ": no parents to assign.\n"))
-      vals <- expand.grid(rep(list(c(0, 1)), npa))
-      names(vals) <- pa
-      vals$present <- FALSE
-      for (j in seq_along(labels[[i]])) { # Individual assignments within label
-        index <- index + 1
-        label_split <- strsplit(labels[[i]][[j]], "[=]")
-        label_lhs <- sapply(label_split, "[[", 1)
-        label_rhs <- sapply(label_split, "[[", 2)
-        if (any(duplicated(label_lhs))) stop(paste0("Invalid label for edge", from, " -> ", to, ": duplicate assignment.\n"))
-        if (from %in% label_lhs) stop(paste0("Invalid label for edge", from, " -> ", to, ": ", from, " cannot appear in the label.\n"))
-        if (to %in% label_lhs) stop(paste0("Invalid label for edge", from, " -> ", to, ": ", to, " cannot appear in the label.\n"))
-        if (any(!(label_lhs %in% pa))) stop(paste0("Invalid label for edge", from, " -> ", to, ": only other parents of ", to, " may be assigned.\n"))
-        intv <- substr(label_lhs, 1, 2) == "I_"
-        con_vars <- c(con_vars, label_lhs[!intv])
-        zero <- which(label_rhs == 0)
-        one <- which(label_rhs == 1)
-        input_labels[index,1] <- to_dec(nums[label_lhs[zero]], n)
-        input_labels[index,2] <- to_dec(nums[label_lhs[one]], n)
-        input_labels[index,3] <- nums[from]
-        input_labels[index,4] <- nums[to]
-        input_labels[index,5] <- to_dec(nums[pa], n)
-        # Infer non-explicit labels from input
-        zl <- length(zero)
-        ol <- length(one)
-        if (zl == 0) {
-          ones <- vals[ ,which(pa %in% label_lhs[one]), drop = FALSE]
-          if (nrow(ones) > 0) {
-            vals[which(apply(ones, 1, function(x) all(x == 1))),"present"] <- TRUE
-          }
-        } else if (ol == 0) {
-          zeros <- vals[ ,which(pa %in% label_lhs[zero]), drop = FALSE]
-          if (nrow(zeros) > 0) {
-            vals[which(apply(zeros, 1, function(x) all(x == 0))),"present"] <- TRUE
-          }
-        } else {
-          zeros <- vals[ ,which(pa %in% label_lhs[zero]), drop = FALSE]
-          ones <- vals[ ,which(pa %in% label_lhs[one]), drop = FALSE]
-          ind_z <- which(apply(zeros, 1, function(x) all(x == 0)))
-          ind_o <- which(apply(ones, 1, function(x) all(x == 1)))
-          ind_zo <- intersect(ind_z, ind_o)
-          if (length(ind_zo) > 0) {
-            vals[ind_zo,"present"] <- TRUE
-          }
-        }
-      }
-      if (all(vals$present)) {
-        vanishing <- rbind(vanishing, c(nums[from], nums[to]))
-      }
-      #stop(paste0("Invalid label for edge: ", from, " -> ", to, ": label is satisfied in every context.\n"))
-      # Cannot infer from empty set
-      if ((nsets <- nrow(vals) - 1) > 1) {
-        for (j in 2:nsets) {
-          sub_pa <- pa[which(vals[j,1:npa] == 1)]
-          sub_ind <- which(pa %in% sub_pa)
-          sub_vals <- vals[ ,c(sub_ind, npa + 1)]
-          assignments <- expand.grid(rep(list(c(0, 1)), length(sub_pa)))
-          names(assignments) <- sub_pa
-          for (k in 1:nrow(assignments)) {
-            zero <- sub_pa[which(assignments[k, ] == 0)]
-            one <- sub_pa[which(assignments[k, ] == 1)]
-            assign_ind <- apply(sub_vals[ ,-ncol(sub_vals), drop = FALSE], 1, function(x) identical(as.numeric(x), as.numeric(assignments[k, ])))
-            if (all(sub_vals[assign_ind,"present"])) {
-              inferred <- inferred + 1
-              inferred_labels <- rbind(inferred_labels, c(to_dec(nums[zero], n), to_dec(nums[one], n), nums[from], nums[to], to_dec(nums[pa], n)))
-            }
-          }
-        }
-      }
-    }
-    if (inferred > 0) {
-      input_labels <- rbind(input_labels, inferred_labels)
-      input_labels <- input_labels[!duplicated(input_labels), ]
-    }
-    con_vars <- unique(con_vars)
-    all_contexts <- expand.grid(rep(list(c(0, 1)), length(con_vars)))
-    label_map <- list()
-    null_context <- c()
-    if ((ncon <- nrow(all_contexts)) > 0) {
-      for (i in 2:ncon) {
-        sub_vars <- con_vars[which(all_contexts[i, ] == 1)]
-        con_vals <- expand.grid(rep(list(c(0, 1)), length(sub_vars)))
-        label_map[[i-1]] <- list(vars = to_dec(nums[sub_vars], n), contexts = vector(mode = "list", length = nrow(con_vals)))
-        equiv_ind <- 0
-        unique_context <- list()
-        for (j in 1:nrow(con_vals)) {
-          zero <- sub_vars[which(con_vals[j, ] == 0)]
-          one <- sub_vars[which(con_vals[j, ] == 1)]
-          z <- to_dec(nums[zero], n)
-          o <- to_dec(nums[one], n)
-          label_map[[i-1]][["contexts"]][[j]]$zero <- z
-          label_map[[i-1]][["contexts"]][[j]]$one <- o
-          endpoints <- matrix(0, 0, 2)
-          for (k in 1:nrow(input_labels)) {
-            z_inp <- input_labels[k,1]
-            o_inp <- input_labels[k,2]
-            if ((bitwAnd(z, z_inp) == z_inp && bitwAnd(o, o_inp) == o_inp)) {
-              if (!any(apply(vanishing, 1, function(x) isTRUE(all.equal(x, input_labels[k,3:4]))))) {
-                endpoints <- rbind(endpoints, input_labels[k,3:4])
-                pa <- input_labels[k,5]
-                lab <- bitwOr(z, o)
-                if (pa == lab) {
-                  index_csi <- index_csi + 1
-                  local_csi[[index_csi]] <- list(
-                    x = to_dec(input_labels[k,3], n),
-                    y = to_dec(input_labels[k,4], n),
-                    z = pa,
-                    zero = z,
-                    one = o)
-                }
-              }
-            }
-          }
-          endpoints <- unique(endpoints)
-          label_map[[i-1]][["contexts"]][[j]]$from <- endpoints[ ,1]
-          label_map[[i-1]][["contexts"]][[j]]$to <- endpoints[ ,2]
-          pos <- Position(function(x) identical(endpoints[ ,1], x$from) && identical(endpoints[ ,2], x$to), unique_context)
-          if (is.na(pos)) {
-            equiv_ind <- equiv_ind + 1
-            label_map[[i-1]][["contexts"]][[j]]$equivalence <- equiv_ind
-            unique_context[[equiv_ind]] <- list(from = endpoints[ ,1], to = endpoints[ ,2])
-          } else {
-            label_map[[i-1]][["contexts"]][[j]]$equivalence <- pos
-          }
-        }
-        if (all(sapply(label_map[[i-1]][["contexts"]], function(x) length(x[["from"]])) == 0)) null_context <- c(null_context, i - 1)
-      }
-    }
-    all_interventions <- expand.grid(rep(list(c(0, 1)), length(intv_vars)))
-    if ((nintv <- nrow(all_interventions)) > 0) {
-      for (i in 2:nintv) {
-        index <- max(ncon - 1, 0) + i - 1
-        sub_vars <- intv_vars[which(all_interventions[i, ] == 1)]
-        o <- to_dec(nums[sub_vars], n)
-        label_map[[index]] <- list(vars = o, contexts = list(list(zero = 0, one = o)))
-        endpoints <- matrix(0, 0, 2)
-        for (k in 1:nrow(input_labels)) {
-          z_inp <- input_labels[k,1]
-          o_inp <- input_labels[k,2]
-          if ( z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
-            if (!any(apply(vanishing, 1, function(x) isTRUE(all.equal(x, input_labels[k,3:4]))))) {
-              endpoints <- rbind(endpoints, input_labels[k,3:4])
-            }
-          }
-        }
-        endpoints <- unique(endpoints)
-        label_map[[index]][["contexts"]][[1]]$from <- endpoints[ ,1]
-        label_map[[index]][["contexts"]][[1]]$to <- endpoints[ ,2]
-        label_map[[index]][["contexts"]][[1]]$equivalence <- 1
-      }
-    }
-    label_map[null_context] <- NULL
-    if (nrow(vanishing) > 0) {
-      edge_mat <- cbind(nums[dir_lhs], nums[dir_rhs])
-      present <- !duplicated(rbind(edge_mat, vanishing), fromLast = TRUE)[1:nrow(edge_mat)]
-      dir_lhs <- dir_lhs[present]
-      dir_rhs <- dir_rhs[present]
-    }
-  }
-  
-  # transform the query
-  parts <- NULL
-  q_split <- list(NULL, NULL, NULL)
-  zero <- c()
-  one <- c()
-  query_parsed <- gsub("\\s+", "", query)
-  query_parsed <- gsub("do", "$", query_parsed)
-  matches <- lapply(dist_pattern, function(p) regexec(p, query_parsed, perl = TRUE))
-  match_lens <- sapply(matches, function(x) length(attr(x[[1]], "match.length")))
-  best_match <- which.max(match_lens)[1]
-  parts <- regmatches(query_parsed, matches[[best_match]])[[1]]
-  q_split[[1]] <- strsplit(parts[2], "[,]")[[1]]
-  if (best_match == 2) {
-    q_split[[2]] <- strsplit(parts[3], "[,]")[[1]]
-  }
-  if (any(is.na(q_split[[1]]))) stop("Invalid query.\n")
-  err <- FALSE
-  for (i in 1:2) {
-    if (!is.null(q_split[[i]])) {
-      if (any(dup <- duplicated(q_split[[i]]))) {
-        msg <- paste0(c("cannot contain duplicated variables ", q_split[[i]][dup], ".\n"))
-        err <- TRUE
-      }
-      if (err) stop(paste0(c("Invalid query: ", msg)))
-      equals <- grep("=", q_split[[i]], value = FALSE)
-      eq_split <- strsplit(q_split[[i]][equals], "[=]")
-      eq_lhs <- eq_rhs <- c()
-      if (length(equals) > 0) {
-        eq_lhs <- sapply(eq_split, "[[", 1)
-        eq_lhs <- gsub("\\s+", "", eq_lhs)
-        eq_rhs <- sapply(eq_split, "[[", 2)
-        eq_rhs <- gsub("\\s+", "", eq_rhs)
-        uniq_rhs <- unique(eq_rhs)
-        if (!(uniq_rhs[1] %in% 0:1)) stop(paste0("Invalid value assignment in query. \n"))
-        q_split[[i]][equals] <- eq_lhs
-        z <- which(eq_rhs == 1)
-        o <- which(eq_rhs == 0)
-        zero <- c(zero, eq_lhs[eq_rhs == 0])
-        one <- c(one, eq_lhs[eq_rhs == 1])
-      }
-    }
-  }
-  q1_new <- q_split[[1]][which(!(q_split[[1]] %in% vars))]
-  q2_new <- q_split[[2]][which(!(q_split[[2]] %in% vars))]
-  new_vars <- unique(c(q1_new, q2_new))
-  if (length(new_vars) > 0) {
-    n <- n + length(new_vars)
-    vars <- c(vars, new_vars)
-    nums <- 1:n
-    names(vars) <- nums
-    names(nums) <- vars
-  }
-  q_process <- list(nums[q_split[[1]]], nums[q_split[[2]]], nums[zero], nums[one], parts[1])
-  
-  # transform the data
-  data_split <- strsplit(data, "\r|\n")[[1]]
-  data_split <- gsub("\\s+", "", data_split)
-  data_split <- data_split[which(nchar(data_split) > 0)]
-  p_list <- list()
-  p_process <- list()
-  for (i in 1:length(data_split)) {
-    parts <- NULL
-    p_split <- list(NULL, NULL, NULL)
-    zero <- c()
-    one <- c()
-    p_parsed <- gsub("\\s+", "", data_split[[i]])
-    p_parsed <- gsub("do", "$", p_parsed)
-    matches <- lapply(dist_pattern, function(p) regexec(p, p_parsed, perl = TRUE))
-    match_lens <- sapply(matches, function(x) length(attr(x[[1]], "match.length")))
-    best_match <- which.max(match_lens)[1]
-    parts <- regmatches(p_parsed, matches[[best_match]])[[1]]
-    p_split[[1]] <- strsplit(parts[2], "[,]")[[1]]
-    if (best_match == 2) {
-      p_split[[2]] <- strsplit(parts[3], "[,]")[[1]]
-    }
-    if (any(is.na(p_split[[1]]))) {
-      stop(paste0("Invalid input distribution on data line ", i ,": ", data_split[[i]], ".\n")) 
-    }
-    err <- FALSE
-    for (j in 1:2)  {
-      if (!is.null(p_split[[j]])) {
-        if (any(dup <- duplicated(p_split[[j]]))) {
-          msg <- paste0(c("cannot contain duplicated variables ", p_split[[j]][dup], ".\n"))
-          err <- TRUE
-        }
-        if (err) stop(paste0(c("Invalid input distribution: ", data_split[[i]], ", ", msg)))
-        equals <- grep("=", p_split[[j]], value = FALSE)
-        eq_split <- strsplit(p_split[[j]][equals], "[=]")
-        eq_lhs <- eq_rhs <- c()
-        if (length(equals) > 0) {
-          eq_lhs <- sapply(eq_split, "[[", 1)
-          eq_lhs <- gsub("\\s+", "", eq_lhs)
-          eq_rhs <- sapply(eq_split, "[[", 2)
-          eq_rhs <- gsub("\\s+", "", eq_rhs)
-          uniq_rhs <- unique(eq_rhs)
-          if (!(uniq_rhs[1] %in% 0:1)) stop(paste0("Invalid value assignment on data line ", i ,": ", data_split[[i]], ".\n")) 
-          p_split[[j]][equals] <- eq_lhs
-          z <- which(eq_rhs == 1)
-          o <- which(eq_rhs == 0)
-          zero <- c(zero, eq_lhs[eq_rhs == 0])
-          one <- c(one, eq_lhs[eq_rhs == 1])
-        }
-      }
-    }
-    p1_new <- p_split[[1]][which(!(p_split[[1]] %in% vars))]
-    p2_new <- p_split[[2]][which(!(p_split[[2]] %in% vars))]
-    new_vars <- unique(c(p1_new, p2_new))
-    if (length(new_vars) > 0) {
-      n <- n + length(new_vars)
-      vars <- c(vars, new_vars)
-      nums <- 1:n
-      names(vars) <- nums
-      names(nums) <- vars
-    }
-    p_process[[i]] <- list(nums[p_split[[1]]], nums[p_split[[2]]], nums[zero], nums[one], data_split[[i]])
-  }
-  
-  for (i in 1:length(p_process)) {
-    p <- p_process[[i]]
-    p_list[[i]] <- c(to_dec(p[[1]], n), to_dec(p[[2]], n), to_dec(p[[3]], n), to_dec(p[[4]], n))
-    err <- FALSE
-    msg <- ""
-    if (bitwAnd(p_list[[i]][1], p_list[[i]][2]) > 0) {
-      msg <- "same variable on the left-hand and right-hand side.\n"
-      err <- TRUE
-    }
-    if (err) stop(paste0(c("Invalid input distribution on data line ", i, ": ", p[[4]], ", ", msg)))
-  }
-  
-  q_vec <- c(to_dec(q_process[[1]], n), to_dec(q_process[[2]], n), to_dec(q_process[[3]], n), to_dec(q_process[[4]], n))
-  err <- FALSE
-  msg <- ""
-  if (bitwAnd(q_vec[1], q_vec[2]) > 0) {
-    msg <- "same variable on the left and right-hand side.\n"
-    err <- TRUE
-  }
-  if (err) {
-    stop(paste0(c("Invalid query: ", msg)))
-  }
-  
+#' Call the dosearch Algorithm from R for LDAGs
+#'
+#' @inheritParams dosearch
+#' @noRd
+get_derivation_ldag <- function(data, query, graph, control = list()) {
+  control <- control_defaults(control)
+  args <- list(
+    dir_lhs = integer(0L),
+    dir_rhs = integer(0L),
+    bi_lhs = integer(0L),
+    bi_rhs = integer(0L),
+    vars = character(0L),
+    nums = integer(0L),
+    n = 0L,
+    con_vars = character(0L),
+    intv_vars = character(0L),
+    parents = list(),
+    contexts = c(),
+    label_map = NULL,
+    local_csi = NULL
+  )
+  args <- transform_graph_ldag(args, graph)
+  args <- parse_labels(args)
+  args <- parse_query_ldag(args, query)
+  args <- parse_input_distributions_ldag(args, data)
+  args <- validate_input_distributions_ldag(args)
+  args <- validate_query_ldag(args)
   res <- initialize_csisearch(
-    as.numeric(nums[dir_lhs]),
-    as.numeric(nums[dir_rhs]),
-    as.character(vars),
-    p_list,
-    q_vec,
-    label_map,
-    local_csi,
-    to_dec(nums[con_vars], n),
-    to_dec(nums[intv_vars], n),
-    n,
+    as.numeric(args$nums[args$dir_lhs]),
+    as.numeric(args$nums[args$dir_rhs]),
+    as.character(args$vars),
+    args$p_list,
+    args$q_vec,
+    args$label_map,
+    args$local_csi,
+    to_dec(args$nums[args$con_vars], args$n),
+    to_dec(args$nums[args$intv_vars], args$n),
+    args$n,
     control$time_limit,
     control$rules,
     control$benchmark,
@@ -436,7 +48,6 @@ get_derivation_ldag <- function(
     control$cache,
     control$verbose
   )
-  
   res$call <- list(
     data = data, 
     query = query, 
@@ -446,14 +57,522 @@ get_derivation_ldag <- function(
     missing_data = NULL, 
     control = control
   )
-  
-  return(structure(res[c(
-    TRUE, # always include identifiability
-    control$formula,
-    control$draw_derivation,
-    control$benchmark,
-    control$benchmark_rules,
-    TRUE # always include the call
-  )], class = "dosearch"))
-  
+  structure(
+    res[
+      c(
+        TRUE, # always include identifiability result
+        control$formula,
+        control$draw_derivation,
+        control$benchmark,
+        control$benchmark_rules,
+        TRUE # always include the call
+      )
+    ], 
+    class = "dosearch"
+  )
+}
+
+transform_graph_ldag <- function(args, graph) {
+  if (!nzchar(graph)){
+    stop("Invalid graph: the graph is empty.")
+  } else {
+    row_pattern <- "^(.+(?>->|--|<->)[^\\:]+)(?>\\:(.+))?$"
+    graph_split <- strsplit(graph, "\r|\n")[[1L]]
+    graph_split <- gsub("\\s", "", graph_split)
+    valid_rows <- grep(row_pattern, graph_split, perl = TRUE)
+    graph_split <- graph_split[valid_rows]
+    graph_match <- regexec(row_pattern, graph_split, perl = TRUE)
+    split_rows <- regmatches(graph_split, graph_match)
+    edges <- sapply(split_rows, "[[", 2L)
+    directed <- strsplit(grep("(.+)->(.+)", edges, value = TRUE), "->")
+    if (length(directed) > 0L) {
+      args$dir_lhs <- vapply(directed, "[[", character(1L), 1L)
+      args$dir_rhs <- vapply(directed, "[[", character(1L), 2L)
+      if (any(args$dir_lhs == args$dir_rhs)) {
+        stop("Invalid graph: no self loops are allowed.")
+      }
+    }
+    contexts_split <- list()
+    contextuals <- which(nzchar(vapply(split_rows, "[[", character(1L), 3L)))
+    labels_split <- list()
+    if (length(contextuals) > 0L) {
+      edges_split <- strsplit(edges, "(->)")
+      labels <- vapply(split_rows[contextuals], "[[", character(1L), 3L)
+      labels_split <- strsplit(labels, "[;]")
+      labels_split <- lapply(labels_split, strsplit, "[,]")
+      args$targets <- lapply(seq_len(length(labels_split)), function(i) {
+        c(
+          "from" = edges_split[[contextuals[i]]][1L],
+          "to" = edges_split[[contextuals[i]]][2L]
+        )
+      })
+    }
+    args$labels <- labels_split
+    args$vars <- unique(c(args$dir_rhs, args$dir_lhs))
+    args$n <- length(args$vars)
+    intv <- args$dir_lhs[substr(args$dir_lhs, 1L, 2L) == "I_"]
+    ivar <- which(args$vars %in% intv)
+    args$vars <- args$vars[c(setdiff(seq_len(args$n), ivar), ivar)]
+    args$intv_vars <- args$vars[which(args$vars %in% intv)]
+    args$nums <- seq_len(args$n)
+    names(args$vars) <- args$nums
+    names(args$nums) <- args$vars
+    for (v in args$vars) {
+      args$parents[[v]] <- character(0L)
+    }
+    for (i in seq_along(args$dir_rhs)) {
+      args$parents[[args$dir_rhs[i]]] <- union(
+        args$parents[[args$dir_rhs[i]]], 
+        args$dir_lhs[i]
+      )
+    }
+  }
+  args
+}
+
+parse_labels <- function(args) {
+  if (length(args$labels) > 0L) {
+    input_labels <- matrix(0L, sum(lengths(args$labels)), 5L)
+    index <- 0L
+    index_csi <- 0L
+    inferred <- 0L
+    inferred_labels <- matrix(0L, 0L, 5L)
+    args$local_csi <- list()
+    vanishing <- matrix(0L, 0L, 2L)
+    for (i in seq_along(args$labels)) {
+      from <- args$targets[[i]]["from"]
+      to <- args$targets[[i]]["to"]
+      pa <- setdiff(args$parents[[to]], from)
+      n_pa <- length(pa)
+      if (n_pa == 0) {
+        stop(
+          "Invalid label for edge", from, " -> ", to, ": no parents to assign."
+        )
+      }
+      vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
+      names(vals) <- pa
+      vals$present <- FALSE
+      # Loop individual assignments within label
+      for (j in seq_along(args$labels[[i]])) {
+        index <- index + 1L
+        label_split <- strsplit(args$labels[[i]][[j]], "[=]")
+        label_lhs <- vapply(label_split, "[[", character(1L), 1L)
+        label_rhs <- vapply(label_split, "[[", character(1L), 2L)
+        msg <- ""
+        if (any(duplicated(label_lhs))) {
+          stop(
+            "Invalid label for edge ", 
+            from, " -> ", to, 
+            ": duplicate assignment."
+          )
+        }
+        if (from %in% label_lhs) {
+          stop(
+            "Invalid label for edge ", 
+            from, " -> ", to, ": ", from, 
+            " cannot appear in the label"
+          )
+        }
+        if (to %in% label_lhs) {
+          stop(
+            "Invalid label for edge ", 
+            from, " -> ", to, ": ", to, 
+            " cannot appear in the label."
+          )
+        }
+        if (any(!(label_lhs %in% pa))) {
+          stop(
+            "Invalid label for edge ", 
+            from, " -> ", to, 
+            ": only other parents of ", to, " may be assigned."
+          )
+        }
+        intv <- substr(label_lhs, 1L, 2L) == "I_"
+        args$con_vars <- c(args$con_vars, label_lhs[!intv])
+        zero <- which(label_rhs == 0L)
+        one <- which(label_rhs == 1L)
+        input_labels[index, 1L] <- to_dec(args$nums[label_lhs[zero]], args$n)
+        input_labels[index, 2L] <- to_dec(args$nums[label_lhs[one]], args$n)
+        input_labels[index, 3L] <- args$nums[from]
+        input_labels[index, 4L] <- args$nums[to]
+        input_labels[index, 5L] <- to_dec(args$nums[pa], args$n)
+        # Infer non-explicit labels from input
+        zl <- length(zero)
+        ol <- length(one)
+        if (zl == 0L) {
+          ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
+          if (nrow(ones) > 0L) {
+            vals[
+              which(apply(ones, 1L, function(x) all(x == 1))), 
+              "present"
+            ] <- TRUE
+          }
+        } else if (ol == 0L) {
+          zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
+          if (nrow(zeros) > 0L) {
+            vals[
+              which(apply(zeros, 1, function(x) all(x == 0L))), 
+              "present"
+            ] <- TRUE
+          }
+        } else {
+          zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
+          ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
+          ind_z <- which(apply(zeros, 1L, function(x) all(x == 0L)))
+          ind_o <- which(apply(ones, 1L, function(x) all(x == 1L)))
+          ind_zo <- intersect(ind_z, ind_o)
+          if (length(ind_zo) > 0L) {
+            vals[ind_zo, "present"] <- TRUE
+          }
+        }
+      }
+      if (all(vals$present)) {
+        vanishing <- rbind(vanishing, c(args$nums[from], args$nums[to]))
+      }
+      # Cannot infer from empty set
+      n_sets <- nrow(vals) - 1L
+      if (n_sets > 1L) {
+        for (j in seq.int(2L, n_sets)) {
+          sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
+          sub_ind <- which(pa %in% sub_pa)
+          sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
+          assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
+          names(assignments) <- sub_pa
+          for (k in seq_len(nrow(assignments))) {
+            zero <- sub_pa[which(assignments[k, ] == 0L)]
+            one <- sub_pa[which(assignments[k, ] == 1L)]
+            assign_ind <- apply(
+              sub_vals[, -ncol(sub_vals), drop = FALSE], 
+              1L, 
+              function(x) {
+                identical(
+                  as.integer(x), 
+                  as.integer(assignments[k, ])
+                )
+              }
+            )
+            if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
+              inferred <- inferred + 1L
+              inferred_labels <- rbind(
+                inferred_labels, 
+                c(
+                  to_dec(args$nums[zero], args$n), 
+                  to_dec(args$nums[one], args$n), 
+                  args$nums[from], 
+                  args$nums[to], 
+                  to_dec(args$nums[pa], args$n))
+                )
+            }
+          }
+        }
+      }
+    }
+    if (inferred > 0L) {
+      input_labels <- rbind(input_labels, inferred_labels)
+      input_labels <- input_labels[!duplicated(input_labels), ]
+    }
+    args$con_vars <- unique(args$con_vars)
+    all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
+    args$label_map <- list()
+    null_context <- c()
+    n_con <- nrow(all_contexts)
+    if (n_con > 0L) {
+      for (i in seq.int(2L, n_con)) {
+        sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
+        con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
+        args$label_map[[i - 1L]] <- list(
+          vars = to_dec(args$nums[sub_vars], args$n), 
+          contexts = vector(mode = "list", length = nrow(con_vals))
+        )
+        equiv_ind <- 0L
+        unique_context <- list()
+        for (j in seq_len(nrow(con_vals))) {
+          zero <- sub_vars[which(con_vals[j, ] == 0L)]
+          one <- sub_vars[which(con_vals[j, ] == 1L)]
+          z <- to_dec(args$nums[zero], args$n)
+          o <- to_dec(args$nums[one], args$n)
+          args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z
+          args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o
+          endpoints <- matrix(0L, 0L, 2L)
+          for (k in seq_len(nrow(input_labels))) {
+            z_inp <- input_labels[k, 1L]
+            o_inp <- input_labels[k, 2L]
+            if ((bitwAnd(z, z_inp) == z_inp && bitwAnd(o, o_inp) == o_inp)) {
+              csi_v <- apply(vanishing, 1L, function(x) {
+                isTRUE(all.equal(x, input_labels[k, 3L:4L]))
+              })
+              if (!any(csi_v)) {
+                endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
+                pa <- input_labels[k, 5L]
+                lab <- bitwOr(z, o)
+                if (pa == lab) {
+                  index_csi <- index_csi + 1L
+                  args$local_csi[[index_csi]] <- list(
+                    x = to_dec(input_labels[k, 3], args$n),
+                    y = to_dec(input_labels[k, 4], args$n),
+                    z = pa,
+                    zero = z,
+                    one = o)
+                }
+              }
+            }
+          }
+          endpoints <- unique(endpoints)
+          args$label_map[[i - 1L]][["contexts"]][[j]]$from <- endpoints[, 1L]
+          args$label_map[[i - 1L]][["contexts"]][[j]]$to <- endpoints[, 2L]
+          pos <- Position(
+            function(x) {
+              identical(endpoints[, 1L], x$from) && 
+                identical(endpoints[, 2L], x$to)
+            }, 
+            unique_context
+          )
+          if (is.na(pos)) {
+            equiv_ind <- equiv_ind + 1L
+            args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- equiv_ind
+            unique_context[[equiv_ind]] <- list(
+              from = endpoints[, 1L], 
+              to = endpoints[, 2L]
+            )
+          } else {
+            args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- pos
+          }
+        }
+        from_lengths <- vapply(
+          args$label_map[[i - 1L]][["contexts"]], 
+          function(x) length(x[["from"]]),
+          integer(1L)
+        )
+        if (all(from_lengths == 0)) {
+          null_context <- c(null_context, i - 1L)
+        }
+      }
+    }
+    all_interventions <- expand.grid(
+      rep(list(c(0L, 1L)), length(args$intv_vars))
+    )
+    n_intv <- nrow(all_interventions)
+    if (n_intv > 0L) {
+      for (i in seq.int(2L, n_intv)) {
+        index <- max(n_con - 1L, 0L) + i - 1L
+        sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
+        o <- to_dec(args$nums[sub_vars], args$n)
+        args$label_map[[index]] <- list(
+          vars = o, 
+          contexts = list(list(zero = 0L, one = o))
+        )
+        endpoints <- matrix(0L, 0L, 2L)
+        for (k in seq_len(nrow(input_labels))) {
+          z_inp <- input_labels[k, 1L]
+          o_inp <- input_labels[k, 2L]
+          if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
+            csi_v <- apply(vanishing, 1L, function(x) {
+              isTRUE(all.equal(x, input_labels[k, 3L:4L]))
+            })
+            if (!any(csi_v)) {
+              endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
+            }
+          }
+        }
+        endpoints <- unique(endpoints)
+        args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
+        args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
+        args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
+      }
+    }
+    args$label_map[null_context] <- NULL
+    if (nrow(vanishing) > 0L) {
+      edge_mat <- cbind(args$nums[args$dir_lhs], args$nums[args$dir_rhs])
+      present <- !duplicated(
+        rbind(edge_mat, vanishing), 
+        fromLast = TRUE
+      )[seq_len(nrow(edge_mat))]
+      args$dir_lhs <- args$dir_lhs[present]
+      args$dir_rhs <- args$dir_rhs[present]
+    }
+  }
+  args
+}
+
+parse_query_ldag <- function(args, query) {
+  parts <- NULL
+  q_split <- list(NULL, NULL, NULL)
+  zero <- c()
+  one <- c()
+  query_parsed <- gsub("\\s+", "", query)
+  query_parsed <- gsub("do", "$", query_parsed)
+  q_split <- match_distribution_ldag(query_parsed)
+  for (i in seq_len(2L)) {
+    if (!is.null(q_split[[i]])) {
+      dup <- duplicated(q_split[[i]])
+      if (any(dup)) {
+        stop(
+          "Invalid query: cannot contain duplicated variables: ", 
+          q_split[[i]][dup],
+          "."
+        )
+      }
+      equals <- grep("=", q_split[[i]], value = FALSE)
+      eq_split <- strsplit(q_split[[i]][equals], "[=]")
+      eq_lhs <- eq_rhs <- c()
+      if (length(equals) > 0L) {
+        eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
+        eq_lhs <- gsub("\\s+", "", eq_lhs)
+        eq_rhs <- vapply(eq_split, "[[", character(1L), 2L)
+        eq_rhs <- gsub("\\s+", "", eq_rhs)
+        uniq_rhs <- unique(eq_rhs)
+        if (!(uniq_rhs[1L] %in% 0L:1L)) {
+          stop(paste0("Invalid value assignment in query."))
+        }
+        q_split[[i]][equals] <- eq_lhs
+        z <- which(eq_rhs == 1L)
+        o <- which(eq_rhs == 0L)
+        zero <- c(zero, eq_lhs[eq_rhs == 0L])
+        one <- c(one, eq_lhs[eq_rhs == 1L])
+      }
+    }
+  }
+  q1_new <- q_split[[1L]][which(!(q_split[[1L]] %in% args$vars))]
+  q2_new <- q_split[[2L]][which(!(q_split[[2L]] %in% args$vars))]
+  new_vars <- unique(c(q1_new, q2_new))
+  args <- add_new_vars(args, new_vars)
+  args$q_process <- list(
+    args$nums[q_split[[1L]]], 
+    args$nums[q_split[[2L]]], 
+    args$nums[zero], 
+    args$nums[one], 
+    parts[1]
+  )
+  args
+}
+
+parse_input_distributions_ldag <- function(args, data) {
+  data_split <- strsplit(data, "\r|\n")[[1]]
+  data_split <- gsub("\\s+", "", data_split)
+  data_split <- data_split[which(nzchar(data_split))]
+  p_list <- list()
+  args$p_process <- vector(mode = "list", length = length(data_split))
+  for (i in seq_along(data_split)) {
+    parts <- NULL
+    p_split <- list(NULL, NULL, NULL)
+    zero <- c()
+    one <- c()
+    p_parsed <- gsub("\\s+", "", data_split[[i]])
+    p_parsed <- gsub("do", "$", p_parsed)
+    p_split <- match_distribution_ldag(p_parsed)
+    if (any(is.na(p_split[[1]]))) {
+      stop(
+        "Invalid input distribution on data line ", 
+        i , ": ", data_split[[i]], "."
+      )
+    }
+    for (j in seq_len(2L))  {
+      if (!is.null(p_split[[j]])) {
+        dup <- duplicated(p_split[[j]])
+        if (any(dup)) {
+          stop(
+            "Invalid input distribution: ", data_split[[i]],
+            "cannot contain duplicated variables ", p_split[[j]][dup], "."
+          )
+        }
+        equals <- grep("=", p_split[[j]], value = FALSE)
+        eq_split <- strsplit(p_split[[j]][equals], "[=]")
+        eq_lhs <- eq_rhs <- c()
+        if (length(equals) > 0L) {
+          eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
+          eq_lhs <- gsub("\\s+", "", eq_lhs)
+          eq_rhs <- vapply(eq_split, "[[", character(1L), 1L)
+          eq_rhs <- gsub("\\s+", "", eq_rhs)
+          uniq_rhs <- unique(eq_rhs)
+          if (!(uniq_rhs[1L] %in% 0L:1L)) {
+            stop(
+              "Invalid value assignment on data line ", 
+              i ,": ", data_split[[i]], "."
+            )
+          }
+          p_split[[j]][equals] <- eq_lhs
+          z <- which(eq_rhs == 1L)
+          o <- which(eq_rhs == 0L)
+          zero <- c(zero, eq_lhs[eq_rhs == 0L])
+          one <- c(one, eq_lhs[eq_rhs == 1L])
+        }
+      }
+    }
+    p1_new <- p_split[[1L]][which(!(p_split[[1L]] %in% args$vars))]
+    p2_new <- p_split[[2L]][which(!(p_split[[2L]] %in% args$vars))]
+    new_vars <- unique(c(p1_new, p2_new))
+    args <- add_new_vars(args, new_vars)
+    args$p_process[[i]] <- list(
+      args$nums[p_split[[1L]]],
+      args$nums[p_split[[2L]]], 
+      args$nums[zero], 
+      args$nums[one], 
+      data_split[[i]]
+    )
+  }
+  args
+}
+
+validate_input_distributions_ldag <- function(args) {
+  for (i in seq_along(args$p_process)) {
+    p <- args$p_process[[i]]
+    args$p_list[[i]] <- c(
+      to_dec(p[[1L]], args$n), 
+      to_dec(p[[2L]], args$n), 
+      to_dec(p[[3L]], args$n), 
+      to_dec(p[[4L]], args$n)
+    )
+    if (bitwAnd(args$p_list[[i]][1L], args$p_list[[i]][2L]) > 0L) {
+      stop(
+        "Invalid input distribution on data line ", 
+        i, ": ", p[[4L]], ", ",
+        "same variable on the left and right-hand side."
+      )
+    }
+  }
+  args
+}
+
+validate_query_ldag <- function(args) {
+  args$q_vec <- c(
+    to_dec(args$q_process[[1L]], args$n), 
+    to_dec(args$q_process[[2L]], args$n), 
+    to_dec(args$q_process[[3L]], args$n), 
+    to_dec(args$q_process[[4L]], args$n)
+  )
+  if (bitwAnd(args$q_vec[1L], args$q_vec[2L]) > 0L) {
+    stop(
+      "Invalid query: ", 
+      args$q_process[[4L]], ", ",
+      "same variable on the left and right-hand side."
+    )
+  }
+  args
+}
+
+
+match_distribution_ldag <- function(d) {
+  dist_pattern <- character(2L)
+  # Pattern for p(y)
+  dist_pattern[1L] <- "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
+  # Pattern for p(y|z)
+  dist_pattern[2L] <- paste0(
+    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[|]",
+    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
+  )
+  matches <- lapply(dist_pattern, function(p) {
+    regexec(p, d, perl = TRUE)
+  })
+  match_lens <- sapply(matches, function(x) {
+    length(attr(x[[1L]], "match.length"))
+  })
+  best_match <- which.max(match_lens)[1L]
+  parts <- regmatches(d, matches[[best_match]])[[1L]]
+  d_split <- vector(mode = "list", length = 2L)
+  d_split[[1L]] <- strsplit(parts[2L], "[,]")[[1L]]
+  if (best_match == 2) {
+    d_split[[2L]] <- strsplit(parts[3L], "[,]")[[1L]]
+  }
+  d_split
 }

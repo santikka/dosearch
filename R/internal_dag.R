@@ -1,9 +1,110 @@
+#' Call the dosearch Algorithm from R for DAGs
+#'
+#' @inheritParams dosearch
+#' @noRd
+get_derivation_dag <- function(data, query, graph, transportability = NULL, 
+                               selection_bias = NULL, missing_data = NULL,
+                               control = list()) {
+  control <- control_defaults(control)
+  args <- list(
+    dir_lhs = integer(0L),
+    dir_rhs = integer(0L),
+    bi_lhs = integer(0L),
+    bi_rhs = integer(0L),
+    vars = character(0L),
+    nums = integer(0L),
+    tr_nums = integer(0L),
+    sb_nums = integer(0L),
+    n = 0L,
+    n_tr = 0L,
+    n_sb = 0L,
+    tr = 0L,
+    sb = 0L,
+    md_s = 0L,
+    md_p = 0L,
+    md_t = 0L,
+    md_sym = control$md_sym
+  )
+  args <- transform_graph_dag(args, graph)
+  args <- parse_missing_data(args, missing_data)
+  args <- parse_transportability(args, transportability)
+  args <- parse_selection_bias(args, selection_bias)
+  args <- reorder_variables(args)
+  args <- parse_query_dag(args, query, missing_data)
+  args <- parse_input_distributions_dag(args, data, missing_data)
+  if (control$warn) {
+    var_dec <- to_dec(args$nums[args$var_pool], args$n)
+    if (!is.null(missing_data)) {
+      inc_md <- bitwAnd(args$md_s, var_dec)
+      if (inc_md != args$md_s) {
+        no_ind <- args$vars[
+          which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
+        ]
+        warning(
+          "There are response indicators ",
+          "that are not present in any input distribution: ", 
+          paste(no_ind, collapse = ", ")
+        )
+      }
+    }
+  }
+  args <- validate_input_distributions_dag(args)
+  args <- validate_query_dag(args)
+  res <- initialize_dosearch(
+    as.numeric(args$nums[args$dir_lhs]),
+    as.numeric(args$nums[args$dir_rhs]),
+    as.numeric(args$nums[args$bi_lhs]),
+    as.numeric(args$nums[args$bi_rhs]),
+    as.character(args$vars),
+    args$p_list,
+    args$q_vec,
+    args$n,
+    args$tr,
+    args$sb,
+    args$md_s,
+    args$md_p,
+    control$time_limit,
+    control$rules,
+    control$benchmark,
+    control$benchmark_rules,
+    control$draw_derivation,
+    control$draw_all,
+    control$formula,
+    control$improve,
+    control$heuristic,
+    control$md_sym,
+    control$verbose
+  )
+  res$call <- list(
+    data = data, 
+    query = query, 
+    graph = graph, 
+    transportability = transportability, 
+    selection_bias = selection_bias, 
+    missing_data = missing_data, 
+    control = control
+  )
+  structure(
+    res[
+      c(
+        TRUE, # always include identifiability
+        control$formula,
+        control$draw_derivation,
+        control$benchmark,
+        control$benchmark_rules,
+        TRUE # always include the call
+      )
+    ], 
+    class = "dosearch"
+  )
+}
+
 #' Transform the Input Graph for `dosearch`
 #' 
 #' @param args A list of arguments for `dosearch`
 #' @param graph The graph as a `character` string.
 #' @noRd
-transform_dag <- function(args, graph, missing_data) {
+transform_graph_dag <- function(args, graph, missing_data) {
   if (!nzchar(graph)) {
     if (is.null(missing_data)) {
       stop("Invalid graph: the graph is empty.")
@@ -67,8 +168,8 @@ parse_missing_data <- function(args, missing_data) {
     args$nums <- seq_len(args$n)
     names(args$vars) <- args$nums
     names(args$nums) <- args$vars
-    md_switch_nums <- nums[md_switch]
-    md_proxy_nums <- nums[md_proxy]
+    md_switch_nums <- args$nums[md_switch]
+    md_proxy_nums <- args$nums[md_proxy]
     if (any(is.na(md_switch_nums)) || any(is.na(md_proxy_nums))) {
       stop("Invalid missing data mechanisms.")
     }
@@ -93,8 +194,8 @@ parse_transportability <- function(args, transportability) {
     args$tr_nums <- args$nums[
       gsub("\\s+", "", strsplit(transportability, ",")[[1L]])
     ]
-    args$ntr <- length(args$tr_nums)
-    if (ntr == 0L) {
+    args$n_tr <- length(args$tr_nums)
+    if (args$n_tr == 0L) {
       stop("Invalid transportability nodes.")
     }
     pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
@@ -117,8 +218,8 @@ parse_selection_bias <- function(args, selection_bias) {
     args$sb_nums <- args$nums[
       gsub("\\s+", "", strsplit(selection_bias, ",")[[1]])
     ]
-    args$nsb <- length(args$sb_nums)
-    if (args$nsb == 0L) {
+    args$n_sb <- length(args$sb_nums)
+    if (args$n_sb == 0L) {
       stop("Invalid selection bias nodes.\n")
     }
     if (any(args$sb_nums %in% args$nums[args$dir_lhs])) {
@@ -136,7 +237,7 @@ parse_selection_bias <- function(args, selection_bias) {
 #' @param args A list of arguments for `dosearch`.
 #' @noRd
 reorder_variables <- function(args) {
-  if (args$ntr > 0L || args$nsb > 0L) {
+  if (args$n_tr > 0L || args$n_sb > 0L) {
     args$vars <- args$vars[
       c(
         setdiff(args$nums, union(args$tr_nums, args$sb_nums)), 
@@ -147,15 +248,15 @@ reorder_variables <- function(args) {
     args$nums <- seq_len(args$n)
     names(args$vars) <- args$nums
     names(args$nums) <- args$vars
-    if (args$ntr > 0L) {
+    if (args$n_tr > 0L) {
       args$tr_nums <- seq.int(
-        args$n - args$ntr - args$nsb + 1L, 
-        args$n - args$nsb
+        args$n - args$n_tr - args$n_sb + 1L, 
+        args$n - args$n_sb
       )
       args$tr <- to_dec(args$tr_nums, args$n)
     }
-    if (args$nsb > 0L) {
-      args$sb_nums <- seq.int(args$n - args$nsb + 1L, args$n)
+    if (args$n_sb > 0L) {
+      args$sb_nums <- seq.int(args$n - args$n_sb + 1L, args$n)
       args$sb <- to_dec(args$sb_nums, args$n)
     }
   }
@@ -167,13 +268,13 @@ reorder_variables <- function(args) {
 #' @inheritParams dosearch
 #' @param args A list of arguments for `dosearch`.
 #' @noRd
-parse_query <- function(args, query, missing_data) {
+parse_query_dag <- function(args, query, missing_data) {
   parts <- NULL
   q_split <- list(NULL, NULL, NULL)
   enabled <- c()
   query_parsed <- gsub("\\s+", "", query)
   query_parsed <- gsub("do", "$", query_parsed)
-  q_split <- match_distribution(query_parsed)
+  q_split <- match_distribution_dag(query_parsed)
   if (any(is.na(q_split[[1L]]))) {
     stop("Invalid query.")
   }
@@ -223,13 +324,7 @@ parse_query <- function(args, query, missing_data) {
   q2_new <- q_split[[2L]][which(!(q_split[[2L]] %in% args$vars))]
   q3_new <- q_split[[3L]][which(!(q_split[[3L]] %in% args$vars))]
   new_vars <- unique(c(q1_new, q2_new, q3_new))
-  if (length(new_vars) > 0L) {
-    args$n <- args$n + length(new_vars)
-    args$vars <- c(args$vars, args$new_vars)
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
-  }
+  args <- add_new_vars(args, new_vars)
   args$q_process <- list(
     args$nums[q_split[[1L]]], 
     args$nums[q_split[[2L]]], 
@@ -240,7 +335,7 @@ parse_query <- function(args, query, missing_data) {
   args
 }
 
-parse_input_distributions <- function(args, data, missing_data) {
+parse_input_distributions_dag <- function(args, data, missing_data) {
   data_split <- strsplit(data, "\r|\n")[[1L]]
   data_split <- gsub("\\s+", "", data_split)
   data_split <- data_split[which(nzchar(data_split))]
@@ -254,7 +349,7 @@ parse_input_distributions <- function(args, data, missing_data) {
     enabled <- c()
     p_parsed <- gsub("\\s+", "", data_split[[i]])
     p_parsed <- gsub("do", "$", p_parsed)
-    p_split <- match_distribution(p_parsed)
+    p_split <- match_distribution_dag(p_parsed)
     if (any(is.na(p_split[[1]]))) {
       stop(
         "Invalid input distribution on data line ", 
@@ -312,13 +407,7 @@ parse_input_distributions <- function(args, data, missing_data) {
     p2_new <- p_split[[2L]][which(!(p_split[[2L]] %in% args$vars))]
     p3_new <- p_split[[3L]][which(!(p_split[[3L]] %in% args$vars))]
     new_vars <- unique(c(p1_new, p2_new, p3_new))
-    if (length(new_vars) > 0L) {
-      args$n <- args$n + length(args$new_vars)
-      args$vars <- c(args$vars, args$new_vars)
-      args$nums <- seq_len(args$n)
-      names(args$vars) <- args$nums
-      names(args$nums) <- args$vars
-    }
+    args <- add_new_vars(args, new_vars)
     args$p_process[[i]] <- list(
       args$nums[p_split[[1]]], 
       args$nums[p_split[[2]]], 
@@ -331,7 +420,7 @@ parse_input_distributions <- function(args, data, missing_data) {
   args
 }
 
-validate_distribution <- function(args, d) {
+validate_distribution_dag <- function(args, d) {
   msg <- ""
   left_proxy <- bitwAnd(
     bitwShiftR(bitwAnd(d[1L], args$md_p), 2L), 
@@ -379,7 +468,7 @@ validate_distribution <- function(args, d) {
   msg
 }
 
-validate_input_distributions <- function(args) {
+validate_input_distributions_dag <- function(args) {
   args$p_list <- vector(mode = "list", length = length(args$p_process))
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]
@@ -389,7 +478,7 @@ validate_input_distributions <- function(args) {
       to_dec(p[[3]], args$n), 
       to_dec(p[[4]], args$n)
     )
-    msg <- validate_distribution(args, args$p_list[[i]])
+    msg <- validate_distribution_dag(args, args$p_list[[i]])
     if (nzchar(msg)) {
       stop(
         "Invalid input distribution on data line ", 
@@ -404,14 +493,14 @@ validate_input_distributions <- function(args) {
   args
 }
 
-validate_query <- function(args) {
+validate_query_dag <- function(args) {
   args$q_vec <- c(
     to_dec(args$q_process[[1L]], args$n), 
     to_dec(c(args$q_process[[2L]], args$q_process[[3L]]), args$n), 
     to_dec(args$q_process[[3L]], args$n), 
     to_dec(args$q_process[[4L]], args$n)
   )
-  msg <- validate_distribution(args, args$q_vec)
+  msg <- validate_distribution_dag(args, args$q_vec)
   if (nzchar(msg)) {
     stop(
       "Invalid query: ", 
@@ -421,103 +510,59 @@ validate_query <- function(args) {
   args
 }
 
-#' Function to Call the Search from R
-#'
-#' @inheritParams dosearch
-#' @noRd
-get_derivation_dag <- function(data, query, graph, transportability = NULL, 
-                               selection_bias = NULL, missing_data = NULL,
-                               control = list()) {
-  control <- set_control_defaults(control)
-  args <- list(
-    dir_lhs = integer(0L),
-    dir_rhs = integer(0L),
-    bi_lhs = integer(0L),
-    bi_rhs = integer(0L),
-    vars = character(0L),
-    nums = integer(0L),
-    tr_nums = integer(0L),
-    sb_nums = integer(0L),
-    n = 0L,
-    tr = 0L,
-    sb = 0L,
-    md_s = 0L,
-    md_p = 0L,
-    md_t = 0L,
-    ntr = 0L,
-    nsb = 0L,
-    md_sym = control$md_sym
+match_distribution_dag <- function(d) {
+  dist_pattern <- character(5L)
+  # Pattern for p(y)
+  dist_pattern[1L] <- "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
+  # Pattern for p(y|z)
+  dist_pattern[2L] <- paste0(
+    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[|]",
+    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
   )
-  args <- transform_dag(args, graph)
-  args <- parse_missing_data(args, missing_data)
-  args <- parse_transportability(args, transportability)
-  args <- parse_selection_bias(args, selection_bias)
-  args <- reorder_variables(args)
-  args <- parse_query(args, query, missing_data)
-  args <- parse_input_distributions(args, data, missing_data)
-  if (control$warn) {
-    var_dec <- to_dec(args$nums[args$var_pool], args$n)
-    if (!is.null(missing_data)) {
-      inc_md <- bitwAnd(args$md_s, var_dec)
-      if (inc_md != args$md_s) {
-        no_ind <- args$vars[
-          which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
-        ]
-        warning(
-          "There are response indicators ",
-          "that are not present in any input distribution: ", 
-          paste(no_ind, collapse = ", ")
-        )
-      }
-    }
+  # Pattern for p(y|do(x))
+  dist_pattern[3L] <- paste0(
+    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[|]",
+    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$"
+  )
+  # Pattern for p(y|z,do(x))
+  dist_pattern[4L] <- paste0(
+    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[|]",
+    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[,]",
+    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$" 
+  )
+  # Pattern for p(y|do(x),z)
+  dist_pattern[5L] <- paste0(
+    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
+    "[|]",
+    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))",
+    "[,]",
+    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
+  )
+  matches <- lapply(dist_pattern, function(p) {
+    regexec(p, d, perl = TRUE)
+  })
+  match_lens <- sapply(matches, function(x) {
+    length(attr(x[[1L]], "match.length"))
+  })
+  best_match <- which.max(match_lens)[1L]
+  parts <- regmatches(d, matches[[best_match]])[[1L]]
+  d_split <- vector(mode = "list", length = 3L)
+  d_split[[1L]] <- strsplit(parts[2L], "[,]")[[1L]]
+  if (best_match == 2L) {
+    d_split[[2L]] <- strsplit(parts[3L], "[,]")[[1L]]
+  } else if (best_match == 3L) {
+    d_split[[3L]] <- strsplit(parts[3L], "[,]")[[1L]]
+  } else if (best_match == 4L) {
+    d_split[[2L]] <- strsplit(parts[3L], "[,]")[[1L]]
+    d_split[[3L]] <- strsplit(parts[4L], "[,]")[[1L]]
+  } else if (best_match == 5L) {
+    d_split[[2L]] <- strsplit(parts[4L], "[,]")[[1L]]
+    d_split[[3L]] <- strsplit(parts[3L], "[,]")[[1L]]
   }
-  args <- validate_input_distributions(args)
-  args <- validate_query(args)
-  res <- initialize_dosearch(
-    as.numeric(args$nums[args$dir_lhs]),
-    as.numeric(args$nums[args$dir_rhs]),
-    as.numeric(args$nums[args$bi_lhs]),
-    as.numeric(args$nums[args$bi_rhs]),
-    as.character(args$vars),
-    args$p_list,
-    args$q_vec,
-    args$n,
-    args$tr,
-    args$sb,
-    args$md_s,
-    args$md_p,
-    control$time_limit,
-    control$rules,
-    control$benchmark,
-    control$benchmark_rules,
-    control$draw_derivation,
-    control$draw_all,
-    control$formula,
-    control$improve,
-    control$heuristic,
-    control$md_sym,
-    control$verbose
-  )
-  res$call <- list(
-    data = data, 
-    query = query, 
-    graph = graph, 
-    transportability = transportability, 
-    selection_bias = selection_bias, 
-    missing_data = missing_data, 
-    control = control
-  )
-  structure(
-    res[
-      c(
-        TRUE, # always include identifiability
-        control$formula,
-        control$draw_derivation,
-        control$benchmark,
-        control$benchmark_rules,
-        TRUE # always include the call
-      )
-    ], 
-    class = "dosearch"
-  )
+  d_split
 }
+

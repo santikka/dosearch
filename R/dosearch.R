@@ -7,7 +7,6 @@
 #' and identifiability under missing data can also be included. See 'Details'
 #' for the syntax of each argument.
 #' 
-#' 
 #' Argument `data` is used to list the available input distributions. 
 #' When `graph` is a DAG the distributions should be of the form 
 #' \ifelse{html}{\out{<p> P(A<sub>i</sub>|do(B<sub>i</sub>),C<sub>i</sub>) </p>}}{\deqn{P(A_i|do(B_i),C_i).}}
@@ -60,7 +59,6 @@
 #' +  X <-> Y
 #' +"
 #' }
-#' 
 #' Some alternative formats for DAGs are supported as well. Graphs created 
 #' using the \pkg{igraph} package in the \pkg{causal.effect} package syntax can 
 #' be used for \pkg{dosearch} as well. DAGs created using the \pkg{dagitty} 
@@ -77,7 +75,6 @@
 #' +  A -> Y
 #' +"
 #' }
-#'
 #' Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when 
 #' \eqn{A} has the value 0 and the edge from \eqn{Z} to \eqn{Y} vanishes when 
 #' \eqn{A} has the value 1. Multiple labels on the same edge should be 
@@ -91,7 +88,7 @@
 #' Argument `selection_bias` enumerates the nodes that should be understood as 
 #' selection bias nodes responsible for bias in the input data sets. 
 #' Individual variables should be separated by a comma. See e.g., 
-#' Bareinboim and Pearl (2014) for details on selection bias recoverability.
+#' Bareinboim and Tian (2015) for details on selection bias recoverability.
 #'
 #' Argument `missing_data` enumerates the missingness mechanisms of the model. 
 #' The syntax for a single mechanism is `M_X : X` where 
@@ -160,11 +157,25 @@
 #' * `identifiable` A `logical` value that is `TRUE` if the target quantity is 
 #'   identifiable and `FALSE` otherwise. 
 #' * `formula` A `character` string describing a formula for an identifiable 
-#'   query or an empty character vector for an nonidentifiable effect.
+#'   query or an empty character vector for an non-identifiable effect.
 #' @references
-#' S. Tikka, A. Hyttinen and J. Karvanen. Causal effect identification from 
-#' multiple incomplete data sources: a general search-based approach. 
-#' *Journal of Statistical Software*, **99(5)**:1--40, 2021.
+#' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from 
+#' Multiple Incomplete Data Sources: A General Search-based Approach." 
+#' \emph{Journal of Statistical Software}, 99(5):1--40, 2021.
+#' 
+#' E. Bareinboim, J. Pearl. "Transportability from Multiple 
+#' Environments with Limited Experiments: Completeness Results." 
+#' In \emph{Proceedings of the 27th Annual Conference on
+#' Neural Information Processing Systems}, 280--288, 2014.
+#' 
+#' E. Bareinboim, J. Tian. "Recovering Causal Effects from Selection
+#' Bias " In \emph{Proceedings of the 29th AAAI Conference on Artificial 
+#' Intelligence}, 3475--3481, 2015.
+#' 
+#' K. Mohan, J. Pearl, J. Tian. "Graphical Models for Inference with Missing 
+#' Data." In \emph{Proceedings of the 26th International Conference on 
+#' Neural Information Processing Systems}, 1277--1285, 2013.
+#'
 #' @export
 #' @examples
 #' # A simple back-door formula
@@ -189,7 +200,10 @@
 #' 
 #' # Graph input using 'igraph' in the 'causaleffect' syntax
 #' if (requireNamespace("igraph", quietly = TRUE)) {
-#'   g_igraph <- igraph::graph.formula(x -+ z, z -+ y, x -+ y, y -+ x)
+#'   g_igraph <- igraph::graph.formula(
+#'     x -+ z, z -+ y, x -+ y, y -+ x,
+#'     simplify = FALSE
+#'   )
 #'   g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
 #'   dosearch(data2, query2, g_igraph)
 #' }

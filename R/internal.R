@@ -19,6 +19,17 @@ to_vec <- function(dec, n) {
   }
 }
 
+add_new_vars <- function(args, new_vars) {
+  if (length(new_vars) > 0L) {
+    args$n <- args$n + length(new_vars)
+    args$vars <- c(args$vars, args$new_vars)
+    args$nums <- seq_len(args$n)
+    names(args$vars) <- args$nums
+    names(args$nums) <- args$vars
+  }
+  args
+}
+
 #' Check Validity of Data Generating Mechanisms
 #' 
 #' @inheritParams dosearch
@@ -129,10 +140,10 @@ parse_distribution <- function(p) {
 }
 
 parse_graph <- function(graph) {
-  if (length(graph) > 1L) {
-    stop("Argument `graph` must be of length 1.")
-  }
   if (is.character(graph)) {
+    if (length(graph) > 1L) {
+      stop("Argument `graph` must be of length 1.")
+    }
     graph
   } else if (inherits(graph, "igraph")) {
     if (requireNamespace("igraph", quietly = TRUE)) {
@@ -173,7 +184,7 @@ parse_graph <- function(graph) {
       if (!identical(dagitty::graphType(graph), "dag")) {
         stop("Attempting to use `dagitty`, but argument `graph` is not a DAG.")
       }
-      e <- dagitty::edges(g)
+      e <- dagitty::edges(graph)
       paste(e[, 1L], e[, 3L], e[, 2L], collapse = "\n")
     } else {
       stop("The `dagitty` package is not available.")
@@ -183,19 +194,24 @@ parse_graph <- function(graph) {
   }
 }
 
-set_control_defaults <- function(control) {
+control_defaults <- function(control) {
+  rules <- as.integer(control$rules)
+  control$rules <- integer(0L)
   control_lengths <- lengths(control)
   if (any(control_lengths > 1L)) {
     stop(
-      "All elements of argument `control` must be of length 1.\n",
+      "All elements of argument `control` ",
+      "must be of length 1 (except `rules`).\n",
       "Elements ",
       paste0(names(control)[control_lengths > 1L], collapse = ", "),
       " have length > 1."
     )
   }
+  control$rules <- rules
   default <- list(
     benchmark = FALSE,
     benchmark_rules = FALSE,
+    cache = TRUE,
     draw_all = FALSE,
     draw_derivation = FALSE,
     formula = TRUE,
@@ -208,9 +224,16 @@ set_control_defaults <- function(control) {
     warn = TRUE
   )
   default_names <- names(default)
-  given_args <- names(control) %in% default_names
+  control_names <- names(control)
+  if (any(!control_names %in% default_names)) {
+    stop(
+      "Unrecognized control arguments: ",
+      control_names[!control_names %in% default_names]
+    )
+  }
+  given_args <- which(default_names %in% control_names)
   control_full <- default
-  control_full[given_args] <- control[given_args]
+  control_full[given_args] <- control
   control <- control_full
   default_types <- vapply(default, typeof, character(1L))
   control_types <- vapply(control, typeof, character(1L))
@@ -218,9 +241,9 @@ set_control_defaults <- function(control) {
   if (any(invalid_types)) {
     stop(
       "Some elements of argument `control` have an invalid type.\n",
-      "Elements ",
+      "Invalid arguments: ",
       paste0(names(control)[invalid_types], collapse = ", "),
-      " have types ",
+      "\nProvided types: ",
       paste0(control_types[invalid_types], collapse = ", "),
       "\nExpected types: ", 
       paste0(default_types[invalid_types], collapse = ", ")
@@ -231,66 +254,14 @@ set_control_defaults <- function(control) {
   # after checking for missing data mechanisms
 }
 
-match_distribution <- function(d) {
-  dist_pattern <- character(5L)
-  # Pattern for p(y)
-  dist_pattern[1L] <- "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
-  # Pattern for p(y|z)
-  dist_pattern[2L] <- paste0(
-    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
-    "[|]",
-    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
-  )
-  # Pattern for p(y|do(x))
-  dist_pattern[3L] <- paste0(
-    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
-    "[|]",
-    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$"
-  )
-  # Pattern for p(y|z,do(x))
-  dist_pattern[4L] <- paste0(
-    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
-    "[|]",
-    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
-    "[,]",
-    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$" 
-  )
-  # Pattern for p(y|do(x),z)
-  dist_pattern[5L] <- paste0(
-    "^[Pp]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
-    "[|]",
-    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))",
-    "[,]",
-    "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\)$"
-  )
-  matches <- lapply(dist_pattern, function(p) {
-    regexec(p, d, perl = TRUE)
-  })
-  match_lens <- sapply(matches, function(x) {
-    length(attr(x[[1L]], "match.length"))
-  })
-  best_match <- which.max(match_lens)[1L]
-  parts <- regmatches(d, matches[[best_match]])[[1L]]
-  d_split <- vector(mode = "list", length = 3L)
-  d_split[[1L]] <- strsplit(parts[2L], "[,]")[[1L]]
-  if (best_match == 2L) {
-    d_split[[2L]] <- strsplit(parts[3L], "[,]")[[1L]]
-  } else if (best_match == 3L) {
-    d_split[[3L]] <- strsplit(parts[3L], "[,]")[[1L]]
-  } else if (best_match == 4L) {
-    d_split[[2L]] <- strsplit(parts[3L], "[,]")[[1L]]
-    d_split[[3L]] <- strsplit(parts[4L], "[,]")[[1L]]
-  } else if (best_match == 5L) {
-    d_split[[2L]] <- strsplit(parts[4L], "[,]")[[1L]]
-    d_split[[3L]] <- strsplit(parts[3L], "[,]")[[1L]]
-  }
-  d_split
-}
-
 #' Is the Argument a `dosearch` Object?
 #' 
 #' @param x An \R object.
 #' @noRd
 is.dosearch <- function(x) {
   inherits(x, "dosearch")
+}
+
+.onUnload <- function(libpath) {
+  library.dynam.unload("dosearch", libpath)
 }
