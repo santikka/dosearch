@@ -209,7 +209,10 @@ dosearch(data2, query2, graph2)
 
 # Graph input using 'igraph' in the 'causaleffect' syntax
 if (requireNamespace("igraph", quietly = TRUE)) {
-  g_igraph <- igraph::graph.formula(x -+ z, z -+ y, x -+ y, y -+ x)
+  g_igraph <- igraph::graph.formula(
+    x -+ z, z -+ y, x -+ y, y -+ x,
+    simplify = FALSE
+  )
   g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
   dosearch(data2, query2, g_igraph)
 }
@@ -315,7 +318,7 @@ data7 <- "P(X,Y,Z)"
 query7 <- "P(Y|X,I_X=1)"
 graph7 <- "
   X -> Y : Z = 1
-  Z -> Y 
+  Z -> Y
   Z -> X : I_X = 1
   I_X -> X
   H -> X : I_X = 1

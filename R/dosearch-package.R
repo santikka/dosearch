@@ -16,6 +16,32 @@
 #' Causal effect identification from multiple incomplete data sources: 
 #' a general search-based approach. \emph{Journal of Statistical Software}, 
 #' 99(5):1--40, 2021.
+#' 
+#' @srrstats {G1.0} Primary reference is listed.
+#' @srrstats {G1.1} First implementation of an original algorithm.
+#' @srrstatsTODO {G1.2} *Statistical Software should include a* Life Cycle Statement *describing current and anticipated future states of development.* 
+#' @srrstatsTODO {G1.3} All terminology is clarified and unambiguously defined.
+#' @srrstats {G1.4} `roxygen2` is used for the package documentation.
+#' @srrstatsTODO {G1.4a} All internal (non-exported) functions are documented.
+#' @srrstatsTODO {G1.5} *Software should include all code necessary to reproduce results which form the basis of performance claims made in associated publications.* 
+#' @srrstatsTODO {G2.0} *Implement assertions on lengths of inputs, particularly through asserting that inputs expected to be single- or multi-valued are indeed so.*
+#' @srrstatsTODO {G2.0a} *Provide explicit secondary documentation of any expectations on lengths of inputs*
+#' @srrstatsTODO {G2.1} *Implement assertions on types of inputs (see the initial point on nomenclature above).*
+#' @srrstatsTODO {G2.1a} *Provide explicit secondary documentation of expectations on data types of all vector inputs.*
+#' @srrstatsTODO {G2.2} *Appropriately prohibit or restrict submission of multivariate input to parameters expected to be univariate.*
+#' @srrstatsTODO {G2.3} *For univariate character input:*
+#' @srrstatsTODO {G2.3a} *Use `match.arg()` or equivalent where applicable to only permit expected values.*
+#' @srrstatsTODO {G2.3b} *Either: use `tolower()` or equivalent to ensure input of character parameters is not case dependent; or explicitly document that parameters are strictly case-sensitive.*
+#' @srrstatsTODO {G2.4} *Provide appropriate mechanisms to convert between different data types, potentially including:*
+#' @srrstatsTODO {G2.4a} *explicit conversion to `integer` via `as.integer()`*
+#' @srrstatsTODO {G2.4b} *explicit conversion to continuous via `as.numeric()`*
+#' @srrstatsTODO {G2.4c} *explicit conversion to character via `as.character()` (and not `paste` or `paste0`)*
+#' @srrstatsTODO {G2.6} *Software which accepts one-dimensional input should ensure values are appropriately pre-processed regardless of class structures.* 
+#' @srrstats {G2.8} Sub-functions receive well-defined arguments
+#' @srrstats {G3.0} Floating point numbers are not compared for equality.
+#' @srrstats {G5.0} While the package does not use data per se, well known
+#'   graphs are used as examples and testing.
+#' @srrstats {G5.1} Data set is exported (bivariate_missingness).
 NULL
 
 #' Systematic Analysis of Bivariate Missing Data Problems

@@ -1,4 +1,4 @@
-#' Call the dosearch Algorithm from R for LDAGs
+#' Call the `csisearch` Algorithm from R for LDAGs
 #'
 #' @inheritParams dosearch
 #' @noRd
@@ -49,12 +49,12 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
     control$verbose
   )
   res$call <- list(
-    data = data, 
-    query = query, 
-    graph = graph, 
-    transportability = NULL, 
-    selection_bias = NULL, 
-    missing_data = NULL, 
+    data = data,
+    query = query,
+    graph = graph,
+    transportability = NULL,
+    selection_bias = NULL,
+    missing_data = NULL,
     control = control
   )
   structure(
@@ -67,11 +67,17 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
         control$benchmark_rules,
         TRUE # always include the call
       )
-    ], 
+    ],
     class = "dosearch"
   )
 }
 
+#' Transform the Input LDAG
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_csisearch`
+#' @param graph The graph as a `character` string.
+#' @noRd
 transform_graph_ldag <- function(args, graph) {
   if (!nzchar(graph)){
     stop("Invalid graph: the graph is empty.")
@@ -122,7 +128,7 @@ transform_graph_ldag <- function(args, graph) {
     }
     for (i in seq_along(args$dir_rhs)) {
       args$parents[[args$dir_rhs[i]]] <- union(
-        args$parents[[args$dir_rhs[i]]], 
+        args$parents[[args$dir_rhs[i]]],
         args$dir_lhs[i]
       )
     }
@@ -130,25 +136,25 @@ transform_graph_ldag <- function(args, graph) {
   args
 }
 
+#' Parse Edge Labels of an LDAG
+#'
+#' @param args A `list` of arguments for `initialize_csisearch`
+#' @noRd
 parse_labels <- function(args) {
   if (length(args$labels) > 0L) {
     input_labels <- matrix(0L, sum(lengths(args$labels)), 5L)
     index <- 0L
-    index_csi <- 0L
-    inferred <- 0L
-    inferred_labels <- matrix(0L, 0L, 5L)
+    args$null_context <- c()
+    args$inferred <- 0L
+    args$inferred_labels <- matrix(0L, 0L, 5L)
     args$local_csi <- list()
     vanishing <- matrix(0L, 0L, 2L)
+    # Loop labels
     for (i in seq_along(args$labels)) {
       from <- args$targets[[i]]["from"]
       to <- args$targets[[i]]["to"]
       pa <- setdiff(args$parents[[to]], from)
       n_pa <- length(pa)
-      if (n_pa == 0) {
-        stop(
-          "Invalid label for edge", from, " -> ", to, ": no parents to assign."
-        )
-      }
       vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
       names(vals) <- pa
       vals$present <- FALSE
@@ -159,34 +165,7 @@ parse_labels <- function(args) {
         label_lhs <- vapply(label_split, "[[", character(1L), 1L)
         label_rhs <- vapply(label_split, "[[", character(1L), 2L)
         msg <- ""
-        if (any(duplicated(label_lhs))) {
-          stop(
-            "Invalid label for edge ", 
-            from, " -> ", to, 
-            ": duplicate assignment."
-          )
-        }
-        if (from %in% label_lhs) {
-          stop(
-            "Invalid label for edge ", 
-            from, " -> ", to, ": ", from, 
-            " cannot appear in the label"
-          )
-        }
-        if (to %in% label_lhs) {
-          stop(
-            "Invalid label for edge ", 
-            from, " -> ", to, ": ", to, 
-            " cannot appear in the label."
-          )
-        }
-        if (any(!(label_lhs %in% pa))) {
-          stop(
-            "Invalid label for edge ", 
-            from, " -> ", to, 
-            ": only other parents of ", to, " may be assigned."
-          )
-        }
+        validate_label(from, to, pa, label_lhs)
         intv <- substr(label_lhs, 1L, 2L) == "I_"
         args$con_vars <- c(args$con_vars, label_lhs[!intv])
         zero <- which(label_rhs == 0L)
@@ -196,195 +175,24 @@ parse_labels <- function(args) {
         input_labels[index, 3L] <- args$nums[from]
         input_labels[index, 4L] <- args$nums[to]
         input_labels[index, 5L] <- to_dec(args$nums[pa], args$n)
-        # Infer non-explicit labels from input
-        zl <- length(zero)
-        ol <- length(one)
-        if (zl == 0L) {
-          ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
-          if (nrow(ones) > 0L) {
-            vals[
-              which(apply(ones, 1L, function(x) all(x == 1))), 
-              "present"
-            ] <- TRUE
-          }
-        } else if (ol == 0L) {
-          zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
-          if (nrow(zeros) > 0L) {
-            vals[
-              which(apply(zeros, 1, function(x) all(x == 0L))), 
-              "present"
-            ] <- TRUE
-          }
-        } else {
-          zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
-          ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
-          ind_z <- which(apply(zeros, 1L, function(x) all(x == 0L)))
-          ind_o <- which(apply(ones, 1L, function(x) all(x == 1L)))
-          ind_zo <- intersect(ind_z, ind_o)
-          if (length(ind_zo) > 0L) {
-            vals[ind_zo, "present"] <- TRUE
-          }
-        }
+        vals <- label_values(vals, zero, one, pa, label_lhs)
       }
       if (all(vals$present)) {
         vanishing <- rbind(vanishing, c(args$nums[from], args$nums[to]))
       }
-      # Cannot infer from empty set
-      n_sets <- nrow(vals) - 1L
-      if (n_sets > 1L) {
-        for (j in seq.int(2L, n_sets)) {
-          sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
-          sub_ind <- which(pa %in% sub_pa)
-          sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
-          assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
-          names(assignments) <- sub_pa
-          for (k in seq_len(nrow(assignments))) {
-            zero <- sub_pa[which(assignments[k, ] == 0L)]
-            one <- sub_pa[which(assignments[k, ] == 1L)]
-            assign_ind <- apply(
-              sub_vals[, -ncol(sub_vals), drop = FALSE], 
-              1L, 
-              function(x) {
-                identical(
-                  as.integer(x), 
-                  as.integer(assignments[k, ])
-                )
-              }
-            )
-            if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
-              inferred <- inferred + 1L
-              inferred_labels <- rbind(
-                inferred_labels, 
-                c(
-                  to_dec(args$nums[zero], args$n), 
-                  to_dec(args$nums[one], args$n), 
-                  args$nums[from], 
-                  args$nums[to], 
-                  to_dec(args$nums[pa], args$n))
-                )
-            }
-          }
-        }
-      }
+      args <- infer_labels(args, vals, from, to, pa)
     }
-    if (inferred > 0L) {
-      input_labels <- rbind(input_labels, inferred_labels)
-      input_labels <- input_labels[!duplicated(input_labels), ]
-    }
+    input_labels <- rbind(input_labels, args$inferred_labels)
+    input_labels <- input_labels[!duplicated(input_labels), ]
     args$con_vars <- unique(args$con_vars)
-    all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
     args$label_map <- list()
-    null_context <- c()
-    n_con <- nrow(all_contexts)
-    if (n_con > 0L) {
-      for (i in seq.int(2L, n_con)) {
-        sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
-        con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
-        args$label_map[[i - 1L]] <- list(
-          vars = to_dec(args$nums[sub_vars], args$n), 
-          contexts = vector(mode = "list", length = nrow(con_vals))
-        )
-        equiv_ind <- 0L
-        unique_context <- list()
-        for (j in seq_len(nrow(con_vals))) {
-          zero <- sub_vars[which(con_vals[j, ] == 0L)]
-          one <- sub_vars[which(con_vals[j, ] == 1L)]
-          z <- to_dec(args$nums[zero], args$n)
-          o <- to_dec(args$nums[one], args$n)
-          args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z
-          args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o
-          endpoints <- matrix(0L, 0L, 2L)
-          for (k in seq_len(nrow(input_labels))) {
-            z_inp <- input_labels[k, 1L]
-            o_inp <- input_labels[k, 2L]
-            if ((bitwAnd(z, z_inp) == z_inp && bitwAnd(o, o_inp) == o_inp)) {
-              csi_v <- apply(vanishing, 1L, function(x) {
-                isTRUE(all.equal(x, input_labels[k, 3L:4L]))
-              })
-              if (!any(csi_v)) {
-                endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
-                pa <- input_labels[k, 5L]
-                lab <- bitwOr(z, o)
-                if (pa == lab) {
-                  index_csi <- index_csi + 1L
-                  args$local_csi[[index_csi]] <- list(
-                    x = to_dec(input_labels[k, 3], args$n),
-                    y = to_dec(input_labels[k, 4], args$n),
-                    z = pa,
-                    zero = z,
-                    one = o)
-                }
-              }
-            }
-          }
-          endpoints <- unique(endpoints)
-          args$label_map[[i - 1L]][["contexts"]][[j]]$from <- endpoints[, 1L]
-          args$label_map[[i - 1L]][["contexts"]][[j]]$to <- endpoints[, 2L]
-          pos <- Position(
-            function(x) {
-              identical(endpoints[, 1L], x$from) && 
-                identical(endpoints[, 2L], x$to)
-            }, 
-            unique_context
-          )
-          if (is.na(pos)) {
-            equiv_ind <- equiv_ind + 1L
-            args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- equiv_ind
-            unique_context[[equiv_ind]] <- list(
-              from = endpoints[, 1L], 
-              to = endpoints[, 2L]
-            )
-          } else {
-            args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- pos
-          }
-        }
-        from_lengths <- vapply(
-          args$label_map[[i - 1L]][["contexts"]], 
-          function(x) length(x[["from"]]),
-          integer(1L)
-        )
-        if (all(from_lengths == 0)) {
-          null_context <- c(null_context, i - 1L)
-        }
-      }
-    }
-    all_interventions <- expand.grid(
-      rep(list(c(0L, 1L)), length(args$intv_vars))
-    )
-    n_intv <- nrow(all_interventions)
-    if (n_intv > 0L) {
-      for (i in seq.int(2L, n_intv)) {
-        index <- max(n_con - 1L, 0L) + i - 1L
-        sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
-        o <- to_dec(args$nums[sub_vars], args$n)
-        args$label_map[[index]] <- list(
-          vars = o, 
-          contexts = list(list(zero = 0L, one = o))
-        )
-        endpoints <- matrix(0L, 0L, 2L)
-        for (k in seq_len(nrow(input_labels))) {
-          z_inp <- input_labels[k, 1L]
-          o_inp <- input_labels[k, 2L]
-          if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
-            csi_v <- apply(vanishing, 1L, function(x) {
-              isTRUE(all.equal(x, input_labels[k, 3L:4L]))
-            })
-            if (!any(csi_v)) {
-              endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
-            }
-          }
-        }
-        endpoints <- unique(endpoints)
-        args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
-        args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
-        args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
-      }
-    }
-    args$label_map[null_context] <- NULL
+    args <- parse_contexts(args, input_labels, vanishing)
+    args <- parse_interventions(args, input_labels, vanishing)
+    args$label_map[args$null_context] <- NULL
     if (nrow(vanishing) > 0L) {
       edge_mat <- cbind(args$nums[args$dir_lhs], args$nums[args$dir_rhs])
       present <- !duplicated(
-        rbind(edge_mat, vanishing), 
+        rbind(edge_mat, vanishing),
         fromLast = TRUE
       )[seq_len(nrow(edge_mat))]
       args$dir_lhs <- args$dir_lhs[present]
@@ -394,137 +202,388 @@ parse_labels <- function(args) {
   args
 }
 
-parse_query_ldag <- function(args, query) {
-  parts <- NULL
-  q_split <- list(NULL, NULL, NULL)
-  zero <- c()
-  one <- c()
-  query_parsed <- gsub("\\s+", "", query)
-  query_parsed <- gsub("do", "$", query_parsed)
-  q_split <- match_distribution_ldag(query_parsed)
-  for (i in seq_len(2L)) {
-    if (!is.null(q_split[[i]])) {
-      dup <- duplicated(q_split[[i]])
-      if (any(dup)) {
-        stop(
-          "Invalid query: cannot contain duplicated variables: ", 
-          q_split[[i]][dup],
-          "."
+#' Validate an Edge Label of an LDAG
+#'
+#' @param from A `character` string, vertex name of the edge's origin.
+#' @param to A `character` string, vertex, name of the edge's endpoint.
+#' @param pa A `character` vector, vertex names of the parents of `to`.
+#' @param label_lhs A `character` vector, variable names bound by the edge
+#'   label value assignments.
+#' @noRd
+validate_label <- function(from, to, pa, label_lhs) {
+  if (length(pa) == 0L) {
+    stop(
+      "Invalid label for edge", from, " -> ", to, ": no parents to assign."
+    )
+  }
+  if (any(duplicated(label_lhs))) {
+    stop(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      "duplicate assignment."
+    )
+  }
+  if (from %in% label_lhs) {
+    stop(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      from, " cannot appear in the label"
+    )
+  }
+  if (to %in% label_lhs) {
+    stop(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      to, " cannot appear in the label."
+    )
+  }
+  if (any(!label_lhs %in% pa)) {
+    stop(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      "only other parents of ", to, " may be assigned."
+    )
+  }
+}
+
+#' Get Value Combinations that Appear in an Edge Label
+#'
+#' @inheritParams validate_label
+#' @param vals TODO
+#' @param zero TODO
+#' @param one TODO
+#' @noRd
+label_values <- function(vals, zero, one, pa, label_lhs) {
+  zl <- length(zero)
+  ol <- length(one)
+  if (zl == 0L) {
+    ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
+    if (nrow(ones) > 0L) {
+      vals[
+        which(apply(ones, 1L, function(x) all(x == 1))),
+        "present"
+      ] <- TRUE
+    }
+  } else if (ol == 0L) {
+    zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
+    if (nrow(zeros) > 0L) {
+      vals[
+        which(apply(zeros, 1, function(x) all(x == 0L))),
+        "present"
+      ] <- TRUE
+    }
+  } else {
+    zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
+    ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
+    ind_z <- which(apply(zeros, 1L, function(x) all(x == 0L)))
+    ind_o <- which(apply(ones, 1L, function(x) all(x == 1L)))
+    ind_zo <- intersect(ind_z, ind_o)
+    if (length(ind_zo) > 0L) {
+      vals[ind_zo, "present"] <- TRUE
+    }
+  }
+  vals
+}
+
+#' Infer Edge Labels That Were Not Explicitly Provided
+#'
+#' @inheritParams validate_label
+#' @inheritParams label_values
+#' @param args A `list` of arguments for `initialize_csisearch`
+#' @noRd
+infer_labels <- function(args, vals, from, to, pa) {
+  # Cannot infer from empty set
+  n_pa <- length(pa)
+  n_sets <- nrow(vals) - 1L
+  if (n_sets > 1L) {
+    for (j in seq.int(2L, n_sets)) {
+      sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
+      sub_ind <- which(pa %in% sub_pa)
+      sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
+      assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
+      names(assignments) <- sub_pa
+      for (k in seq_len(nrow(assignments))) {
+        zero <- sub_pa[which(assignments[k, ] == 0L)]
+        one <- sub_pa[which(assignments[k, ] == 1L)]
+        assign_ind <- apply(
+          sub_vals[, -ncol(sub_vals), drop = FALSE],
+          1L,
+          function(x) {
+            identical(
+              as.integer(x),
+              as.integer(assignments[k, ])
+            )
+          }
         )
-      }
-      equals <- grep("=", q_split[[i]], value = FALSE)
-      eq_split <- strsplit(q_split[[i]][equals], "[=]")
-      eq_lhs <- eq_rhs <- c()
-      if (length(equals) > 0L) {
-        eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
-        eq_lhs <- gsub("\\s+", "", eq_lhs)
-        eq_rhs <- vapply(eq_split, "[[", character(1L), 2L)
-        eq_rhs <- gsub("\\s+", "", eq_rhs)
-        uniq_rhs <- unique(eq_rhs)
-        if (!(uniq_rhs[1L] %in% 0L:1L)) {
-          stop(paste0("Invalid value assignment in query."))
+        if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
+          args$inferred <- args$inferred + 1L
+          args$inferred_labels <- rbind(
+            args$inferred_labels,
+            c(
+              to_dec(args$nums[zero], args$n),
+              to_dec(args$nums[one], args$n),
+              args$nums[from],
+              args$nums[to],
+              to_dec(args$nums[pa], args$n)
+            )
+          )
         }
-        q_split[[i]][equals] <- eq_lhs
-        z <- which(eq_rhs == 1L)
-        o <- which(eq_rhs == 0L)
-        zero <- c(zero, eq_lhs[eq_rhs == 0L])
-        one <- c(one, eq_lhs[eq_rhs == 1L])
       }
     }
   }
-  q1_new <- q_split[[1L]][which(!(q_split[[1L]] %in% args$vars))]
-  q2_new <- q_split[[2L]][which(!(q_split[[2L]] %in% args$vars))]
-  new_vars <- unique(c(q1_new, q2_new))
-  args <- add_new_vars(args, new_vars)
-  args$q_process <- list(
-    args$nums[q_split[[1L]]], 
-    args$nums[q_split[[2L]]], 
-    args$nums[zero], 
-    args$nums[one], 
-    parts[1]
-  )
   args
 }
 
+#' Parse Context Implied by the Edge Labels
+#'
+#' @param args A `list` of arguments for `initialize_csisearch`
+#' @param input_labels TODO
+#' @param vanishing TODO
+#' @noRd
+parse_contexts <- function(args, input_labels, vanishing) {
+  all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
+  args$n_con <- nrow(all_contexts)
+  args$index_csi <- 0L
+  if (args$n_con > 0L) {
+    for (i in seq.int(2L, args$n_con)) {
+      sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
+      con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
+      args$label_map[[i - 1L]] <- list(
+        vars = to_dec(args$nums[sub_vars], args$n),
+        contexts = vector(mode = "list", length = nrow(con_vals))
+      )
+      equiv_ind <- 0L
+      unique_context <- list()
+      for (j in seq_len(nrow(con_vals))) {
+        zero <- sub_vars[which(con_vals[j, ] == 0L)]
+        one <- sub_vars[which(con_vals[j, ] == 1L)]
+        z_set <- to_dec(args$nums[zero], args$n)
+        o_set <- to_dec(args$nums[one], args$n)
+        args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z_set
+        args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o_set
+        args <- parse_local_csi(args, z_set, o_set, input_labels, vanishing)
+        args$label_map[[i - 1L]][["contexts"]][[j]]$from <- args$endpoints[, 1L]
+        args$label_map[[i - 1L]][["contexts"]][[j]]$to <- args$endpoints[, 2L]
+        pos <- Position(
+          function(x) {
+            identical(args$endpoints[, 1L], x$from) &&
+              identical(args$endpoints[, 2L], x$to)
+          },
+          unique_context
+        )
+        if (is.na(pos)) {
+          equiv_ind <- equiv_ind + 1L
+          args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- equiv_ind
+          unique_context[[equiv_ind]] <- list(
+            from = args$endpoints[, 1L],
+            to = args$endpoints[, 2L]
+          )
+        } else {
+          args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- pos
+        }
+      }
+      from_lengths <- vapply(
+        args$label_map[[i - 1L]][["contexts"]],
+        function(x) length(x[["from"]]),
+        integer(1L)
+      )
+      if (all(from_lengths == 0)) {
+        args$null_context <- c(args$null_context, i - 1L)
+      }
+    }
+  }
+  args
+}
+
+#' Parse a Local Context-Specific (Conditional) Independence
+#'
+#' @inheritParams parse_contexts
+#' @param z_set An `integer` representing the set of variables assigned to 0
+#'   in the current context
+#' @param o_set An `integer` representing the set of variables assigned to 1
+#'   in the current context.
+#' @noRd
+parse_local_csi <- function(args, z_set, o_set, input_labels, vanishing) {
+  args$endpoints <- matrix(0L, 0L, 2L)
+  for (k in seq_len(nrow(input_labels))) {
+    z_inp <- input_labels[k, 1L]
+    o_inp <- input_labels[k, 2L]
+    if ((bitwAnd(z_set, z_inp) == z_inp && bitwAnd(o_set, o_inp) == o_inp)) {
+      csi_v <- apply(vanishing, 1L, function(x) {
+        isTRUE(all.equal(x, input_labels[k, 3L:4L]))
+      })
+      if (!any(csi_v)) {
+        args$endpoints <- rbind(args$endpoints, input_labels[k, 3L:4L])
+        pa <- input_labels[k, 5L]
+        lab <- bitwOr(z_set, o_set)
+        if (pa == lab) {
+          args$index_csi <- args$index_csi + 1L
+          args$local_csi[[args$index_csi]] <- list(
+            x = to_dec(input_labels[k, 3], args$n),
+            y = to_dec(input_labels[k, 4], args$n),
+            z = pa,
+            zero = z_set,
+            one = o_set
+          )
+        }
+      }
+    }
+  }
+  args$endpoints <- unique(args$endpoints)
+  args
+}
+
+#' Parse Labels Implied by Intervention Nodes
+#'
+#' @inheritParams parse_contexts
+#' @noRd
+parse_interventions <- function(args, input_labels, vanishing) {
+  all_interventions <- expand.grid(
+    rep(list(c(0L, 1L)), length(args$intv_vars))
+  )
+  n_intv <- nrow(all_interventions)
+  if (n_intv > 0L) {
+    for (i in seq.int(2L, n_intv)) {
+      index <- max(args$n_con - 1L, 0L) + i - 1L
+      sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
+      o <- to_dec(args$nums[sub_vars], args$n)
+      args$label_map[[index]] <- list(
+        vars = o,
+        contexts = list(list(zero = 0L, one = o))
+      )
+      endpoints <- matrix(0L, 0L, 2L)
+      for (k in seq_len(nrow(input_labels))) {
+        z_inp <- input_labels[k, 1L]
+        o_inp <- input_labels[k, 2L]
+        if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
+          csi_v <- apply(vanishing, 1L, function(x) {
+            isTRUE(all.equal(x, input_labels[k, 3L:4L]))
+          })
+          if (!any(csi_v)) {
+            endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
+          }
+        }
+      }
+      endpoints <- unique(endpoints)
+      args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
+      args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
+      args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
+    }
+  }
+  args
+}
+
+#' Parse a Distribution in the Internal Character Format for LDAGs
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @param d A `character` string represesnting the distribution.
+#' @param type A `character` string indicating the distribution type.
+#' @param out A `character` string indicating the a name of `args` to
+#'   in which to assign the results.
+#' @param i An `integer` indicating the iteration.
+#' @noRd
+parse_distribution_ldag <- function(args, d, type, out, i) {
+  zero <- character(0L)
+  one <- character(0L)
+  d_parsed <- gsub("\\s+", "", d)
+  d_parsed <- gsub("do", "$", d_parsed)
+  d_split <- match_distribution_ldag(d_parsed)
+  if (any(is.na(d_split[[1L]]))) {
+    stop(
+      "Invalid ", type, ": ", d, "."
+    )
+  }
+  d_null <- vapply(d_split, is.null, logical(1L))
+  for (j in which(!d_null))  {
+    dup <- duplicated(d_split[[j]])
+    if (any(dup)) {
+      stop(
+        "Invalid ", type, ": ", d, ", ",
+        "cannot contain duplicated variables ", d_split[[j]][dup], "."
+      )
+    }
+    equals <- grep("=", d_split[[j]], value = FALSE)
+    if (length(equals) > 0L) {
+      eq_split <- strsplit(d_split[[j]][equals], "[=]")
+      eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
+      eq_lhs <- gsub("\\s+", "", eq_lhs)
+      eq_rhs <- vapply(eq_split, "[[", character(1L), 2L)
+      eq_rhs <- gsub("\\s+", "", eq_rhs)
+      uniq_rhs <- unique(eq_rhs)
+      if (!(uniq_rhs[1L] %in% 0L:1L)) {
+        stop(
+          "Invalid value assignment in ", type, ": ", d, "."
+        )
+      }
+      d_split[[j]][equals] <- eq_lhs
+      z <- which(eq_rhs == 1L)
+      o <- which(eq_rhs == 0L)
+      zero <- c(zero, eq_lhs[eq_rhs == 0L])
+      one <- c(one, eq_lhs[eq_rhs == 1L])
+    }
+  }
+  d1_new <- d_split[[1L]][which(!(d_split[[1L]] %in% args$vars))]
+  d2_new <- d_split[[2L]][which(!(d_split[[2L]] %in% args$vars))]
+  new_vars <- unique(c(d1_new, d2_new))
+  args <- add_new_vars(args, new_vars)
+  d_process <- list(
+    args$nums[d_split[[1L]]],
+    args$nums[d_split[[2L]]],
+    args$nums[zero],
+    args$nums[one],
+    d
+  )
+  if (i > 0L) {
+    args[[out]][[i]] <- d_process
+  } else {
+    args[[out]] <- d_process
+  }
+  args
+}
+
+#' Parse a Target Distribution
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_csisearch`.
+#' @noRd
+parse_query_ldag <- function(args, query) {
+  parse_distribution_ldag(args, query, "target distribution", "q_process", 0L)
+}
+
+#' Parse Input Distributions
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_csisearch`.
+#' @noRd
 parse_input_distributions_ldag <- function(args, data) {
   data_split <- strsplit(data, "\r|\n")[[1]]
   data_split <- gsub("\\s+", "", data_split)
   data_split <- data_split[which(nzchar(data_split))]
-  p_list <- list()
   args$p_process <- vector(mode = "list", length = length(data_split))
   for (i in seq_along(data_split)) {
-    parts <- NULL
-    p_split <- list(NULL, NULL, NULL)
-    zero <- c()
-    one <- c()
-    p_parsed <- gsub("\\s+", "", data_split[[i]])
-    p_parsed <- gsub("do", "$", p_parsed)
-    p_split <- match_distribution_ldag(p_parsed)
-    if (any(is.na(p_split[[1]]))) {
-      stop(
-        "Invalid input distribution on data line ", 
-        i , ": ", data_split[[i]], "."
-      )
-    }
-    for (j in seq_len(2L))  {
-      if (!is.null(p_split[[j]])) {
-        dup <- duplicated(p_split[[j]])
-        if (any(dup)) {
-          stop(
-            "Invalid input distribution: ", data_split[[i]],
-            "cannot contain duplicated variables ", p_split[[j]][dup], "."
-          )
-        }
-        equals <- grep("=", p_split[[j]], value = FALSE)
-        eq_split <- strsplit(p_split[[j]][equals], "[=]")
-        eq_lhs <- eq_rhs <- c()
-        if (length(equals) > 0L) {
-          eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
-          eq_lhs <- gsub("\\s+", "", eq_lhs)
-          eq_rhs <- vapply(eq_split, "[[", character(1L), 1L)
-          eq_rhs <- gsub("\\s+", "", eq_rhs)
-          uniq_rhs <- unique(eq_rhs)
-          if (!(uniq_rhs[1L] %in% 0L:1L)) {
-            stop(
-              "Invalid value assignment on data line ", 
-              i ,": ", data_split[[i]], "."
-            )
-          }
-          p_split[[j]][equals] <- eq_lhs
-          z <- which(eq_rhs == 1L)
-          o <- which(eq_rhs == 0L)
-          zero <- c(zero, eq_lhs[eq_rhs == 0L])
-          one <- c(one, eq_lhs[eq_rhs == 1L])
-        }
-      }
-    }
-    p1_new <- p_split[[1L]][which(!(p_split[[1L]] %in% args$vars))]
-    p2_new <- p_split[[2L]][which(!(p_split[[2L]] %in% args$vars))]
-    new_vars <- unique(c(p1_new, p2_new))
-    args <- add_new_vars(args, new_vars)
-    args$p_process[[i]] <- list(
-      args$nums[p_split[[1L]]],
-      args$nums[p_split[[2L]]], 
-      args$nums[zero], 
-      args$nums[one], 
-      data_split[[i]]
+    args <- parse_distribution_ldag(
+      args,
+      data_split[[i]],
+      "input distribution",
+      "p_process",
+      i
     )
   }
   args
 }
 
+#' Check the Validity of Input Distributions
+#'
+#' @param args A `list` of arguments for `initialize_csisearch`.
+#' @noRd
 validate_input_distributions_ldag <- function(args) {
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]
     args$p_list[[i]] <- c(
-      to_dec(p[[1L]], args$n), 
-      to_dec(p[[2L]], args$n), 
-      to_dec(p[[3L]], args$n), 
+      to_dec(p[[1L]], args$n),
+      to_dec(p[[2L]], args$n),
+      to_dec(p[[3L]], args$n),
       to_dec(p[[4L]], args$n)
     )
     if (bitwAnd(args$p_list[[i]][1L], args$p_list[[i]][2L]) > 0L) {
       stop(
-        "Invalid input distribution on data line ", 
+        "Invalid input distribution on data line ",
         i, ": ", p[[4L]], ", ",
         "same variable on the left and right-hand side."
       )
@@ -533,16 +592,20 @@ validate_input_distributions_ldag <- function(args) {
   args
 }
 
+#' Check the Validity of a Target Distribution
+#'
+#' @param args A `list` of arguments for `initialize_csisearch`.
+#' @noRd
 validate_query_ldag <- function(args) {
   args$q_vec <- c(
-    to_dec(args$q_process[[1L]], args$n), 
-    to_dec(args$q_process[[2L]], args$n), 
-    to_dec(args$q_process[[3L]], args$n), 
+    to_dec(args$q_process[[1L]], args$n),
+    to_dec(args$q_process[[2L]], args$n),
+    to_dec(args$q_process[[3L]], args$n),
     to_dec(args$q_process[[4L]], args$n)
   )
   if (bitwAnd(args$q_vec[1L], args$q_vec[2L]) > 0L) {
     stop(
-      "Invalid query: ", 
+      "Invalid query: ",
       args$q_process[[4L]], ", ",
       "same variable on the left and right-hand side."
     )
@@ -550,7 +613,12 @@ validate_query_ldag <- function(args) {
   args
 }
 
-
+#' Determine the Type of a Distribution
+#'
+#' Checks whether a distribution is of the form p(y) or p(y|z).
+#'
+#' @param d A `character` string representing the distribution.
+#' @noRd
 match_distribution_ldag <- function(d) {
   dist_pattern <- character(2L)
   # Pattern for p(y)

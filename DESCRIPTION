@@ -46,6 +46,7 @@ Author: Santtu Tikka [aut, cre] (<https://orcid.org/0000-0003-4039-4342>),
   Antti Hyttinen [ctb] (<https: //orcid.org/0000-0002-6649-3229>), 
   Juha Karvanen [ctb] (<https: //orcid.org/0000-0001-5530-769X>)
 Maintainer: Santtu Tikka <santtuth@gmail.com>
-Roxygen: list(markdown = TRUE)
+Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd", 
+  "srr::srr_stats_roclet"))
 RoxygenNote: 7.2.1
 Config/testthat/edition: 3

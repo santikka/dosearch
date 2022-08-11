@@ -1,8 +1,8 @@
-#' Call the dosearch Algorithm from R for DAGs
+#' Call the `dosearch` Algorithm from R for DAGs
 #'
 #' @inheritParams dosearch
 #' @noRd
-get_derivation_dag <- function(data, query, graph, transportability = NULL, 
+get_derivation_dag <- function(data, query, graph, transportability = NULL,
                                selection_bias = NULL, missing_data = NULL,
                                control = list()) {
   control <- control_defaults(control)
@@ -42,7 +42,7 @@ get_derivation_dag <- function(data, query, graph, transportability = NULL,
         ]
         warning(
           "There are response indicators ",
-          "that are not present in any input distribution: ", 
+          "that are not present in any input distribution: ",
           paste(no_ind, collapse = ", ")
         )
       }
@@ -76,12 +76,12 @@ get_derivation_dag <- function(data, query, graph, transportability = NULL,
     control$verbose
   )
   res$call <- list(
-    data = data, 
-    query = query, 
-    graph = graph, 
-    transportability = transportability, 
-    selection_bias = selection_bias, 
-    missing_data = missing_data, 
+    data = data,
+    query = query,
+    graph = graph,
+    transportability = transportability,
+    selection_bias = selection_bias,
+    missing_data = missing_data,
     control = control
   )
   structure(
@@ -94,14 +94,15 @@ get_derivation_dag <- function(data, query, graph, transportability = NULL,
         control$benchmark_rules,
         TRUE # always include the call
       )
-    ], 
+    ],
     class = "dosearch"
   )
 }
 
-#' Transform the Input Graph for `dosearch`
-#' 
-#' @param args A list of arguments for `dosearch`
+#' Transform the Input DAG
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_dosearch`
 #' @param graph The graph as a `character` string.
 #' @noRd
 transform_graph_dag <- function(args, graph, missing_data) {
@@ -126,7 +127,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
       args$dir_rhs <- sapply(directed, "[[", 2L)
       if (any(args$dir_lhs == args$dir_rhs)) {
         stop("Invalid graph: no self loops are allowed.")
-      } 
+      }
     }
     if (length(bidirected) > 0L) {
       args$bi_lhs <- vapply(bidirected, "[[", character(1L), 1L)
@@ -143,9 +144,9 @@ transform_graph_dag <- function(args, graph, missing_data) {
 }
 
 #' Parse Missing Data Mechanisms
-#' 
+#'
 #' @inheritParams dosearch
-#' @param args A list of arguments for `dosearch`.
+#' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 parse_missing_data <- function(args, missing_data) {
   if (!is.null(missing_data)) {
@@ -186,8 +187,9 @@ parse_missing_data <- function(args, missing_data) {
 }
 
 #' Parse Transportability Nodes
+#'
 #' @inheritParams dosearch
-#' @param args A list of arguments for `dosearch`.
+#' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 parse_transportability <- function(args, transportability) {
   if (!is.null(transportability)) {
@@ -201,7 +203,7 @@ parse_transportability <- function(args, transportability) {
     pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
     if (any(args$tr_nums %in% pa)) {
       stop(
-        "Invalid graph: ", 
+        "Invalid graph: ",
         "a transportability node cannot be a child of another node."
       )
     }
@@ -210,8 +212,9 @@ parse_transportability <- function(args, transportability) {
 }
 
 #' Parse Selection Bias Nodes
+#'
 #' @inheritParams dosearch
-#' @param args A list of arguments for `dosearch`.
+#' @param args A list of arguments for `initialize_dosearch`.
 #' @noRd
 parse_selection_bias <- function(args, selection_bias) {
   if (!is.null(selection_bias)) {
@@ -232,16 +235,16 @@ parse_selection_bias <- function(args, selection_bias) {
   args
 }
 
-#' Set Transportability and Selection Bias Nodes Last
-#' 
-#' @param args A list of arguments for `dosearch`.
+#' Place Transportability and Selection Bias Nodes Last
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 reorder_variables <- function(args) {
   if (args$n_tr > 0L || args$n_sb > 0L) {
     args$vars <- args$vars[
       c(
-        setdiff(args$nums, union(args$tr_nums, args$sb_nums)), 
-        args$tr_nums, 
+        setdiff(args$nums, union(args$tr_nums, args$sb_nums)),
+        args$tr_nums,
         args$sb_nums
       )
     ]
@@ -250,7 +253,7 @@ reorder_variables <- function(args) {
     names(args$nums) <- args$vars
     if (args$n_tr > 0L) {
       args$tr_nums <- seq.int(
-        args$n - args$n_tr - args$n_sb + 1L, 
+        args$n - args$n_tr - args$n_sb + 1L,
         args$n - args$n_sb
       )
       args$tr <- to_dec(args$tr_nums, args$n)
@@ -263,179 +266,143 @@ reorder_variables <- function(args) {
   args
 }
 
-#' Parse a Target Distribution
-#' 
+#' Parse a Distribution in the Internal Character Format for DAGs
+#'
 #' @inheritParams dosearch
-#' @param args A list of arguments for `dosearch`.
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @param d A `character` string representing the distribution.
+#' @param type A `character` string indicating the distribution type.
+#' @param out A `character` string indicating the a name of `args` to
+#'   in which to assign the results.
+#' @param i An `integer` indicating the iteration.
 #' @noRd
-parse_query_dag <- function(args, query, missing_data) {
-  parts <- NULL
-  q_split <- list(NULL, NULL, NULL)
-  enabled <- c()
-  query_parsed <- gsub("\\s+", "", query)
-  query_parsed <- gsub("do", "$", query_parsed)
-  q_split <- match_distribution_dag(query_parsed)
-  if (any(is.na(q_split[[1L]]))) {
-    stop("Invalid query.")
+parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
+  enabled <- character(0L)
+  d_parsed <- gsub("\\s+", "", d)
+  d_parsed <- gsub("do", "$", d_parsed)
+  d_split <- match_distribution_dag(d_parsed)
+  if (any(is.na(d_split[[1L]]))) {
+    stop("Invalid ", type, ".")
   }
-  for (i in seq_len(3)) {
-    if (!is.null(q_split[[i]])) {
-      dup <- duplicated(q_split[[i]])
-      if (any(dup)) {
-        stop(
-          "Invalid query: ",
-          "cannot contain duplicated variables ", 
-          q_split[[i]][dup], 
-          "."
-        )
-      }
-      if (!is.null(missing_data)) {
-        equals <- grep("=", q_split[[i]], value = FALSE)
-        eq_split <- strsplit(q_split[[i]][equals], "[=]")
-        eq_lhs <- eq_rhs <- c()
-        if (length(equals) > 0L) {
-          eq_lhs <- sapply(eq_split, "[[", 1L)
-          eq_lhs <- gsub("\\s+", "", eq_lhs)
-          eq_rhs <- sapply(eq_split, "[[", 2L)
-          eq_rhs <- gsub("\\s+", "", eq_rhs)
-          uniq_rhs <- unique(eq_rhs)
-          if (length(uniq_rhs) > 1L) {
-            stop(
-              "Cannot use multiple symbols ",
-              "to denote active missing data mechanisms."
-            )
-          }
-          if (uniq_rhs[1L] != args$md_sym) {
-            stop(
-              "Invalid symbol for missing data mechanism on data line ", 
-              i, 
-              ": ", 
-              uniq_rhs[1], 
-              "."
-            )
-          }
-          q_split[[i]][equals] <- eq_lhs
-          enabled <- c(enabled, eq_lhs)
-        }
-      }
-    }
-  }
-  q1_new <- q_split[[1L]][which(!(q_split[[1L]] %in% args$vars))]
-  q2_new <- q_split[[2L]][which(!(q_split[[2L]] %in% args$vars))]
-  q3_new <- q_split[[3L]][which(!(q_split[[3L]] %in% args$vars))]
-  new_vars <- unique(c(q1_new, q2_new, q3_new))
-  args <- add_new_vars(args, new_vars)
-  args$q_process <- list(
-    args$nums[q_split[[1L]]], 
-    args$nums[q_split[[2L]]], 
-    args$nums[q_split[[3L]]], 
-    args$nums[enabled], 
-    parts[1L]
-  )
-  args
-}
-
-parse_input_distributions_dag <- function(args, data, missing_data) {
-  data_split <- strsplit(data, "\r|\n")[[1L]]
-  data_split <- gsub("\\s+", "", data_split)
-  data_split <- data_split[which(nzchar(data_split))]
-  p_list <- list()
-  p_process <- list()
-  var_pool <- c()
-  args$p_process <- vector(mode = "list", length = length(data_split))
-  for (i in seq_along(data_split)) {
-    parts <- NULL
-    p_split <- list(NULL, NULL, NULL)
-    enabled <- c()
-    p_parsed <- gsub("\\s+", "", data_split[[i]])
-    p_parsed <- gsub("do", "$", p_parsed)
-    p_split <- match_distribution_dag(p_parsed)
-    if (any(is.na(p_split[[1]]))) {
+  d_null <- vapply(d_split, is.null, logical(1L))
+  for (j in which(!d_null)) {
+    dup <- duplicated(d_split[[j]])
+    if (any(dup)) {
       stop(
-        "Invalid input distribution on data line ", 
-        i ,
-        ": ", 
-        data_split[[i]], 
-        "."
-      ) 
+        "Invalid ", type, ": ", d, ", ",
+        "cannot contain duplicated variables ", d_split[[j]][dup], "."
+      )
     }
-    for (j in seq_len(3L)) {
-      if (!is.null(p_split[[j]])) {
-        dup <- duplicated(p_split[[j]])
-        if (any(dup)) {
+    if (!is.null(missing_data)) {
+      equals <- grep("=", d_split[[j]], value = FALSE)
+      if (length(equals) > 0L) {
+        eq_split <- strsplit(d_split[[j]][equals], "[=]")
+        eq_lhs <- sapply(eq_split, "[[", 1L)
+        eq_lhs <- gsub("\\s+", "", eq_lhs)
+        eq_rhs <- sapply(eq_split, "[[", 2L)
+        eq_rhs <- gsub("\\s+", "", eq_rhs)
+        uniq_rhs <- unique(eq_rhs)
+        if (length(uniq_rhs) > 1L) {
           stop(
-            "Invalid input distribution: ", 
-            data_split[[i]], 
-            ", ", 
-            "cannot contain duplicated variables ", 
-            p_split[[j]][dup], 
+            "Cannot use multiple symbols ",
+            "to denote active missing data mechanisms."
+          )
+        }
+        if (uniq_rhs[1L] != args$md_sym) {
+          stop(
+            "Invalid symbol for missing data mechanism on data line ",
+            i,
+            ": ",
+            uniq_rhs[1],
             "."
           )
         }
-        if (!is.null(missing_data)) {
-          equals <- grep("=", p_split[[j]], value = FALSE)
-          eq_split <- strsplit(p_split[[j]][equals], "[=]")
-          eq_lhs <- eq_rhs <- c()
-          if (length(equals) > 0L) {
-            eq_lhs <- sapply(eq_split, "[[", 1)
-            eq_lhs <- gsub("\\s+", "", eq_lhs)
-            eq_rhs <- sapply(eq_split, "[[", 2)
-            eq_rhs <- gsub("\\s+", "", eq_rhs)
-            uniq_rhs <- unique(eq_rhs)
-            if (length(uniq_rhs) > 1L) {
-              stop(
-                "Cannot use multiple symbols to denote ",
-                "active missing data mechanisms."
-              )
-            }
-            if (uniq_rhs[1] != args$md_sym) {
-              stop(
-                "Invalid symbol for missing data mechanism on data line ", 
-                i, 
-                ": ", 
-                uniq_rhs[1L], 
-                "."
-              )
-            }
-            p_split[[j]][equals] <- eq_lhs
-            enabled <- c(enabled, eq_lhs)
-          }
-        }
+        d_split[[i]][equals] <- eq_lhs
+        enabled <- c(enabled, eq_lhs)
       }
     }
-    p1_new <- p_split[[1L]][which(!(p_split[[1L]] %in% args$vars))]
-    p2_new <- p_split[[2L]][which(!(p_split[[2L]] %in% args$vars))]
-    p3_new <- p_split[[3L]][which(!(p_split[[3L]] %in% args$vars))]
-    new_vars <- unique(c(p1_new, p2_new, p3_new))
-    args <- add_new_vars(args, new_vars)
-    args$p_process[[i]] <- list(
-      args$nums[p_split[[1]]], 
-      args$nums[p_split[[2]]], 
-      args$nums[p_split[[3]]], 
-      args$nums[enabled], 
-      data_split[[i]]
-    )
-    args$var_pool <- union(args$var_pool, p_split[[1]])
+  }
+  d1_new <- d_split[[1L]][which(!(d_split[[1L]] %in% args$vars))]
+  d2_new <- d_split[[2L]][which(!(d_split[[2L]] %in% args$vars))]
+  d3_new <- d_split[[3L]][which(!(d_split[[3L]] %in% args$vars))]
+  new_vars <- unique(c(d1_new, d2_new, d3_new))
+  args <- add_new_vars(args, new_vars)
+  d_process <- list(
+    args$nums[d_split[[1L]]],
+    args$nums[d_split[[2L]]],
+    args$nums[d_split[[3L]]],
+    args$nums[enabled],
+    d
+  )
+  if (i > 0L) {
+    args$var_pool <- union(args$var_pool, d_split[[1]])
+    args[[out]][[i]] <- d_process
+  } else {
+    args[[out]] <- d_process
   }
   args
 }
 
+#' Parse a Target Distribution
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @noRd
+parse_query_dag <- function(args, query, missing_data) {
+  parse_distribution_dag(
+    args,
+    query,
+    "target distribution",
+    "q_process",
+    0L,
+    missing_data
+  )
+}
+
+#' Parse Input Distributions
+#'
+#' @inheritParams dosearch
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @noRd
+parse_input_distributions_dag <- function(args, data, missing_data) {
+  data_split <- strsplit(data, "\r|\n")[[1]]
+  data_split <- gsub("\\s+", "", data_split)
+  data_split <- data_split[which(nzchar(data_split))]
+  args$p_process <- vector(mode = "list", length = length(data_split))
+  for (i in seq_along(data_split)) {
+    args <- parse_distribution_dag(
+      args,
+      data_split[[i]],
+      "input distribution",
+      "p_process",
+      i,
+      missing_data
+    )
+  }
+  args
+}
+
+#' Check the Validity of a Distribution
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @param d An `integer` vector of length 4 denoting the distribution.
+#' @noRd
 validate_distribution_dag <- function(args, d) {
   msg <- ""
   left_proxy <- bitwAnd(
-    bitwShiftR(bitwAnd(d[1L], args$md_p), 2L), 
+    bitwShiftR(bitwAnd(d[1L], args$md_p), 2L),
     bitwAnd(d[2L], args$md_t)
   )
   left_true <- bitwAnd(
-    bitwShiftL(bitwAnd(d[1L], args$md_t), 2L), 
+    bitwShiftL(bitwAnd(d[1L], args$md_t), 2L),
     bitwAnd(d[2L], args$md_p)
   )
   both_left <- bitwAnd(
-    bitwShiftR(bitwAnd(d[1L], args$md_p), 2L), 
+    bitwShiftR(bitwAnd(d[1L], args$md_p), 2L),
     bitwAnd(d[1L], args$md_t)
   )
   both_right <- bitwAnd(
-    bitwShiftR(bitwAnd(d[2L], args$md_p), 2L), 
+    bitwShiftR(bitwAnd(d[2L], args$md_p), 2L),
     bitwAnd(d[2L], args$md_t)
   )
   if (left_proxy > 0L) {
@@ -468,24 +435,28 @@ validate_distribution_dag <- function(args, d) {
   msg
 }
 
+#' Check the Validity of Input Distributions
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @noRd
 validate_input_distributions_dag <- function(args) {
   args$p_list <- vector(mode = "list", length = length(args$p_process))
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]
     args$p_list[[i]] <- c(
       to_dec(p[[1]], args$n),
-      to_dec(c(p[[2]], p[[3]]), args$n), 
-      to_dec(p[[3]], args$n), 
+      to_dec(c(p[[2]], p[[3]]), args$n),
+      to_dec(p[[3]], args$n),
       to_dec(p[[4]], args$n)
     )
     msg <- validate_distribution_dag(args, args$p_list[[i]])
     if (nzchar(msg)) {
       stop(
-        "Invalid input distribution on data line ", 
-        i, 
-        ": ", 
-        p[[4L]], 
-        ", ", 
+        "Invalid input distribution on data line ",
+        i,
+        ": ",
+        p[[4L]],
+        ", ",
         msg
       )
     }
@@ -493,23 +464,34 @@ validate_input_distributions_dag <- function(args) {
   args
 }
 
+#' Check the Validity of a Target Distribution
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @noRd
 validate_query_dag <- function(args) {
   args$q_vec <- c(
-    to_dec(args$q_process[[1L]], args$n), 
-    to_dec(c(args$q_process[[2L]], args$q_process[[3L]]), args$n), 
-    to_dec(args$q_process[[3L]], args$n), 
+    to_dec(args$q_process[[1L]], args$n),
+    to_dec(c(args$q_process[[2L]], args$q_process[[3L]]), args$n),
+    to_dec(args$q_process[[3L]], args$n),
     to_dec(args$q_process[[4L]], args$n)
   )
   msg <- validate_distribution_dag(args, args$q_vec)
   if (nzchar(msg)) {
     stop(
-      "Invalid query: ", 
+      "Invalid query: ",
       msg
     )
   }
   args
 }
 
+#' Determine the Type of a Distribution
+#'
+#' Checks whether a distribution is of the form p(y), p(y|z), p(y|do(x)),
+#' p(y|z,do(x)) or p(y|do(x),z).
+#'
+#' @param d A `character` string representing the distribution.
+#' @noRd
 match_distribution_dag <- function(d) {
   dist_pattern <- character(5L)
   # Pattern for p(y)
@@ -532,7 +514,7 @@ match_distribution_dag <- function(d) {
     "[|]",
     "([^|\\$\\),]++(?>,[^|\\$\\),]+)*)",
     "[,]",
-    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$" 
+    "(?:[\\$]\\(([^|\\$\\),]++(?>,[^|\\$\\),]+)*)\\))\\)$"
   )
   # Pattern for p(y|do(x),z)
   dist_pattern[5L] <- paste0(

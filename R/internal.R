@@ -1,11 +1,21 @@
-to_dec <- function(set, n) {
-  if (is.null(set)) {
+#' Convert a Vector of Unique Intergers to a Set
+#'
+#' @param vec An `integer` vector.
+#' @param n An `integer`, the number of unique elements.
+#' @noRd
+to_dec <- function(vec, n) {
+  if (is.null(vec)) {
     0L
   } else {
-    sum(2L^seq.int(0L, n - 1L)[set])
+    sum(2L^seq.int(0L, n - 1L)[vec])
   }
 }
 
+#' Convert a Set of Intergers to a Vector of Unique Integers
+#'
+#' @param dec An `integer`, representing a set of integers.
+#' @param n An `integer`, the number of unique elements.
+#' @noRd
 to_vec <- function(dec, n) {
   if (n == 0L) {
     integer(0L)
@@ -19,10 +29,15 @@ to_vec <- function(dec, n) {
   }
 }
 
+#' Add New Variables to a `dosearch` Call
+#'
+#' @param args A `list` of arguments to `initialize_dosearch`.
+#' @param new_vars A `character` vector of variable names to add.
+#' @noRd
 add_new_vars <- function(args, new_vars) {
   if (length(new_vars) > 0L) {
     args$n <- args$n + length(new_vars)
-    args$vars <- c(args$vars, args$new_vars)
+    args$vars <- c(args$vars, new_vars)
     args$nums <- seq_len(args$n)
     names(args$vars) <- args$nums
     names(args$nums) <- args$vars
@@ -31,23 +46,19 @@ add_new_vars <- function(args, new_vars) {
 }
 
 #' Check Validity of Data Generating Mechanisms
-#' 
-#' @inheritParams dosearch
+#'
+#' @param spec_name A `character` vector of length one naming the mechanism.
+#' @param spec `transportability`, `selection_bias` or `missing_data` argument
+#'   of `dosearch`.
 #' @noRd
-parse_specials <- function(tr, sb, md) {
-  if (!is.null(tr) && (!is.character(tr) || length(tr) > 1L)) {
-    stop("Argument `transportability` must be a character vector of length 1.")
-  }
-  if (!is.null(sb) && (!is.character(sb) || length(sb) > 1L)) {
-    stop("Argument `selection_bias` must be a character vector of length 1.")
-  }
-  if (!is.null(md) && (!is.character(md) || length(md) > 1L)) {
-    stop("Argument `missing_data` must be a character vector of length 1.")
+validate_special <- function(spec_name, spec) {
+  if (!is.null(spec) && (!is.character(spec) || length(spec) > 1L)) {
+    stop("Argument `", spec_name, "` must be a character vector of length 1.")
   }
 }
 
-#' Check Validity of Input Distributions
-#' 
+#' Parse Input Distributions for Internal Processing
+#'
 #' @inheritParams dosearch
 #' @noRd
 parse_data <- function(data) {
@@ -57,8 +68,7 @@ parse_data <- function(data) {
     }
     data
   } else if (is.list(data)) {
-    dv <- vapply(data, parse_distribution, character(1L))
-    paste0(dv, collapse = "\n")
+    paste0(vapply(data, parse_distribution, character(1L)), collapse = "\n")
   } else if (is.numeric(data)) {
     parse_distribution(data)
   } else {
@@ -66,83 +76,84 @@ parse_data <- function(data) {
   }
 }
 
-parse_distribution <- function(p) {
-  p_len <- length(p)
-  if (p_len > 1L) {
-    stop("Argument `query` must be a character vector of length 1.")
-  }
-  if (is.character(p)) { 
-    p
-  } else if (is.list(p) || is.numeric(p)) {
-    val <- NULL
-    if (is.list(p)) {
-      if (p_len > 2L) {
-        stop("Unsupported distribution format: ", p)
-      }
-      pre <- p[[1L]]
-      if (!is.numeric(pre)) {
-        stop("Unsupported distribution format: ", p)
-      }
-      if (p_len == 2L) {
-        val <- p[[2L]]
-        if (!is.numeric(val)) {
-          stop("Unsupported value assignments: ", val)
-        }
-        if (length(val) != length(pre)) {
-          stop("Length mismatch between variables and value assignments ", p)
-        }
-      }
-    } else {
-      pre <- p
+#' Parse the Target Distribution for Internal Processing
+#'
+#' @inheritParams dosearch
+#' @noRd
+parse_query <- function(query) {
+  if (is.character(query)) {
+    if (length(query) > 1L) {
+      stop("Argument `query` must be a character vector of length 1.")
     }
-    if (any(pre < 0 | pre > 2, na.rm = TRUE)) {
-      stop("Invalid variable roles in distribution format: ", p)
+  }
+  if (is.numeric(query)) {
+    parse_distribution(query)
+  } else {
+    stop("Argument `query` is of an unsupported type.")
+  }
+}
+
+#' Parse A Single Distribution for Internal Processing
+#'
+#' @param d A `numeric` or a `character` vector.
+#' @noRd
+parse_distribution <- function(d) {
+  if (is.character(d)) {
+    d
+  } else if (is.numeric(d)) {
+    v <- names(d)
+    d <- as.integer(d)
+    if (any(is.na(d) | !is.finite(d))) {
+      stop(
+        "Invalid distribution format: ", d,
+        "All values must be non-missing and finite."
+      )
+    }
+    if (any(!p %in% 0L:2L)) {
+      stop(
+        "Invalid variable roles in distribution format: ", d,
+        "Role value must be either 0, 1 or 2."
+      )
     }
     if (all(pre > 0, na.rm = TRUE)) {
-      stop("Invalid variable roles in distribution format: ", p)
+      stop(
+        "Invalid variable roles in distribution format: ", d,
+        "At least one variable must have role value 0."
+      )
     }
-    v <- names(pre)
     if (is.null(v)) {
-      v <- seq_len(length(pre))
+      v <- seq_len(3L)
     }
-    A_set <- v[which(pre == 0)]
-    B_set <- v[which(pre == 1)]
-    C_set <- v[which(pre == 2)]
+    A_set <- v[which(d == 0L)]
+    B_set <- v[which(d == 1L)]
+    C_set <- v[which(d == 2L)]
     A_val_set <- rep("", length(A_set))
     B_val_set <- rep("", length(B_set))
     C_val_set <- rep("", length(C_set))
-    if (!is.null(val)) {
-      names(val) <- v
-      A_val_set <- as.character(val[v %in% A_set])
-      B_val_set <- as.character(val[v %in% B_set])
-      C_val_set <- as.character(val[v %in% C_set])
-      A_val_set <- gsub("(.*)", " = \\1", A_val_set)
-      B_val_set <- gsub("(.*)", " = \\1", B_val_set)
-      C_val_set <- gsub("(.*)", " = \\1", C_val_set)
-      A_val_set[is.na(A_val_set)] <- ""
-      B_val_set[is.na(B_val_set)] <- ""
-      C_val_set[is.na(C_val_set)] <- ""
-    }
     A <- paste(A_set, A_val_set, sep = "", collapse = ",")
     B <- paste(B_set, B_val_set, sep = "", collapse = ",")
     C <- paste(C_set, C_val_set, sep = "", collapse = ",")
     nb <- nchar(B)
     nc <- nchar(C)
     paste(
-      "p(", A, ifelse(nb > 0 | nc > 0, "|", ""), 
-      ifelse(nb > 0, "do(", ""), B, ifelse(nb > 0, ")", ""), 
+      "p(", A, ifelse(nb > 0 | nc > 0, "|", ""),
+      ifelse(nb > 0, "do(", ""), B, ifelse(nb > 0, ")", ""),
       ifelse(nb > 0 & nc > 0, ",", ""),
       C, ")", sep = ""
     )
   } else {
-    stop("Unsupported distribution format: ", p)
+    stop("Unsupported distribution format: ", d)
   }
 }
 
+#' Parse the Graph for Internal Processing
+#'
+#' @inheritParams dosearch
+#' @noRd
 parse_graph <- function(graph) {
   if (is.character(graph)) {
     if (length(graph) > 1L) {
-      stop("Argument `graph` must be of length 1.")
+      stop("Argument `graph` must be of length 1 when of `character` type.")
     }
     graph
   } else if (inherits(graph, "igraph")) {
@@ -157,9 +168,9 @@ parse_graph <- function(graph) {
       if (length(obs_edges) > 0L) {
         obs_ind <- igraph::get.edges(graph, obs_edges)
         g_obs <- paste(
-          v[obs_ind[, 1L]], 
-          "->", 
-          v[obs_ind[, 2L]], 
+          v[obs_ind[, 1L]],
+          "->",
+          v[obs_ind[, 2L]],
           collapse = "\n"
         )
       }
@@ -169,16 +180,16 @@ parse_graph <- function(graph) {
           unobs_ind[, 1L] < unobs_ind[, 2L], , drop = FALSE
         ]
         g_unobs <- paste(
-          v[unobs_ind[, 1L]], 
-          "<->", 
-          v[unobs_ind[, 2L]], 
+          v[unobs_ind[, 1L]],
+          "<->",
+          v[unobs_ind[, 2L]],
           collapse = "\n"
         )
       }
       paste0(c(g_obs, g_unobs), collapse = "\n")
     } else {
       stop("The `igraph` package is not available.")
-    } 
+    }
   } else if (inherits(graph, "dagitty")) {
     if (requireNamespace("dagitty", quietly = TRUE)) {
       if (!identical(dagitty::graphType(graph), "dag")) {
@@ -194,6 +205,10 @@ parse_graph <- function(graph) {
   }
 }
 
+#' Set Default Values for Control Arguments
+#'
+#' @inheritParams dosearch
+#' @noRd
 control_defaults <- function(control) {
   rules <- as.integer(control$rules)
   control$rules <- integer(0L)
@@ -245,17 +260,17 @@ control_defaults <- function(control) {
       paste0(names(control)[invalid_types], collapse = ", "),
       "\nProvided types: ",
       paste0(control_types[invalid_types], collapse = ", "),
-      "\nExpected types: ", 
+      "\nExpected types: ",
       paste0(default_types[invalid_types], collapse = ", ")
     )
   }
   control
-  # Default value for heuristic is set later 
+  # Default value for heuristic is set later
   # after checking for missing data mechanisms
 }
 
 #' Is the Argument a `dosearch` Object?
-#' 
+#'
 #' @param x An \R object.
 #' @noRd
 is.dosearch <- function(x) {

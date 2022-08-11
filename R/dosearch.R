@@ -1,21 +1,21 @@
 #' Identify a Causal Effect from Arbitrary Experiments And Observations
-#' 
-#' Identify a causal `query` from available `data` in a causal model described 
-#' by a `graph` that is a semi-Markovian directed acyclic graph (DAG) or a 
-#' labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related 
-#' to transportability of causal effects, recoverability from selection bias 
+#'
+#' Identify a causal `query` from available `data` in a causal model described
+#' by a `graph` that is a semi-Markovian directed acyclic graph (DAG) or a
+#' labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related
+#' to transportability of causal effects, recoverability from selection bias
 #' and identifiability under missing data can also be included. See 'Details'
 #' for the syntax of each argument.
-#' 
-#' Argument `data` is used to list the available input distributions. 
-#' When `graph` is a DAG the distributions should be of the form 
+#'
+#' Argument `data` is used to list the available input distributions.
+#' When `graph` is a DAG the distributions should be of the form
 #' \ifelse{html}{\out{<p> P(A<sub>i</sub>|do(B<sub>i</sub>),C<sub>i</sub>) </p>}}{\deqn{P(A_i|do(B_i),C_i).}}
-#' 
-#' Individual variables within sets should be separated by a comma. 
+#'
+#' Individual variables within sets should be separated by a comma.
 #' For example, three input distributions:
 #' \ifelse{html}{\out{<p> P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z) </p>}}{\deqn{P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z), }}
 #'
-#' should be given as follows: 
+#' should be given as follows:
 #' \preformatted{
 #' > data <- "
 #' +  P(Z|do(X))
@@ -24,14 +24,14 @@
 #' +"
 #' }
 #'
-#' The use of multiple do-operators is not permitted. Furthermore, when both 
-#' conditioning variables and a do-operator are present, every conditioning 
-#' variable must either precede the do-operator or follow it. When `graph` is 
+#' The use of multiple do-operators is not permitted. Furthermore, when both
+#' conditioning variables and a do-operator are present, every conditioning
+#' variable must either precede the do-operator or follow it. When `graph` is
 #' an LDAG, the do-operation is represented by an intervention node, i.e.,
 #'
 #' \ifelse{html}{\out{<p>P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)</p>}}{\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}}
 #'
-#' For example, in the case of the previous example in an LDAG, 
+#' For example, in the case of the previous example in an LDAG,
 #' the three input distributions become:
 #' \preformatted{
 #' > data <- "
@@ -40,18 +40,18 @@
 #' +  P(W,Y,X|Z)
 #' +"
 #' }
-#' 
-#' The intervention nodes \eqn{I_X} and \eqn{I_Z} must be explicitly defined in 
+#'
+#' The intervention nodes \eqn{I_X} and \eqn{I_Z} must be explicitly defined in
 #' the `graph` along with the relevant labels for the edges.
 #'
-#' Argument `query` is the target distribution of the search. 
-#' It has the same syntax as `data`, but only a single distribution should be 
+#' Argument `query` is the target distribution of the search.
+#' It has the same syntax as `data`, but only a single distribution should be
 #' given. Multiple simultaneous target distributions are not supported.
-#' 
-#' Argument `graph` is a description of a directed acyclic graph where directed 
-#' edges are denoted by `->` and bidirected arcs corresponding to unobserved 
-#' confounders are denoted by `<->` (or by `--`). As an example, a DAG with two 
-#' directed edges and one bidirected edge is constructed as follows: 
+#'
+#' Argument `graph` is a description of a directed acyclic graph where directed
+#' edges are denoted by `->` and bidirected arcs corresponding to unobserved
+#' confounders are denoted by `<->` (or by `--`). As an example, a DAG with two
+#' directed edges and one bidirected edge is constructed as follows:
 #' \preformatted{
 #' > graph <- "
 #' +  X -> Z
@@ -59,13 +59,13 @@
 #' +  X <-> Y
 #' +"
 #' }
-#' Some alternative formats for DAGs are supported as well. Graphs created 
-#' using the \pkg{igraph} package in the \pkg{causal.effect} package syntax can 
-#' be used for \pkg{dosearch} as well. DAGs created using the \pkg{dagitty} 
+#' Some alternative formats for DAGs are supported as well. Graphs created
+#' using the \pkg{igraph} package in the \pkg{causal.effect} package syntax can
+#' be used for \pkg{dosearch} as well. DAGs created using the \pkg{dagitty}
 #' package are also supported.
 #'
-#' LDAGs are constructed similarly with the addition of labels and with the 
-#' omission bidirected edges (latent variables must be explicitly defined). 
+#' LDAGs are constructed similarly with the addition of labels and with the
+#' omission bidirected edges (latent variables must be explicitly defined).
 #' As an example, an LDAG with two labeled edges can be constructed as follows:
 #' \preformatted{
 #' > graph <- "
@@ -75,105 +75,105 @@
 #' +  A -> Y
 #' +"
 #' }
-#' Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when 
-#' \eqn{A} has the value 0 and the edge from \eqn{Z} to \eqn{Y} vanishes when 
-#' \eqn{A} has the value 1. Multiple labels on the same edge should be 
-#' separated by a semi-colon. 
+#' Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when
+#' \eqn{A} has the value 0 and the edge from \eqn{Z} to \eqn{Y} vanishes when
+#' \eqn{A} has the value 1. Multiple labels on the same edge should be
+#' separated by a semi-colon.
 #'
-#' Argument `transportability` enumerates the nodes that should be understood 
-#' as transportability nodes responsible for discrepancies between domains. 
-#' Individual variables should be separated by a comma. 
+#' Argument `transportability` enumerates the nodes that should be understood
+#' as transportability nodes responsible for discrepancies between domains.
+#' Individual variables should be separated by a comma.
 #' See e.g., Bareinboim and Pearl (2014) for details on transportability.
 #'
-#' Argument `selection_bias` enumerates the nodes that should be understood as 
-#' selection bias nodes responsible for bias in the input data sets. 
-#' Individual variables should be separated by a comma. See e.g., 
+#' Argument `selection_bias` enumerates the nodes that should be understood as
+#' selection bias nodes responsible for bias in the input data sets.
+#' Individual variables should be separated by a comma. See e.g.,
 #' Bareinboim and Tian (2015) for details on selection bias recoverability.
 #'
-#' Argument `missing_data` enumerates the missingness mechanisms of the model. 
-#' The syntax for a single mechanism is `M_X : X` where 
-#' \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} is the mechanism for \eqn{X}. 
-#' Individual mechanisms should be separated by a comma. 
-#' Note that both \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} and \eqn{X} 
-#' must be present in the graph if the corresponding mechanism is given as 
-#' input. Proxy variables should not be included in the graph, since they are 
-#' automatically generated based on \code{missing_data}. By default, a warning 
-#' is issued if a proxy variable is present in an input distribution but its 
-#' corresponding mechanism is not present in any input. See e.g., 
-#' Mohan, Pearl and Tian (2013) for details on missing data as 
+#' Argument `missing_data` enumerates the missingness mechanisms of the model.
+#' The syntax for a single mechanism is `M_X : X` where
+#' \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} is the mechanism for \eqn{X}.
+#' Individual mechanisms should be separated by a comma.
+#' Note that both \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} and \eqn{X}
+#' must be present in the graph if the corresponding mechanism is given as
+#' input. Proxy variables should not be included in the graph, since they are
+#' automatically generated based on \code{missing_data}. By default, a warning
+#' is issued if a proxy variable is present in an input distribution but its
+#' corresponding mechanism is not present in any input. See e.g.,
+#' Mohan, Pearl and Tian (2013) for details on missing data as
 #' a causal inference problem.
 #'
-#' The `control` argument is a list that can supply any of the following 
+#' The `control` argument is a list that can supply any of the following
 #' components:
 #'
-#' * `benchmark` A `logical` value. If `TRUE`, the search time is 
+#' * `benchmark` A `logical` value. If `TRUE`, the search time is
 #'   recorded and returned (in milliseconds). Defaults to `FALSE`.
-#' * `benchmark_rules` A `logical` value. If `TRUE`, the time taken by each 
-#'   individual inference rule is also recorded in the benchmark 
+#' * `benchmark_rules` A `logical` value. If `TRUE`, the time taken by each
+#'   individual inference rule is also recorded in the benchmark
 #'   (in milliseconds). Defaults to `FALSE`.
-#' * `draw_derivation` A `logical` value. If `TRUE`, a string representing the 
-#'   derivation steps as a DOT graph is returned. The graph can be exported as 
+#' * `draw_derivation` A `logical` value. If `TRUE`, a string representing the
+#'   derivation steps as a DOT graph is returned. The graph can be exported as
 #'   an image for example by using the \pkg{DOT} package. Defaults to `FALSE`.
-#' * `draw_all` A `logical` value. If `TRUE` and if `draw_derivation = TRUE`, 
-#'   the derivation will contain every step taken by the search. If `FALSE`, 
-#'   only the steps that resulted in an identifiable target are returned. 
+#' * `draw_all` A `logical` value. If `TRUE` and if `draw_derivation = TRUE`,
+#'   the derivation will contain every step taken by the search. If `FALSE`,
+#'   only the steps that resulted in an identifiable target are returned.
 #'   Defaults to `FALSE`.
-#' * `formula` A `logical` value. If `TRUE`, a string representing the 
-#'   identifiable query is returned when the target query is identifiable. 
-#'   If `FALSE`, only a logical value is returned that takes the value `TRUE` 
+#' * `formula` A `logical` value. If `TRUE`, a string representing the
+#'   identifiable query is returned when the target query is identifiable.
+#'   If `FALSE`, only a logical value is returned that takes the value `TRUE`
 #'   for an identifiable target and `FALSE` otherwise. Defaults to `TRUE`.
-#' * `heuristic` A `logical` value. If `TRUE`, new distributions are expanded 
-#'   during the search according to a search heuristic 
-#'   (see Tikka et al. (2021) for details). Otherwise, distributions are 
+#' * `heuristic` A `logical` value. If `TRUE`, new distributions are expanded
+#'   during the search according to a search heuristic
+#'   (see Tikka et al. (2021) for details). Otherwise, distributions are
 #'   expanded in the order in which they were identified. Defaults to `FALSE`.
-#' * `md_sym` A single `character` describing the symbol to use for active 
+#' * `md_sym` A single `character` describing the symbol to use for active
 #'   missing data mechanisms. Defaults to `"1"`.
-#' * `time_limit` A `numeric` value giving a time limit for the search 
+#' * `time_limit` A `numeric` value giving a time limit for the search
 #'   (in hours). Defaults to a negative value that disables the time limit.
-#' * `verbose` A `logical` value. If `TRUE`, diagnostic information is printed 
+#' * `verbose` A `logical` value. If `TRUE`, diagnostic information is printed
 #'   to  the console during the search. Defaults to `FALSE`.
-#' * `warn` A `logical` value. If `TRUE`, a warning is issued for possibly 
+#' * `warn` A `logical` value. If `TRUE`, a warning is issued for possibly
 #'   unintentionally misspecified but syntactically correct input distributions.
-#' 
-#' @param data A `character` string describing the available distributions in 
+#'
+#' @param data A `character` string describing the available distributions in
 #'   the package syntax. Alternatively, a list of character vectors.
-#' @param query A `character` string describing the target distribution in the 
+#' @param query A `character` string describing the target distribution in the
 #'   package syntax. Alternatively, a character vector.
-#' @param graph A `character` string describing either a DAG or an LDAG in the 
-#'   package syntax. Alternatively, an \pkg{igraph} graph as used in the 
-#'   \pkg{causaleffect} package or a DAG constructed using the \pkg{dagitty} 
+#' @param graph A `character` string describing either a DAG or an LDAG in the
+#'   package syntax. Alternatively, an \pkg{igraph} graph as used in the
+#'   \pkg{causaleffect} package or a DAG constructed using the \pkg{dagitty}
 #'   package.
-#' @param transportability A `character` string describing the transportability 
+#' @param transportability A `character` string describing the transportability
 #'   nodes of the model in the package syntax (for DAGs only).
-#' @param selection_bias A `character` string describing the selection bias 
+#' @param selection_bias A `character` string describing the selection bias
 #'   nodes of the model in the package syntax (for DAGs only).
-#' @param missing_data A `character` string describing the missing data 
+#' @param missing_data A `character` string describing the missing data
 #'   mechanisms of the model in the package syntax (for DAGs only).
 #' @param control A `list` of control parameters.
-#' @return An object of class `dosearch` which is a list with the following 
-#'   components by default. See the options of `control` for how to obtain a 
-#'   graphical representation of the derivation or how to benchmark the search. 
+#' @return An object of class `dosearch` which is a list with the following
+#'   components by default. See the options of `control` for how to obtain a
+#'   graphical representation of the derivation or how to benchmark the search.
 #'
-#' * `identifiable` A `logical` value that is `TRUE` if the target quantity is 
-#'   identifiable and `FALSE` otherwise. 
-#' * `formula` A `character` string describing a formula for an identifiable 
+#' * `identifiable` A `logical` value that is `TRUE` if the target quantity is
+#'   identifiable and `FALSE` otherwise.
+#' * `formula` A `character` string describing a formula for an identifiable
 #'   query or an empty character vector for an non-identifiable effect.
 #' @references
-#' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from 
-#' Multiple Incomplete Data Sources: A General Search-based Approach." 
+#' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from
+#' Multiple Incomplete Data Sources: A General Search-based Approach."
 #' \emph{Journal of Statistical Software}, 99(5):1--40, 2021.
-#' 
-#' E. Bareinboim, J. Pearl. "Transportability from Multiple 
-#' Environments with Limited Experiments: Completeness Results." 
+#'
+#' E. Bareinboim, J. Pearl. "Transportability from Multiple
+#' Environments with Limited Experiments: Completeness Results."
 #' In \emph{Proceedings of the 27th Annual Conference on
 #' Neural Information Processing Systems}, 280--288, 2014.
-#' 
+#'
 #' E. Bareinboim, J. Tian. "Recovering Causal Effects from Selection
-#' Bias " In \emph{Proceedings of the 29th AAAI Conference on Artificial 
+#' Bias " In \emph{Proceedings of the 29th AAAI Conference on Artificial
 #' Intelligence}, 3475--3481, 2015.
-#' 
-#' K. Mohan, J. Pearl, J. Tian. "Graphical Models for Inference with Missing 
-#' Data." In \emph{Proceedings of the 26th International Conference on 
+#'
+#' K. Mohan, J. Pearl, J. Tian. "Graphical Models for Inference with Missing
+#' Data." In \emph{Proceedings of the 26th International Conference on
 #' Neural Information Processing Systems}, 1277--1285, 2013.
 #'
 #' @export
@@ -187,7 +187,7 @@
 #'   z -> y
 #' "
 #' dosearch(data1, query1, graph1)
-#' 
+#'
 #' # A simple front-door formula
 #' data2 <- "P(x,y,z)"
 #' query2 <- "P(y|do(x))"
@@ -197,7 +197,7 @@
 #'   x <-> y
 #' "
 #' dosearch(data2, query2, graph2)
-#' 
+#'
 #' # Graph input using 'igraph' in the 'causaleffect' syntax
 #' if (requireNamespace("igraph", quietly = TRUE)) {
 #'   g_igraph <- igraph::graph.formula(
@@ -207,13 +207,13 @@
 #'   g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
 #'   dosearch(data2, query2, g_igraph)
 #' }
-#' 
+#'
 #' # Graph input with 'dagitty'
 #' if (requireNamespace("dagitty", quietly = TRUE)) {
 #'   g_dagitty <- dagitty::dagitty("dag{x -> z -> y; x <-> y}")
 #'   dosearch(data2, query2, g_dagitty)
 #' }
-#' 
+#'
 #' # Alternative distribution input style using lists and vectors:
 #' # Each element of the list describes a single distribution
 #' # Each element is a character vector that describes the role
@@ -309,7 +309,7 @@
 #' query7 <- "P(Y|X,I_X=1)"
 #' graph7 <- "
 #'   X -> Y : Z = 1
-#'   Z -> Y 
+#'   Z -> Y
 #'   Z -> X : I_X = 1
 #'   I_X -> X
 #'   H -> X : I_X = 1
@@ -354,34 +354,36 @@
 #'    DOT::dot(d$derivation, "derivation.svg")
 #' }
 #' }
-dosearch <- function(data, query, graph, transportability = NULL, 
-                     selection_bias = NULL, missing_data = NULL, 
+dosearch <- function(data, query, graph, transportability = NULL,
+                     selection_bias = NULL, missing_data = NULL,
                      control = list()) {
-  
-  data <- parse_data(data)
-  query <- parse_distribution(query)
-  graph <- parse_graph(graph)
-  parse_specials(transportability, selection_bias, missing_data)
+
   if (!is.list(control)) {
     stop("Argument `control` must be a list.")
   }
+  data <- parse_data(data)
+  query <- parse_distribution(query)
+  graph <- parse_graph(graph)
+  validate_special("transportability", transportability)
+  validate_special("selection_bias", selection_bias)
+  validate_special("missing_data", missing_data)
   if (grepl(":", graph)) {
     get_derivation_ldag(data, query, graph, control)
   } else {
     get_derivation_dag(
-      data, 
+      data,
       query,
-      graph, 
-      transportability, 
-      selection_bias, 
-      missing_data, 
+      graph,
+      transportability,
+      selection_bias,
+      missing_data,
       control
      )
   }
 }
 
 #' Summary of a `dosearch` Object
-#' 
+#'
 #' @param object An object of class `dosearch`.
 #' @param ... Not used.
 #' @export
@@ -418,7 +420,7 @@ summary.dosearch <- function(object, ...) {
 }
 
 #' Print the Summary of a `dosearch` Object
-#' 
+#'
 #' @param x An object of class `summary.dosearch`.
 #' @param ... Not used.
 #' @export
@@ -426,8 +428,8 @@ print.summary.dosearch <- function(x, ...) {
   res <- x$result
   y <- x$call
   cat(
-    "The query", y$query, "is", 
-    ifelse(res$identifiable, "identifiable.", "non-identifiable."), 
+    "The query", y$query, "is",
+    ifelse(res$identifiable, "identifiable.", "non-identifiable."),
     "\n"
   )
   if (identical(res$formula, "")) {
@@ -446,15 +448,15 @@ print.summary.dosearch <- function(x, ...) {
 }
 
 #' Print a `dosearch` Object
-#' 
+#'
 #' @param x An object of class `dosearch`.
 #' @param ... Additional arguments passed to [base::format()].
 #' @export
 print.dosearch <- function(x, ...) {
-  if (is.null(x$formula) || identical(x$formula, "")) { 
+  if (is.null(x$formula) || identical(x$formula, "")) {
     cat(
-      "The query", x$call$query, "is", 
-      ifelse(x$identifiable, "identifiable", "non-identifiable."), 
+      "The query", x$call$query, "is",
+      ifelse(x$identifiable, "identifiable", "non-identifiable."),
       "\n"
     )
   } else {
@@ -463,12 +465,12 @@ print.dosearch <- function(x, ...) {
 }
 
 #' Was the Target Distribution Identifiable?
-#' 
-#' Returns the a logical value describing the identifiability of a causal query 
+#'
+#' Returns the a logical value describing the identifiability of a causal query
 #' of an object of class `dosearch` returned by [dosearch::dosearch()].
-#' 
+#'
 #' @param x An object of class `dosearch`.
-#' @return A logical value. If `TRUE`, the target distribution was identifiable 
+#' @return A logical value. If `TRUE`, the target distribution was identifiable
 #'   from the available inputs.
 #' @export
 #' @examples
@@ -491,16 +493,16 @@ is_identifiable <- function(x) {
 }
 
 #' Retrieve the Identifying Formula of a Causal Query
-#' 
-#' Returns the identifying formula describing a causal query of an object of 
+#'
+#' Returns the identifying formula describing a causal query of an object of
 #' class `dosearch` returned by [dosearch::dosearch()]. If no formula is
 #' available, returns `NULL`.
-#' 
+#'
 #' @param x An object of class `dosearch`.
 #' @param run_again If `TRUE`, runs the search again in an attempt to obtain
 #'   the formula, for example if `control$formula` was `FALSE` in the call to
 #'   [dosearch::dosearch()], but the query itself is identifiable.
-#' @return A `character` string representing the query in terms of the input 
+#' @return A `character` string representing the query in terms of the input
 #'   data or `NULL`.
 #' @export
 #' @examples
@@ -521,12 +523,12 @@ get_formula <- function(x, run_again = FALSE) {
     y <- x$call
     y$control$formula <- TRUE
     z <- dosearch(
-      y$data, 
-      y$query, 
-      y$graph, 
-      y$transportability, 
-      y$selection_bias, 
-      y$missing_data, 
+      y$data,
+      y$query,
+      y$graph,
+      y$transportability,
+      y$selection_bias,
+      y$missing_data,
       y$control
     )
     z$formula
@@ -537,17 +539,16 @@ get_formula <- function(x, run_again = FALSE) {
   }
 }
 
-
 #' Retrieve the Derivation of a Causal Query
-#' 
+#'
 #' Returns the derivation of a causal query of an object of class `dosearch`
 #' returned by [dosearch::dosearch()]. If no derivation is available, returns
 #' `NULL`.
 #'
 #' @inheritParams get_formula
-#' @param draw_all A logical value. If `TRUE`, the derivation will contain 
-#'   every step taken by the search. If `FALSE`, only steps that resulted in 
-#'   identification are returned. 
+#' @param draw_all A logical value. If `TRUE`, the derivation will contain
+#'   every step taken by the search. If `FALSE`, only steps that resulted in
+#'   identification are returned.
 #' @export
 #' @examples
 #' data <- "P(x,y,z)"
@@ -568,12 +569,12 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
     y$control$draw_derivation <- TRUE
     y$control$draw_all <- draw_all
     z <- dosearch(
-      y$data, 
-      y$query, 
-      y$graph, 
-      y$transportability, 
-      y$selection_bias, 
-      y$missing_data, 
+      y$data,
+      y$query,
+      y$graph,
+      y$transportability,
+      y$selection_bias,
+      y$missing_data,
       y$control
     )
     z$derivation
@@ -591,16 +592,16 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 #' `NULL`.
 #'
 #' @inheritParams get_formula
-#' @param include_rules A `logical` value. If `TRUE`, also benchmarks the time 
+#' @param include_rules A `logical` value. If `TRUE`, also benchmarks the time
 #'   taken by each inference rule separately.
-#' @return A `list` with one or two elements or `NULL`. 
-#'   The first element of the list is always a numeric 
-#'   value of the total time taken by the search in milliseconds. 
-#'   The second is a numeric vector of the time taken by each inference rule 
-#'   (in the internal C++ implementation) of the search in milliseconds 
+#' @return A `list` with one or two elements or `NULL`.
+#'   The first element of the list is always a numeric
+#'   value of the total time taken by the search in milliseconds.
+#'   The second is a numeric vector of the time taken by each inference rule
+#'   (in the internal C++ implementation) of the search in milliseconds
 #'   if `include_rules` is `TRUE`
 #' @export
-#' @examples 
+#' @examples
 #' data <- "P(x,y,z)"
 #' query <- "P(y|do(x))"
 #' graph <- "
@@ -619,12 +620,12 @@ get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
     y$control$benchmark <- TRUE
     y$control$benchmark_rules <- include_rules
     z <- dosearch(
-      y$data, 
-      y$query, 
-      y$graph, 
-      y$transportability, 
-      y$selection_bias, 
-      y$missing_data, 
+      y$data,
+      y$query,
+      y$graph,
+      y$transportability,
+      y$selection_bias,
+      y$missing_data,
       y$control
     )
     get_benchmark(z, run_again = FALSE)
