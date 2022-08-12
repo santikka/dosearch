@@ -357,17 +357,25 @@
 dosearch <- function(data, query, graph, transportability = NULL,
                      selection_bias = NULL, missing_data = NULL,
                      control = list()) {
-
   if (!is.list(control)) {
     stop("Argument `control` must be a list.")
   }
+  if (missing(data)) {
+    stop("Argument `data` is missing.")
+  }
   data <- parse_data(data)
-  query <- parse_distribution(query)
+  if (missing(query)) {
+    stop("Argument `query` is missing.")
+  }
+  query <- parse_query(query)
+  if (missing(graph)) {
+    stop("Argument `graph` is missing.")
+  }
   graph <- parse_graph(graph)
   validate_special("transportability", transportability)
   validate_special("selection_bias", selection_bias)
   validate_special("missing_data", missing_data)
-  if (grepl(":", graph)) {
+  if (grepl(":", graph)) { # : denotes the presence of edge labels
     get_derivation_ldag(data, query, graph, control)
   } else {
     get_derivation_dag(
@@ -486,7 +494,7 @@ print.dosearch <- function(x, ...) {
 #' # TRUE
 is_identifiable <- function(x) {
   if (!is.dosearch(x)) {
-    stop("Argument `x` is not of class `dosearch`.")
+    stop("Argument `x` must be an object of class `dosearch`.")
   } else {
     x$identifiable
   }
@@ -517,7 +525,7 @@ is_identifiable <- function(x) {
 #' get_formula(x, run_again = TRUE)
 get_formula <- function(x, run_again = FALSE) {
   if (!is.dosearch(x)) {
-    stop("Argument `x` is not of class `dosearch`.")
+    stop("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
     y <- x$call
@@ -562,7 +570,7 @@ get_formula <- function(x, run_again = FALSE) {
 #' get_derivation(x, run_again = TRUE)
 get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
   if (!is.dosearch(x)) {
-    stop("Argument `x` is not of class `dosearch`.")
+    stop("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
     y <- x$call
@@ -613,7 +621,7 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 #' get_benchmark(x, run_again = TRUE)
 get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
   if (!is.dosearch(x)) {
-    stop("Argument `x` is not of class `dosearch`.")
+    stop("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
     y <- x$call

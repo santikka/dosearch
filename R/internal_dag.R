@@ -108,32 +108,44 @@ get_derivation_dag <- function(data, query, graph, transportability = NULL,
 transform_graph_dag <- function(args, graph, missing_data) {
   if (!nzchar(graph)) {
     if (is.null(missing_data)) {
-      stop("Invalid graph: the graph is empty.")
+      stop("Invalid graph, the graph is empty.")
     }
   } else {
     graph <- gsub("<->", "--", graph)
-    graph_split <- strsplit(strsplit(graph, "\r|\n")[[1L]], "\\s+")
+    graph_lines <- trimws(unique(strsplit(graph, "\r|\n")[[1L]]))
+    graph_split <- strsplit(graph_lines, "\\s+")
     line_lengths <- lengths(graph_split)
-    graph_split <- graph_split[line_lengths > 2L]
-    arrow_indices <- lapply(graph_split, grep, pattern = "(->)|(--)")
-    graph_split <- lapply(seq_len(length(graph_split)), function(x) {
-      graph_split[[x]][-1:1 + arrow_indices[[x]]]
-    })
+    malformed_lines <- line_lengths > 0 & line_lengths != 3L
+    if (any(malformed_lines)) {
+      stop(
+        "Invalid graph, malformed lines found: ",
+        cs(graph_lines[malformed_lines])
+      )
+    }
+    graph_split <- graph_split[line_lengths == 3L]
     graph_split <- vapply(graph_split, paste, character(1L), collapse = "")
+    valid_arrows <- grepl("(->)|(--)", graph_split)
+    if (any(!valid_arrows)) {
+      stop(
+        "Invalid graph, unknown edge types found: ",
+        cs(graph_split[!valid_arrows])
+      )
+    }
     directed <- strsplit(graph_split[grep("(.+)?->(.+)?", graph_split)], "->")
     bidirected <- strsplit(graph_split[grep("(.+)?--(.+)?", graph_split)], "--")
     if (length(directed) > 0L) {
       args$dir_lhs <- sapply(directed, "[[", 1L)
       args$dir_rhs <- sapply(directed, "[[", 2L)
       if (any(args$dir_lhs == args$dir_rhs)) {
-        stop("Invalid graph: no self loops are allowed.")
+        stop("Invalid graph, no self loops are allowed.")
       }
     }
     if (length(bidirected) > 0L) {
+      bidirected <- unique(lapply(bidirected, sort))
       args$bi_lhs <- vapply(bidirected, "[[", character(1L), 1L)
       args$bi_rhs <- vapply(bidirected, "[[", character(1L), 2L)
       if (any(args$bi_lhs == args$bi_rhs)) {
-        stop("Invalid graph: no self loops are allowed.")
+        stop("Invalid graph, no self loops are allowed.")
       }
     }
     args$vars <- unique(
@@ -158,11 +170,11 @@ parse_missing_data <- function(args, missing_data) {
     md_true <- sapply(md_mechanisms, "[[", 2L)
     md_switch <- sapply(md_mechanisms, "[[", 1L)
     md_proxy <- paste0(md_true, "*")
-    if (any(md_switch %in% dir_lhs[dir_rhs %in% md_true])) {
+    if (any(md_switch %in% args$dir_lhs[args$dir_rhs %in% md_true])) {
       stop("A missing data mechanism cannot be a parent of a true variable.")
     }
-    dir_lhs <- c(dir_lhs, md_true, md_switch)
-    dir_rhs <- c(dir_rhs, md_proxy, md_proxy)
+    args$dir_lhs <- c(args$dir_lhs, md_true, md_switch)
+    args$dir_rhs <- c(args$dir_rhs, md_proxy, md_proxy)
     vars_md <- as.vector(rbind(md_true, md_switch, md_proxy))
     args$vars <- c(vars_md, args$vars[!(args$vars %in% vars_md)])
     args$n <- length(args$vars)

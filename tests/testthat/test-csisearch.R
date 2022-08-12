@@ -1,6 +1,6 @@
 # Test examples from:
-# S. Tikka, A. Hyttinen, J. Karvanen, Identifying causal effects via 
-# context-specific independence relations, In Proceedings of the 33rd Annual 
+# S. Tikka, A. Hyttinen, J. Karvanen, Identifying causal effects via
+# context-specific independence relations, In Proceedings of the 33rd Annual
 # Conference on Neural Information Processing Systems, 2019.
 
 test_that("causal effect of X on Y in fig 6(a) is identified", {
@@ -60,7 +60,7 @@ test_that("causal effect of X on Y in fig 6(c) is identified", {
   query <- "P(Y|X,I_X=1)"
   graph <- "
     X -> Y : Z = 1
-    Z -> Y 
+    Z -> Y
     Z -> X : I_X = 1
     I_X -> X
     H -> X : I_X = 1
@@ -160,7 +160,7 @@ test_that("nested csi criterion is applied", {
   data <- "P(Y)"
   query <- "P(Y|X)"
   graph <- "
-    X -> Z : A = 0 
+    X -> Z : A = 0
     A -> Z
     A -> Y
     X -> W : B = 0
@@ -170,7 +170,7 @@ test_that("nested csi criterion is applied", {
     Z -> Y : A = 1
   "
   expect_error(
-    out <- dosearch(data, query, graph),
+    out <- dosearch(data, query, graph, control = list(cache = FALSE)),
     NA
   )
   expect_identical(
@@ -180,5 +180,29 @@ test_that("nested csi criterion is applied", {
   expect_identical(
     out$identifiable,
     TRUE
+  )
+})
+
+test_that("trivial non-identifiability is checked", {
+  out <- dosearch("p(x)", "p(y)", "x -> y\nz -> y : x = 1")
+  expect_identical(
+    out$identifiable,
+    FALSE
+  )
+  expect_identical(
+    out$formula,
+    ""
+  )
+})
+
+test_that("trivial identifiability is checked", {
+  out <- dosearch("p(y)", "p(y)", "x -> y\nz -> y : x = 1")
+  expect_identical(
+    out$identifiable,
+    TRUE
+  )
+  expect_identical(
+    out$formula,
+    "p(y)"
   )
 })

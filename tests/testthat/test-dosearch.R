@@ -50,7 +50,7 @@ test_that("bow-arc is non-identifiable", {
     x <-> y
   "
   expect_error(
-    out <- dosearch(data, query, graph),
+    out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
     NA
   )
   expect_identical(
@@ -81,7 +81,7 @@ test_that("all rules are needed", {
     z_1 -> y
   "
   expect_error(
-    out <- dosearch(data, query, graph),
+    out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
     NA
   )
   expect_identical(
@@ -99,44 +99,59 @@ test_that("all rules are needed", {
   }
 })
 
-test_that("igraph graph format works", {
-  skip_if_not_installed("igraph")
-  data <- "p(x,y,z)"
+test_that("missing data mechanisms are checked", {
+  # simple case-control design scenario
+  data <- "p(x*,y*,r_x,r_y)"
   query <- "p(y|do(x))"
-  g_igraph <- igraph::graph.formula(
-    x -+ z, z -+ y, x -+ y, y -+ x,
-    simplify = FALSE
+  graph <- "
+    x -> y
+    y -> r_y
+    r_y -> r_x
+  "
+  md <- "r_x : x, r_y : y"
+  out <- dosearch(data, query, graph, missing_data = md)
+  expect_identical(
+    out$identifiable,
+    FALSE
   )
-  g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
-  expect_error(
-    out <- dosearch(data, query, g_igraph),
-    NA
-  )
-  expect_equal(
-    out$formula,
-    "\\sum_{z}\\left(p(z|x)\\sum_{x}\\left(p(x)p(y|z,x)\\right)\\right)"
-  )
-  expect_equal(
+  data <- "
+    p(x*,y*,r_x,r_y)
+    p(y)
+  "
+  out <- dosearch(data, query, graph, missing_data = md)
+  expect_identical(
     out$identifiable,
     TRUE
+  )
+  expect_identical(
+    out$formula,
+    paste0(
+      "\\frac{\\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}",
+      "{\\sum_{y} \\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}"
+    )
   )
 })
 
-test_that("dagitty graph format works", {
-  skip_if_not_installed("dagitty")
-  data <- "p(x,y,z)"
-  query <- "p(y|do(x))"
-  g_dagitty <- dagitty::dagitty("dag{x -> z -> y; x <-> y}")
-  expect_error(
-    out <- dosearch(data, query, g_dagitty),
-    NA
+test_that("trivial non-identifiability is checked", {
+  out <- dosearch("p(x)", "p(y)", "x -> y")
+  expect_identical(
+    out$identifiable,
+    FALSE
   )
-  expect_equal(
+  expect_identical(
     out$formula,
-    "\\sum_{z}\\left(p(z|x)\\sum_{x}\\left(p(x)p(y|z,x)\\right)\\right)"
+    ""
   )
-  expect_equal(
+})
+
+test_that("trivial identifiability is checked", {
+  out <- dosearch("p(y)", "p(y)", "x -> y")
+  expect_identical(
     out$identifiable,
     TRUE
+  )
+  expect_identical(
+    out$formula,
+    "p(y)"
   )
 })

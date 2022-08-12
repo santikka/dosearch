@@ -183,7 +183,7 @@ parse_labels <- function(args) {
       args <- infer_labels(args, vals, from, to, pa)
     }
     input_labels <- rbind(input_labels, args$inferred_labels)
-    input_labels <- input_labels[!duplicated(input_labels), ]
+    input_labels <- input_labels[!duplicated(input_labels), , drop = FALSE]
     args$con_vars <- unique(args$con_vars)
     args$label_map <- list()
     args <- parse_contexts(args, input_labels, vanishing)
@@ -213,7 +213,8 @@ parse_labels <- function(args) {
 validate_label <- function(from, to, pa, label_lhs) {
   if (length(pa) == 0L) {
     stop(
-      "Invalid label for edge", from, " -> ", to, ": no parents to assign."
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      "no parents to assign."
     )
   }
   if (any(duplicated(label_lhs))) {
@@ -225,7 +226,7 @@ validate_label <- function(from, to, pa, label_lhs) {
   if (from %in% label_lhs) {
     stop(
       "Invalid label for edge ", from, " -> ", to, ": ",
-      from, " cannot appear in the label"
+      from, " cannot appear in the label."
     )
   }
   if (to %in% label_lhs) {
@@ -288,7 +289,6 @@ label_values <- function(vals, zero, one, pa, label_lhs) {
 #' @param args A `list` of arguments for `initialize_csisearch`
 #' @noRd
 infer_labels <- function(args, vals, from, to, pa) {
-  # Cannot infer from empty set
   n_pa <- length(pa)
   n_sets <- nrow(vals) - 1L
   if (n_sets > 1L) {

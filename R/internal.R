@@ -29,6 +29,11 @@ to_vec <- function(dec, n) {
   }
 }
 
+#' Create a Comma-separated Character String
+cs <- function(x) {
+  paste0(x, collapse = ", ")
+}
+
 #' Add New Variables to a `dosearch` Call
 #'
 #' @param args A `list` of arguments to `initialize_dosearch`.
@@ -85,8 +90,8 @@ parse_query <- function(query) {
     if (length(query) > 1L) {
       stop("Argument `query` must be a character vector of length 1.")
     }
-  }
-  if (is.numeric(query)) {
+    query
+  } else if (is.numeric(query)) {
     parse_distribution(query)
   } else {
     stop("Argument `query` is of an unsupported type.")
@@ -151,12 +156,7 @@ parse_distribution <- function(d) {
 #' @inheritParams dosearch
 #' @noRd
 parse_graph <- function(graph) {
-  if (is.character(graph)) {
-    if (length(graph) > 1L) {
-      stop("Argument `graph` must be of length 1 when of `character` type.")
-    }
-    graph
-  } else if (inherits(graph, "igraph")) {
+  if (inherits(graph, "igraph")) {
     if (requireNamespace("igraph", quietly = TRUE)) {
       e <- igraph::E(graph)
       v <- igraph::vertex_attr(graph, "name")
@@ -200,6 +200,11 @@ parse_graph <- function(graph) {
     } else {
       stop("The `dagitty` package is not available.")
     }
+  } else if (is.character(graph)) {
+    if (length(graph) > 1L) {
+      stop("Argument `graph` must be of length 1 when of `character` type.")
+    }
+    graph
   } else {
     stop("Argument `graph` is of an unsupported type.")
   }
