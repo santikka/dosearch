@@ -181,6 +181,14 @@ test_that("nested csi criterion is applied", {
     out$identifiable,
     TRUE
   )
+  expect_error(
+    out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
+    NA
+  )
+  expect_identical(
+    out$identifiable,
+    TRUE
+  )
 })
 
 test_that("trivial non-identifiability is checked", {

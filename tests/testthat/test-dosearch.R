@@ -81,7 +81,11 @@ test_that("all rules are needed", {
     z_1 -> y
   "
   expect_error(
-    out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
+    out <- dosearch(
+      data,
+      query,
+      graph,
+      control = list(heuristic = TRUE, draw_derivation = TRUE)),
     NA
   )
   expect_identical(
@@ -97,6 +101,37 @@ test_that("all rules are needed", {
       FALSE
     )
   }
+})
+
+test_that("transportability and selection bias are checked", {
+  data <- "
+    p(x,z,y|s)
+    p(y,z|t,do(x))
+  "
+  query <- "p(y|do(x))"
+  graph <- "
+    x -> z
+    z -> y
+    x -> s
+    t -> z
+    x <-> y
+  "
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    transportability = "t",
+    selection_bias = "s",
+    control = list(heuristic = TRUE)
+  )
+  expect_identical(
+    out$identifiable,
+    TRUE
+  )
+  expect_identical(
+    out$formula,
+    "\\sum_{z}\\left(p(y|do(x),z,t)\\sum_{y}p(z,y|x,s)\\right)"
+  )
 })
 
 test_that("missing data mechanisms are checked", {
@@ -130,6 +165,13 @@ test_that("missing data mechanisms are checked", {
       "{\\sum_{y} \\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}"
     )
   )
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    missing_data = md,
+    control = list(heuristic = TRUE)
+  )
 })
 
 test_that("trivial non-identifiability is checked", {
@@ -153,5 +195,37 @@ test_that("trivial identifiability is checked", {
   expect_identical(
     out$formula,
     "p(y)"
+  )
+})
+
+test_that("verbose search works", {
+  data <- "p(x,y,z)"
+  query <- "p(y|do(x))"
+  graph <- "
+    x -> y
+    z -> x
+    z -> y
+  "
+  out <- capture.output(
+    dosearch(data, query, graph, control = list(verbose = TRUE))
+  )
+  out_len <- length(out)
+  expect_match(
+    out[1L],
+    "Setting target"
+  )
+  expect_match(
+    out[2L],
+    "Adding known distribution"
+  )
+  for (i in seq.int(3L, out_len - 3L)) {
+    expect_match(
+      out[i],
+      "Derived"
+    )
+  }
+  expect_match(
+    out[out_len - 2L],
+    "Target found"
   )
 })

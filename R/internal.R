@@ -69,7 +69,7 @@ validate_special <- function(spec_name, spec) {
 parse_data <- function(data) {
   if (is.character(data)) {
     if (length(data) > 1L) {
-      stop("Argument `data` must be of length 1 when of `character` type.")
+      stop("Argument `data` must be of length 1 when of type `character`.")
     }
     data
   } else if (is.list(data)) {
@@ -88,7 +88,7 @@ parse_data <- function(data) {
 parse_query <- function(query) {
   if (is.character(query)) {
     if (length(query) > 1L) {
-      stop("Argument `query` must be a character vector of length 1.")
+      stop("Argument `query` must be of length 1 when of type `character`.")
     }
     query
   } else if (is.numeric(query)) {
@@ -107,28 +107,28 @@ parse_distribution <- function(d) {
     d
   } else if (is.numeric(d)) {
     v <- names(d)
-    d <- as.integer(d)
     if (any(is.na(d) | !is.finite(d))) {
       stop(
-        "Invalid distribution format: ", d,
-        "All values must be non-missing and finite."
+        "Invalid distribution format ", deparse1(d), ": ",
+        "all role values must be non-missing and finite."
       )
     }
-    if (any(!p %in% 0L:2L)) {
+    if (any(!d %in% 0:2)) {
       stop(
-        "Invalid variable roles in distribution format: ", d,
-        "Role value must be either 0, 1 or 2."
+        "Invalid variable roles in distribution format ", deparse1(d), ": ",
+        "all role values must be either 0, 1 or 2."
       )
     }
-    if (all(pre > 0, na.rm = TRUE)) {
+    if (all(d > 0)) {
       stop(
-        "Invalid variable roles in distribution format: ", d,
-        "At least one variable must have role value 0."
+        "Invalid variable roles in distribution format ", deparse1(d), ": ",
+        "at least one variable must have role value 0."
       )
     }
     if (is.null(v)) {
       v <- seq_len(3L)
     }
+    d <- as.integer(d)
     A_set <- v[which(d == 0L)]
     B_set <- v[which(d == 1L)]
     C_set <- v[which(d == 2L)]
@@ -147,7 +147,7 @@ parse_distribution <- function(d) {
       C, ")", sep = ""
     )
   } else {
-    stop("Unsupported distribution format: ", d)
+    stop("Unsupported distribution format ", d, ".")
   }
 }
 
@@ -222,9 +222,8 @@ control_defaults <- function(control) {
     stop(
       "All elements of argument `control` ",
       "must be of length 1 (except `rules`).\n",
-      "Elements ",
-      paste0(names(control)[control_lengths > 1L], collapse = ", "),
-      " have length > 1."
+      "The following elements have length > 1: ",
+      cs(names(control)[control_lengths > 1L])
     )
   }
   control$rules <- rules
@@ -247,11 +246,11 @@ control_defaults <- function(control) {
   control_names <- names(control)
   if (any(!control_names %in% default_names)) {
     stop(
-      "Unrecognized control arguments: ",
+      "Unknown control arguments: ",
       control_names[!control_names %in% default_names]
     )
   }
-  given_args <- which(default_names %in% control_names)
+  given_args <- match(control_names, default_names)
   control_full <- default
   control_full[given_args] <- control
   control <- control_full

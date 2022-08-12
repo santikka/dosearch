@@ -61,6 +61,51 @@ test_that("dosearch summary and print work", {
     print(summ),
     "The query p\\(y|do\\(x\\)\\) is identifiable"
   )
+  out <- dosearch(
+    "p(x,y)",
+    "p(y|do(x))",
+    "x -> y\nx <-> y",
+    control = list(
+      benchmark = TRUE
+    )
+  )
+  expect_output(
+    print(out),
+    "The query p\\(y|do\\(x\\)\\) is non-identifiable."
+  )
+  expect_error(
+    summ <- summary(out),
+    NA
+  )
+  expect_output(
+    print(summ),
+    "The query p\\(y|do\\(x\\)\\) is non-identifiable"
+  )
+})
+
+test_that("summary time units are correct", {
+  out <- dosearch(
+    "p(x,y)",
+    "p(y|do(x))",
+    "x -> y",
+    control = list(
+      benchmark = TRUE
+    )
+  )
+  expect_output(
+    print(summary(out)),
+    "seconds"
+  )
+  out$time <- 1e5
+  expect_output(
+    print(summary(out)),
+    "minutes"
+  )
+  out$time <- 4e6
+  expect_output(
+    print(summary(out)),
+    "hours"
+  )
 })
 
 test_that("gets can be got", {
@@ -112,5 +157,29 @@ test_that("gets can be got", {
   expect_identical(
     get_benchmark(out),
     NULL
+  )
+})
+
+test_that("alternative distribution format works", {
+  data <- "
+    p(x)
+    p(y|x)
+    p(z|x,y)
+  "
+  data_alt <- list(
+    c(x = 0),
+    c(y = 0, x = 2),
+    c(z = 0, x = 2, y = 2)
+  )
+  query <- "p(y|do(x))"
+  query_alt <- c(y = 0, x = 1)
+  graph <- "
+    x -> y
+    z -> x
+    z -> y
+  "
+  expect_identical(
+    dosearch(data, query, graph)$formula,
+    dosearch(data_alt, query_alt, graph)$formula
   )
 })

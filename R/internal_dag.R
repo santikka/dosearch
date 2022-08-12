@@ -2,9 +2,8 @@
 #'
 #' @inheritParams dosearch
 #' @noRd
-get_derivation_dag <- function(data, query, graph, transportability = NULL,
-                               selection_bias = NULL, missing_data = NULL,
-                               control = list()) {
+get_derivation_dag <- function(data, query, graph, transportability,
+                               selection_bias, missing_data, control) {
   control <- control_defaults(control)
   args <- list(
     dir_lhs = integer(0L),
@@ -25,7 +24,7 @@ get_derivation_dag <- function(data, query, graph, transportability = NULL,
     md_t = 0L,
     md_sym = control$md_sym
   )
-  args <- transform_graph_dag(args, graph)
+  args <- transform_graph_dag(args, graph, missing_data)
   args <- parse_missing_data(args, missing_data)
   args <- parse_transportability(args, transportability)
   args <- parse_selection_bias(args, selection_bias)
@@ -123,29 +122,44 @@ transform_graph_dag <- function(args, graph, missing_data) {
       )
     }
     graph_split <- graph_split[line_lengths == 3L]
-    graph_split <- vapply(graph_split, paste, character(1L), collapse = "")
-    valid_arrows <- grepl("(->)|(--)", graph_split)
-    if (any(!valid_arrows)) {
+    graph_lines <- graph_lines[line_lengths == 3L]
+    edges <- vapply(graph_split, "[[", character(1L), 2L)
+    valid_edges <- grepl("(->)|(--)", edges)
+    if (any(!valid_edges)) {
       stop(
         "Invalid graph, unknown edge types found: ",
-        cs(graph_split[!valid_arrows])
+        cs(edges[!valid_edges])
       )
     }
-    directed <- strsplit(graph_split[grep("(.+)?->(.+)?", graph_split)], "->")
-    bidirected <- strsplit(graph_split[grep("(.+)?--(.+)?", graph_split)], "--")
-    if (length(directed) > 0L) {
-      args$dir_lhs <- sapply(directed, "[[", 1L)
-      args$dir_rhs <- sapply(directed, "[[", 2L)
-      if (any(args$dir_lhs == args$dir_rhs)) {
-        stop("Invalid graph, no self loops are allowed.")
+    directed <- grepl("->", edges)
+    bidirected <- grepl("--", edges)
+    if (any(directed)) {
+      di <- graph_split[directed]
+      args$dir_lhs <- vapply(di, "[[", character(1L), 1L)
+      args$dir_rhs <- vapply(di, "[[", character(1L), 3L)
+      loops <- args$dir_lhs == args$dir_rhs
+      if (any(loops)) {
+        stop(
+          "Invalid graph, no self loops are allowed: ",
+          cs(graph_lines[directed][loops])
+        )
       }
     }
-    if (length(bidirected) > 0L) {
-      bidirected <- unique(lapply(bidirected, sort))
-      args$bi_lhs <- vapply(bidirected, "[[", character(1L), 1L)
-      args$bi_rhs <- vapply(bidirected, "[[", character(1L), 2L)
-      if (any(args$bi_lhs == args$bi_rhs)) {
-        stop("Invalid graph, no self loops are allowed.")
+    if (any(bidirected)) {
+      bi <- unique(
+        lapply(graph_split[bidirected], function(x) {
+          sort(x[-2L])
+        })
+      )
+      args$bi_lhs <- vapply(bi, "[[", character(1L), 1L)
+      args$bi_rhs <- vapply(bi, "[[", character(1L), 2L)
+      loops <- args$bi_lhs == args$bi_rhs
+      if (any(loops)) {
+        loop_edges <- gsub("--", "<->", cs(graph_lines[bidirected][loops]))
+        stop(
+          "Invalid graph, no self loops are allowed: ",
+          loop_edges
+        )
       }
     }
     args$vars <- unique(

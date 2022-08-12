@@ -401,10 +401,10 @@ summary.dosearch <- function(object, ...) {
   if (!is.null(object$time)) {
     took <- object$time / 1000.0
     units <- "seconds."
-    if (object$time >= 60 & object$time < 3600) {
+    if (took >= 60.0 && took < 3600.0) {
       took <- took / 60.0
       units <- "minutes."
-    } else if (object$time >= 3600) {
+    } else if (took >= 3600.0) {
       took <- took / 3600.0
       units <- "hours."
     }
