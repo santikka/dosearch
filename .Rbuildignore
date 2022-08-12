@@ -1,6 +1,7 @@
-^.*\.Rproj$
+^dosearch\.Rproj$
 ^\.Rproj\.user$
-^README.md$
+^\.github$
+^README\.md$
+^README\.Rmd$
 ^LICENSE\.md$
 ^codecov\.yml$
-^\.github$

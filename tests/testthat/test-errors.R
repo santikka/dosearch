@@ -151,3 +151,58 @@ test_that("self loops fail", {
   )
 })
 
+test_that("syntactically correct but semantically incorrect inputs fail", {
+  md <- "r_x : x"
+  expect_error(
+    dosearch("p(x,x*)", "p(y)", "x -> r_x", missing_data = md),
+    "true and proxy versions of the same variable on the left-hand side"
+  )
+  expect_error(
+    dosearch("p(y|x,x*)", "p(y)", "x -> r_x", missing_data = md),
+    "true and proxy versions of the same variable on the right-hand side"
+  )
+  expect_error(
+    dosearch("p(x|x*)", "p(y)", "x -> r_x", missing_data = md),
+    "true variable of a proxy variable on the left-hand side"
+  )
+  expect_error(
+    dosearch("p(x*|x)", "p(y)", "x -> r_x", missing_data = md),
+    "proxy variable of a true variable on the left-hand side"
+  )
+  expect_error(
+    dosearch("p(x = 1)", "p(y)", "x -> r_x", missing_data = md),
+    "value assignment of a non-missing data mechanism"
+  )
+  expect_error(
+    dosearch("p(x|x)", "p(y)", "x -> y"),
+    "same variable on the left and right-hand side"
+  )
+  expect_error(
+    dosearch("p(x|do(x))", "p(y)", "x -> y"),
+    "same variable on the left and right-hand side"
+  )
+  expect_error(
+    dosearch("p(t)", "p(y)", "t -> y", transportability = "t"),
+    "transportability node on the left-hand side"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "y -> t", transportability = "t"),
+    "a transportability node cannot be a child of another node"
+  )
+  expect_error(
+    dosearch("p(y|do(t))", "p(y)", "t -> y", transportability = "t"),
+    "intervention on a transportability node"
+  )
+  expect_error(
+    dosearch("p(s)", "p(y)", "y -> s", selection_bias = "s"),
+    "selection bias node on the left-hand side"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "s -> y", selection_bias = "s"),
+    "selection bias node cannot be a parent of another node"
+  )
+  expect_error(
+    dosearch("p(y|do(s))", "p(y)", "y -> s", selection_bias = "s"),
+    "intervention on a selection bias node"
+  )
+})

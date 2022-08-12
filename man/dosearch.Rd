@@ -237,8 +237,8 @@ data_alt <- list(
 query_alt <- c(x = 1, y = 0) # = P(y|do(x))
 dosearch(data_alt, query_alt, graph2)
 
-# Additional examples
 \dontrun{
+# Additional examples
 # Multiple input distributions (both observational and interventional)
 data3 <- "
   p(z_2,x_2|do(x_1))

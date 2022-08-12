@@ -6,22 +6,22 @@
 \title{Systematic Analysis of Bivariate Missing Data Problems}
 \format{
 A data frame with 6144 rows and 8 variables:
-}
-\source{
-Tikka et. al. (2021) \url{arXiv:1902.01073}
 \describe{
 \item{graph}{the graph of the instance.}
 \item{nedges}{number of edges in the graph (directed and bidirected).}
 \item{arrowXtoY}{whether the graph contains an arrow
-from \eqn{X} to \eqn{Y} or not }
+from \eqn{X} to \eqn{Y} or not.}
 \item{jointXY}{identifiability of the joint distribution
-of \eqn{X} and \eqn{Y} }
-\item{marginX}{identifiability of the marginal distribution of \eqn{X} }
-\item{marginY}{identifiability of the marginal distribution of \eqn{Y} }
+of \eqn{X} and \eqn{Y}}
+\item{marginX}{identifiability of the marginal distribution of \eqn{X}.}
+\item{marginY}{identifiability of the marginal distribution of \eqn{Y}.}
 \item{YcondX}{identifiability of the conditional distribution of \eqn{Y}
-given \eqn{X} }
-\item{YdoX}{identifiability of the causal effect of \eqn{X} on \eqn{Y} }
+given \eqn{X}.}
+\item{YdoX}{identifiability of the causal effect of \eqn{X} on \eqn{Y}.}
 }
+}
+\source{
+Tikka et al. \url{https://arxiv.org/abs/1902.01073}
 }
 \usage{
 data(bivariate_missingness)

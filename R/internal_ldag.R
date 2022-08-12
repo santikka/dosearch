@@ -80,7 +80,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
 #' @noRd
 transform_graph_ldag <- function(args, graph) {
   if (!nzchar(graph)){
-    stop("Invalid graph: the graph is empty.")
+    stop_("Invalid graph: the graph is empty.")
   } else {
     row_pattern <- "^(.+(?>->|--|<->)[^\\:]+)(?>\\:(.+))?$"
     graph_split <- strsplit(graph, "\r|\n")[[1L]]
@@ -95,7 +95,7 @@ transform_graph_ldag <- function(args, graph) {
       args$dir_lhs <- vapply(directed, "[[", character(1L), 1L)
       args$dir_rhs <- vapply(directed, "[[", character(1L), 2L)
       if (any(args$dir_lhs == args$dir_rhs)) {
-        stop("Invalid graph: no self loops are allowed.")
+        stop_("Invalid graph: no self loops are allowed.")
       }
     }
     contexts_split <- list()
@@ -212,31 +212,31 @@ parse_labels <- function(args) {
 #' @noRd
 validate_label <- function(from, to, pa, label_lhs) {
   if (length(pa) == 0L) {
-    stop(
+    stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       "no parents to assign."
     )
   }
   if (any(duplicated(label_lhs))) {
-    stop(
+    stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       "duplicate assignment."
     )
   }
   if (from %in% label_lhs) {
-    stop(
+    stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       from, " cannot appear in the label."
     )
   }
   if (to %in% label_lhs) {
-    stop(
+    stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       to, " cannot appear in the label."
     )
   }
   if (any(!label_lhs %in% pa)) {
-    stop(
+    stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       "only other parents of ", to, " may be assigned."
     )
@@ -485,7 +485,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
   d_parsed <- gsub("do", "$", d_parsed)
   d_split <- match_distribution_ldag(d_parsed)
   if (any(is.na(d_split[[1L]]))) {
-    stop(
+    stop_(
       "Invalid ", type, ": ", d, "."
     )
   }
@@ -493,7 +493,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
   for (j in which(!d_null))  {
     dup <- duplicated(d_split[[j]])
     if (any(dup)) {
-      stop(
+      stop_(
         "Invalid ", type, ": ", d, ", ",
         "cannot contain duplicated variables ", d_split[[j]][dup], "."
       )
@@ -507,7 +507,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
       eq_rhs <- gsub("\\s+", "", eq_rhs)
       uniq_rhs <- unique(eq_rhs)
       if (!(uniq_rhs[1L] %in% 0L:1L)) {
-        stop(
+        stop_(
           "Invalid value assignment in ", type, ": ", d, "."
         )
       }
@@ -582,7 +582,7 @@ validate_input_distributions_ldag <- function(args) {
       to_dec(p[[4L]], args$n)
     )
     if (bitwAnd(args$p_list[[i]][1L], args$p_list[[i]][2L]) > 0L) {
-      stop(
+      stop_(
         "Invalid input distribution on data line ",
         i, ": ", p[[4L]], ", ",
         "same variable on the left and right-hand side."
@@ -604,7 +604,7 @@ validate_query_ldag <- function(args) {
     to_dec(args$q_process[[4L]], args$n)
   )
   if (bitwAnd(args$q_vec[1L], args$q_vec[2L]) > 0L) {
-    stop(
+    stop_(
       "Invalid query: ",
       args$q_process[[4L]], ", ",
       "same variable on the left and right-hand side."

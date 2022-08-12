@@ -1,3 +1,11 @@
+#' Stop Function Execution Without Displaying the Call
+#'
+#' @inheritParams base::stop
+#' @noRd
+stop_ <- function(..., domain = NULL) {
+  stop(..., call. = FALSE, domain = domain)
+}
+
 #' Convert a Vector of Unique Intergers to a Set
 #'
 #' @param vec An `integer` vector.
@@ -22,7 +30,7 @@ to_vec <- function(dec, n) {
   } else {
     b <- integer(n)
     for (i in seq_len(n)) {
-      b[n - i + 1L] <- (dec %/% 2)
+      b[n - i + 1L] <- (dec %% 2L) * 1L
       dec <- (dec %/% 2)
     }
     rev(b)
@@ -30,6 +38,9 @@ to_vec <- function(dec, n) {
 }
 
 #' Create a Comma-separated Character String
+#'
+#' @param x A `character` vector.
+#' @noRd
 cs <- function(x) {
   paste0(x, collapse = ", ")
 }
@@ -58,7 +69,7 @@ add_new_vars <- function(args, new_vars) {
 #' @noRd
 validate_special <- function(spec_name, spec) {
   if (!is.null(spec) && (!is.character(spec) || length(spec) > 1L)) {
-    stop("Argument `", spec_name, "` must be a character vector of length 1.")
+    stop_("Argument `", spec_name, "` must be a character vector of length 1.")
   }
 }
 
@@ -69,7 +80,7 @@ validate_special <- function(spec_name, spec) {
 parse_data <- function(data) {
   if (is.character(data)) {
     if (length(data) > 1L) {
-      stop("Argument `data` must be of length 1 when of type `character`.")
+      stop_("Argument `data` must be of length 1 when of type `character`.")
     }
     data
   } else if (is.list(data)) {
@@ -77,7 +88,7 @@ parse_data <- function(data) {
   } else if (is.numeric(data)) {
     parse_distribution(data)
   } else {
-    stop("Argument `data` is of an unsupported type.")
+    stop_("Argument `data` is of an unsupported type.")
   }
 }
 
@@ -88,13 +99,13 @@ parse_data <- function(data) {
 parse_query <- function(query) {
   if (is.character(query)) {
     if (length(query) > 1L) {
-      stop("Argument `query` must be of length 1 when of type `character`.")
+      stop_("Argument `query` must be of length 1 when of type `character`.")
     }
     query
   } else if (is.numeric(query)) {
     parse_distribution(query)
   } else {
-    stop("Argument `query` is of an unsupported type.")
+    stop_("Argument `query` is of an unsupported type.")
   }
 }
 
@@ -108,19 +119,19 @@ parse_distribution <- function(d) {
   } else if (is.numeric(d)) {
     v <- names(d)
     if (any(is.na(d) | !is.finite(d))) {
-      stop(
+      stop_(
         "Invalid distribution format ", deparse1(d), ": ",
         "all role values must be non-missing and finite."
       )
     }
     if (any(!d %in% 0:2)) {
-      stop(
+      stop_(
         "Invalid variable roles in distribution format ", deparse1(d), ": ",
         "all role values must be either 0, 1 or 2."
       )
     }
     if (all(d > 0)) {
-      stop(
+      stop_(
         "Invalid variable roles in distribution format ", deparse1(d), ": ",
         "at least one variable must have role value 0."
       )
@@ -147,7 +158,7 @@ parse_distribution <- function(d) {
       C, ")", sep = ""
     )
   } else {
-    stop("Unsupported distribution format ", d, ".")
+    stop_("Unsupported distribution format ", d, ".")
   }
 }
 
@@ -188,25 +199,25 @@ parse_graph <- function(graph) {
       }
       paste0(c(g_obs, g_unobs), collapse = "\n")
     } else {
-      stop("The `igraph` package is not available.")
+      stop_("The `igraph` package is not available.")
     }
   } else if (inherits(graph, "dagitty")) {
     if (requireNamespace("dagitty", quietly = TRUE)) {
       if (!identical(dagitty::graphType(graph), "dag")) {
-        stop("Attempting to use `dagitty`, but argument `graph` is not a DAG.")
+        stop_("Attempting to use `dagitty`, but argument `graph` is not a DAG.")
       }
       e <- dagitty::edges(graph)
       paste(e[, 1L], e[, 3L], e[, 2L], collapse = "\n")
     } else {
-      stop("The `dagitty` package is not available.")
+      stop_("The `dagitty` package is not available.")
     }
   } else if (is.character(graph)) {
     if (length(graph) > 1L) {
-      stop("Argument `graph` must be of length 1 when of `character` type.")
+      stop_("Argument `graph` must be of length 1 when of `character` type.")
     }
     graph
   } else {
-    stop("Argument `graph` is of an unsupported type.")
+    stop_("Argument `graph` is of an unsupported type.")
   }
 }
 
@@ -245,7 +256,7 @@ control_defaults <- function(control) {
   default_names <- names(default)
   control_names <- names(control)
   if (any(!control_names %in% default_names)) {
-    stop(
+    stop_(
       "Unknown control arguments: ",
       control_names[!control_names %in% default_names]
     )
@@ -258,7 +269,7 @@ control_defaults <- function(control) {
   control_types <- vapply(control, typeof, character(1L))
   invalid_types <- default_types != control_types
   if (any(invalid_types)) {
-    stop(
+    stop_(
       "Some elements of argument `control` have an invalid type.\n",
       "Invalid arguments: ",
       paste0(names(control)[invalid_types], collapse = ", "),

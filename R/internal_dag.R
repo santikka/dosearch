@@ -31,24 +31,9 @@ get_derivation_dag <- function(data, query, graph, transportability,
   args <- reorder_variables(args)
   args <- parse_query_dag(args, query, missing_data)
   args <- parse_input_distributions_dag(args, data, missing_data)
-  if (control$warn) {
-    var_dec <- to_dec(args$nums[args$var_pool], args$n)
-    if (!is.null(missing_data)) {
-      inc_md <- bitwAnd(args$md_s, var_dec)
-      if (inc_md != args$md_s) {
-        no_ind <- args$vars[
-          which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
-        ]
-        warning(
-          "There are response indicators ",
-          "that are not present in any input distribution: ",
-          paste(no_ind, collapse = ", ")
-        )
-      }
-    }
-  }
   args <- validate_input_distributions_dag(args)
   args <- validate_query_dag(args)
+  check_valid_input(args, control, missing_data)
   res <- initialize_dosearch(
     as.numeric(args$nums[args$dir_lhs]),
     as.numeric(args$nums[args$dir_rhs]),
@@ -107,7 +92,7 @@ get_derivation_dag <- function(data, query, graph, transportability,
 transform_graph_dag <- function(args, graph, missing_data) {
   if (!nzchar(graph)) {
     if (is.null(missing_data)) {
-      stop("Invalid graph, the graph is empty.")
+      stop_("Invalid graph, the graph is empty.")
     }
   } else {
     graph <- gsub("<->", "--", graph)
@@ -116,7 +101,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
     line_lengths <- lengths(graph_split)
     malformed_lines <- line_lengths > 0 & line_lengths != 3L
     if (any(malformed_lines)) {
-      stop(
+      stop_(
         "Invalid graph, malformed lines found: ",
         cs(graph_lines[malformed_lines])
       )
@@ -126,7 +111,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
     edges <- vapply(graph_split, "[[", character(1L), 2L)
     valid_edges <- grepl("(->)|(--)", edges)
     if (any(!valid_edges)) {
-      stop(
+      stop_(
         "Invalid graph, unknown edge types found: ",
         cs(edges[!valid_edges])
       )
@@ -139,7 +124,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
       args$dir_rhs <- vapply(di, "[[", character(1L), 3L)
       loops <- args$dir_lhs == args$dir_rhs
       if (any(loops)) {
-        stop(
+        stop_(
           "Invalid graph, no self loops are allowed: ",
           cs(graph_lines[directed][loops])
         )
@@ -156,7 +141,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
       loops <- args$bi_lhs == args$bi_rhs
       if (any(loops)) {
         loop_edges <- gsub("--", "<->", cs(graph_lines[bidirected][loops]))
-        stop(
+        stop_(
           "Invalid graph, no self loops are allowed: ",
           loop_edges
         )
@@ -178,14 +163,14 @@ parse_missing_data <- function(args, missing_data) {
   if (!is.null(missing_data)) {
     md_pairs <- gsub("\\s+", "", strsplit(missing_data, ",")[[1L]])
     if (length(md_pairs) == 0L) {
-      stop("Invalid missing data mechanisms.")
+      stop_("Invalid missing data mechanisms.")
     }
     md_mechanisms <- strsplit(md_pairs, ":")
     md_true <- sapply(md_mechanisms, "[[", 2L)
     md_switch <- sapply(md_mechanisms, "[[", 1L)
     md_proxy <- paste0(md_true, "*")
     if (any(md_switch %in% args$dir_lhs[args$dir_rhs %in% md_true])) {
-      stop("A missing data mechanism cannot be a parent of a true variable.")
+      stop_("A missing data mechanism cannot be a parent of a true variable.")
     }
     args$dir_lhs <- c(args$dir_lhs, md_true, md_switch)
     args$dir_rhs <- c(args$dir_rhs, md_proxy, md_proxy)
@@ -198,7 +183,7 @@ parse_missing_data <- function(args, missing_data) {
     md_switch_nums <- args$nums[md_switch]
     md_proxy_nums <- args$nums[md_proxy]
     if (any(is.na(md_switch_nums)) || any(is.na(md_proxy_nums))) {
-      stop("Invalid missing data mechanisms.")
+      stop_("Invalid missing data mechanisms.")
     }
     args$md_s <- to_dec(md_switch_nums, args$n)
     args$md_p <- to_dec(md_proxy_nums, args$n)
@@ -224,11 +209,11 @@ parse_transportability <- function(args, transportability) {
     ]
     args$n_tr <- length(args$tr_nums)
     if (args$n_tr == 0L) {
-      stop("Invalid transportability nodes.")
+      stop_("Invalid transportability nodes.")
     }
     pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
     if (any(args$tr_nums %in% pa)) {
-      stop(
+      stop_(
         "Invalid graph: ",
         "a transportability node cannot be a child of another node."
       )
@@ -249,10 +234,10 @@ parse_selection_bias <- function(args, selection_bias) {
     ]
     args$n_sb <- length(args$sb_nums)
     if (args$n_sb == 0L) {
-      stop("Invalid selection bias nodes.\n")
+      stop_("Invalid selection bias nodes.\n")
     }
     if (any(args$sb_nums %in% args$nums[args$dir_lhs])) {
-      stop(
+      stop_(
         "Invalid graph: ",
         "a selection bias node cannot be a parent of another node."
       )
@@ -308,13 +293,13 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
   d_parsed <- gsub("do", "$", d_parsed)
   d_split <- match_distribution_dag(d_parsed)
   if (any(is.na(d_split[[1L]]))) {
-    stop("Invalid ", type, ".")
+    stop_("Invalid ", type, ".")
   }
   d_null <- vapply(d_split, is.null, logical(1L))
   for (j in which(!d_null)) {
     dup <- duplicated(d_split[[j]])
     if (any(dup)) {
-      stop(
+      stop_(
         "Invalid ", type, ": ", d, ", ",
         "cannot contain duplicated variables ", d_split[[j]][dup], "."
       )
@@ -329,13 +314,13 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
         eq_rhs <- gsub("\\s+", "", eq_rhs)
         uniq_rhs <- unique(eq_rhs)
         if (length(uniq_rhs) > 1L) {
-          stop(
+          stop_(
             "Cannot use multiple symbols ",
             "to denote active missing data mechanisms."
           )
         }
         if (uniq_rhs[1L] != args$md_sym) {
-          stop(
+          stop_(
             "Invalid symbol for missing data mechanism on data line ",
             i,
             ": ",
@@ -413,52 +398,83 @@ parse_input_distributions_dag <- function(args, data, missing_data) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @param d An `integer` vector of length 4 denoting the distribution.
 #' @noRd
-validate_distribution_dag <- function(args, d) {
-  msg <- ""
+validate_distribution_dag <- function(args, msg, d, d_str) {
   left_proxy <- bitwAnd(
     bitwShiftR(bitwAnd(d[1L], args$md_p), 2L),
     bitwAnd(d[2L], args$md_t)
   )
+  if (left_proxy > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "proxy variable of a true variable on the left-hand side."
+    )
+  }
   left_true <- bitwAnd(
     bitwShiftL(bitwAnd(d[1L], args$md_t), 2L),
     bitwAnd(d[2L], args$md_p)
   )
+  if (left_true > 0L) {
+    stop_(
+      msg, d_str, ": ",
+     "true variable of a proxy variable on the left-hand side."
+    )
+  }
   both_left <- bitwAnd(
     bitwShiftR(bitwAnd(d[1L], args$md_p), 2L),
     bitwAnd(d[1L], args$md_t)
   )
+  if (both_left > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "true and proxy versions of the same variable on the left-hand side."
+    )
+  }
   both_right <- bitwAnd(
     bitwShiftR(bitwAnd(d[2L], args$md_p), 2L),
     bitwAnd(d[2L], args$md_t)
   )
-  if (left_proxy > 0L) {
-    msg <- "proxy variable of a true variable present on the left-hand side."
-  } else if (left_true > 0L) {
-    msg <- "true variable of a proxy variable present on the left-hand side."
-  } else if (both_left > 0L) {
-    msg <- paste0(
-      "true and proxy versions of the same variable ",
-      "present on the left-hand side."
+  if (both_right > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "true and proxy versions of the same variable on the right-hand side."
     )
-  } else if (both_right > 0L) {
-    msg <- paste0(
-      "true and proxy versions of the same variable ",
-      "present on the right-hand side."
-    )
-  } else if (bitwAnd(d[1L], d[2L]) > 0L) {
-    msg <- "same variable on the left and right-hand side."
-  } else if (bitwAnd(d[1L], args$tr) > 0L) {
-    msg <- "cannot contain a transportability node on the left-hand side."
-  } else if (bitwAnd(d[1L], args$sb) > 0L) {
-    msg <- "cannot contain a a selection bias node on the left-hand side."
-  } else if (bitwAnd(d[3L], args$tr) > 0L) {
-    msg <- "cannot intervene on a transportability node."
-  } else if (bitwAnd(d[3L], args$sb) > 0L) {
-    msg <- "cannot intervene on a selection bias node."
-  } else if (bitwAnd(d[4L], args$md_s) != d[4L] ) {
-    msg <- "cannot set value of non-missing data mechanism.\n"
   }
-  msg
+  if (bitwAnd(d[1L], d[2L]) > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "same variable on the left and right-hand side."
+    )
+  }
+  if (bitwAnd(d[1L], args$tr) > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "transportability node on the left-hand side."
+    )
+  }
+  if (bitwAnd(d[1L], args$sb) > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "selection bias node on the left-hand side."
+    )
+  }
+  if (bitwAnd(d[3L], args$tr) > 0L) {
+    stop_(
+      msg, d_str, ":\n",
+      "intervention on a transportability node."
+    )
+  }
+  if (bitwAnd(d[3L], args$sb) > 0L) {
+    stop_(
+      msg, d_str, ": ",
+      "intervention on a selection bias node."
+    )
+  }
+  if (bitwAnd(d[4L], args$md_s) != d[4L] ) {
+    stop_(
+      msg, d_str, ": ",
+      "value assignment of a non-missing data mechanism.\n"
+    )
+  }
 }
 
 #' Check the Validity of Input Distributions
@@ -475,17 +491,12 @@ validate_input_distributions_dag <- function(args) {
       to_dec(p[[3]], args$n),
       to_dec(p[[4]], args$n)
     )
-    msg <- validate_distribution_dag(args, args$p_list[[i]])
-    if (nzchar(msg)) {
-      stop(
-        "Invalid input distribution on data line ",
-        i,
-        ": ",
-        p[[4L]],
-        ", ",
-        msg
-      )
-    }
+    validate_distribution_dag(
+      args,
+      "Invalid input distribution ",
+      args$p_list[[i]],
+      p[[5L]]
+    )
   }
   args
 }
@@ -495,20 +506,44 @@ validate_input_distributions_dag <- function(args) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 validate_query_dag <- function(args) {
+  q <- args$q_process
   args$q_vec <- c(
-    to_dec(args$q_process[[1L]], args$n),
-    to_dec(c(args$q_process[[2L]], args$q_process[[3L]]), args$n),
-    to_dec(args$q_process[[3L]], args$n),
-    to_dec(args$q_process[[4L]], args$n)
+    to_dec(q[[1L]], args$n),
+    to_dec(c(q[[2L]], q[[3]]), args$n),
+    to_dec(q[[3L]], args$n),
+    to_dec(q[[4L]], args$n)
   )
-  msg <- validate_distribution_dag(args, args$q_vec)
-  if (nzchar(msg)) {
-    stop(
-      "Invalid query: ",
-      msg
-    )
-  }
+  validate_distribution_dag(
+    args,
+    "Invalid query ",
+    args$q_vec,
+    q[[5L]]
+  )
   args
+}
+
+#' Check Otherwise Valid Inputs For Potential Mistakes
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @inheritParams dosearch
+#' @noRd
+check_valid_input <- function(args, control, missing_data) {
+  if (control$warn) {
+    var_dec <- to_dec(args$nums[args$var_pool], args$n)
+    if (!is.null(missing_data)) {
+      inc_md <- bitwAnd(args$md_s, var_dec)
+      if (inc_md != args$md_s) {
+        no_ind <- args$vars[
+          which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
+        ]
+        warning(
+          "There are response indicators ",
+          "that are not present in any input distribution: ",
+          paste(no_ind, collapse = ", ")
+        )
+      }
+    }
+  }
 }
 
 #' Determine the Type of a Distribution

@@ -6,7 +6,6 @@
 #' or `@srrstatsNA`, ensuring that references to every one of the following
 #' standards remain somewhere within your code.
 #' (These comments may be deleted at any time.)
-#'
 #' @srrstatsVerbose TRUE
 #' @noRd
 NULL
