@@ -172,23 +172,6 @@ void dcongraph::add_conf(const int& from, const int& to) {
   Ce[from-1][to-1] = true;
 }
 
-void dcongraph::remove_edge(const int& from, const int& to) {
-  B[to-1][from-1] = false;
-}
-
-void dcongraph::remove_conf(const int& from, const int& to) {
-  Ce[to-1][from-1] = false;
-  Ce[from-1][to-1] = false;
-}
-
-bool dcongraph::edge(const int& from, const int& to) const {
-  return B[to-1][from-1];
-}
-
-bool dcongraph::conf(const int& from, const int& to) const {
-  return Ce[to-1][from-1];
-}
-
 void dcongraph::set_trnodes(const int& t) {
   tr = t;
 }

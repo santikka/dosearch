@@ -17,7 +17,6 @@ void dosearch::set_graph(dcongraph* g_) {
 
 void dosearch::set_options(const std::vector<int>& rule_vec) {
   trivial_id = false;
-  format_do = true;
   index = 0;
   lhs = 0;
 
@@ -112,7 +111,7 @@ void dosearch::derive_distribution(const distr& iquery, const distr& required, c
       if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
       else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
       Rcpp::Rcout << "Target found" << endl;
-      Rcpp::Rcout << "index = " << index << endl;
+      Rcpp::Rcout << "Index = " << index << endl;
     }
     target_dist.push_back(nquery);
     found = true;
@@ -211,7 +210,7 @@ std::string dosearch::derive_formula(distr& dist) {
         if (dist.primitive) formula = to_string(dist.pp);
         else {
           if (rsq == 25) {
-            formula = "\\frac{" + paf1 + "}{\\sum_{" + dec_to_text(dist.pp.a, 0) + "} " + paf1 + "}";
+            formula = "\\frac{" + paf1 + "}{\\sum_{" + dec_to_text(dist.pp.a, 0) + "}" + paf1 + "}";
           } else if (rsq == 16) {
             formula =  "\\sum_{" + dec_to_text(pa1.pp.a - dist.pp.a, 0) + "}" + paf1;
           } else if (rsq >= 81) {
@@ -278,22 +277,15 @@ std::string dosearch::to_string(const p& pp) const {
   int c = pp.c;
   int d = pp.d;
   std::string s = "";
-  if (format_do) {
-    s += "p(" + dec_to_text(a, d);
-    if (b != 0) s += "|";
-    if (c != 0) s += "do(" + dec_to_text(c, d) + ")";
-    b = b & ~c;
-    if (b != 0) {
-      if (c != 0) s += ",";
-      s += dec_to_text(b, d);
-    }
-    s += ")";
-  } else {
-    s += "p(" + dec_to_text(a, d);
-    if (b != 0) s += "|" + dec_to_text(b, d);
-    if (c != 0) s += "||" + dec_to_text(c, d);
-    s += ")";
+  s += "p(" + dec_to_text(a, d);
+  if (b != 0) s += "|";
+  if (c != 0) s += "do(" + dec_to_text(c, d) + ")";
+  b = b & ~c;
+  if (b != 0) {
+    if (c != 0) s += ",";
+    s += dec_to_text(b, d);
   }
+  s += ")";
   return s;
 }
 

@@ -10,13 +10,10 @@ test_that("backdoor formula is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     "\\sum_{z}\\left(p(z)p(y|x,z)\\right)",
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
   )
 })
 
@@ -32,13 +29,10 @@ test_that("frontdoor formula is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
+  expect_true(out$identifiable)
   expect_equal(
     out$formula,
     "\\sum_{z}\\left(p(z|x)\\sum_{x}\\left(p(x)p(y|z,x)\\right)\\right)"
-  )
-  expect_equal(
-    out$identifiable,
-    TRUE
   )
 })
 
@@ -53,10 +47,7 @@ test_that("bow-arc is non-identifiable", {
     out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
     NA
   )
-  expect_identical(
-    out$identifiable,
-    FALSE
-  )
+  expect_false(out$identifiable)
 })
 
 test_that("all rules are needed", {
@@ -88,17 +79,12 @@ test_that("all rules are needed", {
       control = list(heuristic = TRUE, draw_derivation = TRUE)),
     NA
   )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
-  #
+  expect_true(out$identifiable)
   rules <- c(-2, 2, -3, 3, 4, 5, -6, 6)
   for (r in rules) {
     r_mis <- setdiff(rules, r)
-    expect_identical(
-      dosearch(data, query, graph, control = list(rules = r_mis))$identifiable,
-      FALSE
+    expect_false(
+      dosearch(data, query, graph, control = list(rules = r_mis))$identifiable
     )
   }
 })
@@ -122,12 +108,9 @@ test_that("transportability and selection bias are checked", {
     graph,
     transportability = "t",
     selection_bias = "s",
-    control = list(heuristic = TRUE)
+    control = list(heuristic = TRUE, improve = FALSE)
   )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     "\\sum_{z}\\left(p(y|do(x),z,t)\\sum_{y}p(z,y|x,s)\\right)"
@@ -154,15 +137,12 @@ test_that("missing data mechanisms are checked", {
     p(y)
   "
   out <- dosearch(data, query, graph, missing_data = md)
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     paste0(
       "\\frac{\\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}",
-      "{\\sum_{y} \\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}"
+      "{\\sum_{y}\\left(p(y)p(x|r_x = 1,y,r_y = 1)\\right)}"
     )
   )
   out <- dosearch(
@@ -176,26 +156,17 @@ test_that("missing data mechanisms are checked", {
 
 test_that("trivial non-identifiability is checked", {
   out <- dosearch("p(x)", "p(y)", "x -> y")
-  expect_identical(
-    out$identifiable,
-    FALSE
-  )
-  expect_identical(
-    out$formula,
-    ""
-  )
+  expect_false(out$identifiable)
+  expect_identical(out$formula, "")
 })
 
 test_that("trivial identifiability is checked", {
   out <- dosearch("p(y)", "p(y)", "x -> y")
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
-  expect_identical(
-    out$formula,
-    "p(y)"
-  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y)")
+  out <- dosearch("p(y)", "p(y)", "x -> y", control = list(heuristic = TRUE))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y)")
 })
 
 test_that("verbose search works", {
@@ -210,22 +181,68 @@ test_that("verbose search works", {
     dosearch(data, query, graph, control = list(verbose = TRUE))
   )
   out_len <- length(out)
-  expect_match(
-    out[1L],
-    "Setting target"
-  )
-  expect_match(
-    out[2L],
-    "Adding known distribution"
-  )
+  expect_match(out[1L], "Setting target")
+  expect_match(out[2L], "Adding known distribution")
   for (i in seq.int(3L, out_len - 3L)) {
-    expect_match(
-      out[i],
-      "Derived"
-    )
+    expect_match(out[i], "Derived")
   }
-  expect_match(
-    out[out_len - 2L],
-    "Target found"
+  expect_match(out[out_len - 2L], "Target found")
+  expect_match(out[out_len - 1L], "Index")
+})
+
+test_that("time limit works", {
+  data <- "
+    p(x*,y*,z*,r_x,r_y,r_z)
+    p(y)
+  "
+  query <- "p(y|do(x))"
+  graph <- "
+    x -> z
+    z -> y
+    y -> r_y
+    x <-> y
+    r_y -> r_x
+    r_y -> r_z
+    r_y <-> r_x
+    r_y <-> r_z
+    r_z <-> r_x
+  "
+  md <- "r_x : x, r_y : y, r_z : z"
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    missing_data = md,
+    control = list(
+      heuristic = TRUE,
+      improve = FALSE,
+      time_limit = 1/3600000,
+      benchmark = TRUE,
+      benchmark_rules = TRUE
+    )
+  )
+  expect_true(out$time > 1.0)
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    missing_data = md,
+    control = list(
+      heuristic = TRUE,
+      improve = FALSE,
+      time_limit = 1/3600000,
+      benchmark = TRUE
+    )
+  )
+  expect_true(out$time > 1.0)
+})
+
+test_that("missing response indicators warns", {
+  expect_warning(
+    out <- dosearch("p(x*)", "p(x)", "x -> y", missing_data = "r_x : x"),
+    paste0(
+      "There are response indicators that are not present ",
+      "in any input distribution"
+    )
   )
 })

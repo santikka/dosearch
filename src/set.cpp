@@ -24,10 +24,6 @@ int unary(const int& x) {
   return 1 << (x - 1);
 }
 
-bool is_subset(const int & subset, const int& set) {
-  return (set & subset) == subset;
-}
-
 std::vector<int> get_subsets(const int& n) {
   std::vector<int> sets;
   for (int i = 1; i <= n; i++) {

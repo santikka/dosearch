@@ -76,7 +76,7 @@ graph <- "
 "
 md <- "r_x : x, r_y : y"
 dosearch(data, query, graph, missing_data = md)
-#> \frac{\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}{\sum_{y} \left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}
+#> \frac{\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}{\sum_{y}\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}
 ```
 
 ## References

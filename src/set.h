@@ -15,8 +15,6 @@ int unary(const int& x);
 
 int set_union(const int& set1, const int& set2);
 
-bool is_subset(const int& subset, const int& set);
-
 // get non-empty subsets of a set of size n in order of cardinality (banker's sequence)
 std::vector<int> get_subsets(const int &n);
 

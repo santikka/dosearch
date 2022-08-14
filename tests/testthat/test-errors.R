@@ -114,6 +114,17 @@ test_that("gets can't be got for non-dosearch objects", {
   expect_error(get_benchmark(data.frame()), err)
 })
 
+test_that("transportability and selection bias nodes exist", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y", transportability = "t"),
+    "Transportability nodes t are not present in the graph"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y", selection_bias = "s"),
+    "Selection bias nodes s are not present in the graph"
+  )
+})
+
 test_that("empty graph fails", {
   expect_error(
     dosearch("p(x)", "p(y)", ""),
@@ -151,8 +162,30 @@ test_that("self loops fail", {
   )
 })
 
+test_that("syntactically incorrect inputs fail", {
+  malformed_inputs <- c("(", "p(", "p(x", "p(x|y", "p(x|do(x", "p(x|do(x)", NA)
+  for (m in malformed_inputs) {
+    expect_error(
+      dosearch(m, "p(y)", "x -> y"),
+      "Unable to parse input distribution"
+    )
+  }
+})
+
 test_that("syntactically correct but semantically incorrect inputs fail", {
-  md <- "r_x : x"
+  md <- "r_x : x, r_y : y"
+  expect_error(
+    dosearch("p(x,x)", "p(y)", "x -> r_x"),
+    "duplicated variables"
+  )
+  expect_error(
+    dosearch("p(x,r_x=2,r_y=1)", "p(y)", "x -> r_x", missing_data = md),
+    "multiple symbols used for missing data mechanisms"
+  )
+  expect_error(
+    dosearch("p(x,r_x=2)", "p(y)", "x -> r_x", missing_data = md),
+    "invalid symbol used for a missing data mechanism"
+  )
   expect_error(
     dosearch("p(x,x*)", "p(y)", "x -> r_x", missing_data = md),
     "true and proxy versions of the same variable on the left-hand side"

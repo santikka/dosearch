@@ -3,7 +3,32 @@
 # context-specific independence relations, In Proceedings of the 33rd Annual
 # Conference on Neural Information Processing Systems, 2019.
 
-test_that("causal effect of X on Y in fig 6(a) is identified", {
+test_that("causal effect of X on Y is identified in fig 1(e)", {
+  data <- "P(A,X,Y)"
+  query <- "P(Y|X,I_X=1)"
+  graph <- "
+    I_X -> X
+    X -> Y : A = 1
+    L -> X : I_X = 1; A = 0
+    L -> Y
+    A -> X : I_X = 1
+    A -> Y
+  "
+  expect_error(
+    out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
+    NA
+  )
+  expect_true(out$identifiable)
+  expect_identical(
+    out$formula,
+    paste0(
+      "\\sum_{A}\\left[\\left(p(Y|X,A = 0)\\left[p(A)\\right]_{A = 0}\\right) ",
+      "/\\ \\left(p(Y|A = 1)\\left[p(A)\\right]_{A = 1}\\right)\\right]"
+    )
+  )
+})
+
+test_that("causal effect of X on Y is identified in fig 6(a)", {
   data <- "P(X,Y,W)"
   query <- "P(Y|X,I_X=1)"
   graph <- "
@@ -18,14 +43,8 @@ test_that("causal effect of X on Y in fig 6(a) is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
-  expect_identical(
-    out$formula,
-    "p(Y|X,W = 1)"
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y|X,W = 1)")
 })
 
 test_that("causal effect of X on Y in fig 6(b) is identified", {
@@ -45,14 +64,8 @@ test_that("causal effect of X on Y in fig 6(b) is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
-  expect_identical(
-    out$formula,
-    "p(Y)"
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
 })
 
 test_that("causal effect of X on Y in fig 6(c) is identified", {
@@ -72,16 +85,13 @@ test_that("causal effect of X on Y in fig 6(c) is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     paste0(
       "\\sum_{Z}\\left[\\left(p(Y|X,Z = 0)\\left[p(Z)\\right]_{Z = 0}\\right) ",
       "/\\ \\left(p(Y|Z = 1)\\left[p(Z)\\right]_{Z = 1}\\right)\\right]"
     )
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
   )
 })
 
@@ -106,6 +116,7 @@ test_that("causal effect of X on Y in fig 6(d) is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     paste0(
@@ -116,10 +127,6 @@ test_that("causal effect of X on Y in fig 6(d) is identified", {
       "\\left(p(W)\\left(p(Z,Y|X,W,A = 1)",
       "\\left[p(A|X,W)\\right]_{A = 1}\\right)\\right)\\right]"
     )
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
   )
 })
 
@@ -146,13 +153,10 @@ test_that("causal effect of X on Y in fig 6(e) is identified", {
     out <- dosearch(data, query, graph),
     NA
   )
+  expect_true(out$identifiable)
   expect_identical(
     out$formula,
     "\\sum_{Z}\\left(p(Y|X,Z,A = 0)\\left[p(Z|A)\\right]_{A = 0}\\right)"
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
   )
 })
 
@@ -173,44 +177,23 @@ test_that("nested csi criterion is applied", {
     out <- dosearch(data, query, graph, control = list(cache = FALSE)),
     NA
   )
-  expect_identical(
-    out$formula,
-    "p(Y)"
-  )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
   expect_error(
     out <- dosearch(data, query, graph, control = list(heuristic = TRUE)),
     NA
   )
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
+  expect_true(out$identifiable)
 })
 
 test_that("trivial non-identifiability is checked", {
   out <- dosearch("p(x)", "p(y)", "x -> y\nz -> y : x = 1")
-  expect_identical(
-    out$identifiable,
-    FALSE
-  )
-  expect_identical(
-    out$formula,
-    ""
-  )
+  expect_false(out$identifiable)
+  expect_identical(out$formula, "")
 })
 
 test_that("trivial identifiability is checked", {
   out <- dosearch("p(y)", "p(y)", "x -> y\nz -> y : x = 1")
-  expect_identical(
-    out$identifiable,
-    TRUE
-  )
-  expect_identical(
-    out$formula,
-    "p(y)"
-  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y)")
 })

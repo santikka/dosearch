@@ -17,7 +17,6 @@ void csisearch::set_graph(ldag* g_) {
 
 void csisearch::set_options(const std::vector<int>& rule_vec) {
   trivial_id = false;
-  format_do = true;
   index = 0;
   lhs = 0;
   
@@ -97,8 +96,8 @@ void csisearch::derive_distribution(const distr& iquery, const distr& required, 
     if (verbose) {
       if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
       else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
-      Rcpp::Rcout << "!!!! Managed to hit the target !!!!" << endl;
-      Rcpp::Rcout << "index = " << index << endl;
+      Rcpp::Rcout << "Target found" << endl;
+      Rcpp::Rcout << "Index = " << index << endl;
     }
     target_dist.push_back(nquery);
     found = true;
@@ -227,7 +226,7 @@ std::string csisearch::derive_formula(distr& dist) {
           if (rsq == 0) {
             formula =  "\\sum_{" + dec_to_text(pa1.pp.a - dist.pp.a, 0, 0) + "}" + paf1;
           } else if (rsq == 1) {
-            formula = "\\frac{" + paf1 + "}{\\sum_{" + dec_to_text(dist.pp.a, 0, 0) + "} " + paf1 + "}";
+            formula = "\\frac{" + paf1 + "}{\\sum_{" + dec_to_text(dist.pp.a, 0, 0) + "}" + paf1 + "}";
           } else if (rsq == 64) {
             if (dist.pp.c - pa1.pp.c > 0) {
               formula = "\\left[" + paf1 + "\\right]_{" + dec_to_text(dist.pp.c - pa1.pp.c, 0, 0) + " = 0}";

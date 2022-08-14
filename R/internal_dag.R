@@ -204,13 +204,15 @@ parse_missing_data <- function(args, missing_data) {
 #' @noRd
 parse_transportability <- function(args, transportability) {
   if (!is.null(transportability)) {
-    args$tr_nums <- args$nums[
-      gsub("\\s+", "", strsplit(transportability, ",")[[1L]])
-    ]
-    args$n_tr <- length(args$tr_nums)
-    if (args$n_tr == 0L) {
-      stop_("Invalid transportability nodes.")
+    tr_vars <- gsub("\\s+", "", strsplit(transportability, ",")[[1L]])
+    if (!all(tr_vars %in% args$vars)) {
+      tr_mis <- tr_vars[!tr_vars %in% args$vars]
+      stop_(
+        "Transportability nodes ", cs(tr_mis), " are not present in the graph."
+      )
     }
+    args$tr_nums <- args$nums[tr_vars]
+    args$n_tr <- length(args$tr_nums)
     pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
     if (any(args$tr_nums %in% pa)) {
       stop_(
@@ -229,13 +231,15 @@ parse_transportability <- function(args, transportability) {
 #' @noRd
 parse_selection_bias <- function(args, selection_bias) {
   if (!is.null(selection_bias)) {
-    args$sb_nums <- args$nums[
-      gsub("\\s+", "", strsplit(selection_bias, ",")[[1]])
-    ]
-    args$n_sb <- length(args$sb_nums)
-    if (args$n_sb == 0L) {
-      stop_("Invalid selection bias nodes.\n")
+    sb_vars <- gsub("\\s+", "", strsplit(selection_bias, ",")[[1]])
+    if (!all(sb_vars %in% args$vars)) {
+      sb_mis <- sb_vars[!sb_vars %in% args$vars]
+      stop_(
+        "Selection bias nodes ", cs(sb_mis), " are not present in the graph."
+      )
     }
+    args$sb_nums <- args$nums[sb_vars]
+    args$n_sb <- length(args$sb_nums)
     if (any(args$sb_nums %in% args$nums[args$dir_lhs])) {
       stop_(
         "Invalid graph: ",
@@ -293,7 +297,7 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
   d_parsed <- gsub("do", "$", d_parsed)
   d_split <- match_distribution_dag(d_parsed)
   if (any(is.na(d_split[[1L]]))) {
-    stop_("Invalid ", type, ".")
+    stop_("Unable to parse ", type, ": ", d)
   }
   d_null <- vapply(d_split, is.null, logical(1L))
   for (j in which(!d_null)) {
@@ -301,7 +305,7 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
     if (any(dup)) {
       stop_(
         "Invalid ", type, ": ", d, ", ",
-        "cannot contain duplicated variables ", d_split[[j]][dup], "."
+        "duplicated variables ", d_split[[j]][dup], "."
       )
     }
     if (!is.null(missing_data)) {
@@ -315,17 +319,14 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
         uniq_rhs <- unique(eq_rhs)
         if (length(uniq_rhs) > 1L) {
           stop_(
-            "Cannot use multiple symbols ",
-            "to denote active missing data mechanisms."
+            "Invalid ", type, " ", d, ": ",
+            "multiple symbols used for missing data mechanisms."
           )
         }
         if (uniq_rhs[1L] != args$md_sym) {
           stop_(
-            "Invalid symbol for missing data mechanism on data line ",
-            i,
-            ": ",
-            uniq_rhs[1],
-            "."
+            "Invalid ", type, " ", d, ": ",
+            "invalid symbol used for a missing data mechanism."
           )
         }
         d_split[[i]][equals] <- eq_lhs
@@ -472,7 +473,7 @@ validate_distribution_dag <- function(args, msg, d, d_str) {
   if (bitwAnd(d[4L], args$md_s) != d[4L] ) {
     stop_(
       msg, d_str, ": ",
-      "value assignment of a non-missing data mechanism.\n"
+      "value assignment of a non-missing data mechanism."
     )
   }
 }
@@ -539,7 +540,8 @@ check_valid_input <- function(args, control, missing_data) {
         warning(
           "There are response indicators ",
           "that are not present in any input distribution: ",
-          paste(no_ind, collapse = ", ")
+          paste(no_ind, collapse = ", "),
+          .call = FALSE
         )
       }
     }

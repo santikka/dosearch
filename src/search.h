@@ -83,7 +83,7 @@ public:
   vector<int> z_sets;
   vector<int> rules;
   vector<double> rule_times;
-  bool trivial_id, format_do;
+  bool trivial_id;
   unordered_map<int, distr> L;
   unordered_map<string, int> ps;
   stack<int> candidates;

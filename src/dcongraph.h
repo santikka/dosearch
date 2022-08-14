@@ -9,18 +9,10 @@ public:
 
   void add_edge(const int& from, const int& to);
   void add_conf(const int& from, const int& to);
-  void remove_edge(const int& from, const int& to);
-  void remove_conf(const int& from, const int& to);
-  bool edge(const int& from, const int& to) const;
-  bool conf(const int& from, const int& to) const;
-
   void add_ivars();
-
   void empty();
-
   bool dsep(const int& x, const int& y, const int& c, const int& j) const;
   bool dsep_set(const int& xset, const int& yset, const int& c, const int& j) const;
-
   int get_element(const int &set) const;
 
   // set/get transportability nodes
