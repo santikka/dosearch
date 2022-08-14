@@ -38,6 +38,7 @@ Suggests:
     dagitty,
     DOT,
     igraph,
+    mockr,
     testthat (>= 3.0.0)
 LinkingTo: Rcpp
 SystemRequirements: C++11

@@ -125,8 +125,13 @@ transform_graph_dag <- function(args, graph, missing_data) {
       loops <- args$dir_lhs == args$dir_rhs
       if (any(loops)) {
         stop_(
-          "Invalid graph, no self loops are allowed: ",
+          "Invalid graph, the graph contains self-loops: ",
           cs(graph_lines[directed][loops])
+        )
+      }
+      if (!is_acyclic(args$dir_lhs, args$dir_rhs)) {
+        stop_(
+          "Invalid graph, the graph contains cycles."
         )
       }
     }
@@ -142,7 +147,7 @@ transform_graph_dag <- function(args, graph, missing_data) {
       if (any(loops)) {
         loop_edges <- gsub("--", "<->", cs(graph_lines[bidirected][loops]))
         stop_(
-          "Invalid graph, no self loops are allowed: ",
+          "Invalid graph, the graph contains self-loops: ",
           loop_edges
         )
       }
@@ -150,6 +155,10 @@ transform_graph_dag <- function(args, graph, missing_data) {
     args$vars <- unique(
       c(args$dir_rhs, args$dir_lhs, args$bi_rhs, args$bi_lhs)
     )
+    args$n <- length(args$vars)
+    args$nums <- seq_len(args$n)
+    names(args$vars) <- args$nums
+    names(args$nums) <- args$vars
   }
   args
 }
@@ -188,11 +197,6 @@ parse_missing_data <- function(args, missing_data) {
     args$md_s <- to_dec(md_switch_nums, args$n)
     args$md_p <- to_dec(md_proxy_nums, args$n)
     args$md_t <- bitwShiftR(args$md_p, 2L)
-  } else {
-    args$n <- length(args$vars)
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
   }
   args
 }

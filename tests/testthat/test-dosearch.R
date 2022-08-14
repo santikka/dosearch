@@ -183,7 +183,8 @@ test_that("verbose search works", {
   out_len <- length(out)
   expect_match(out[1L], "Setting target")
   expect_match(out[2L], "Adding known distribution")
-  for (i in seq.int(3L, out_len - 3L)) {
+  expect_match(out[3L], "Initializing search")
+  for (i in seq.int(4L, out_len - 3L)) {
     expect_match(out[i], "Derived")
   }
   expect_match(out[out_len - 2L], "Target found")

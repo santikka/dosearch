@@ -12,11 +12,7 @@ stop_ <- function(..., domain = NULL) {
 #' @param n An `integer`, the number of unique elements.
 #' @noRd
 to_dec <- function(vec, n) {
-  if (is.null(vec)) {
-    0L
-  } else {
-    sum(2L^seq.int(0L, n - 1L)[vec])
-  }
+  sum(2L^seq.int(0L, n - 1L)[vec])
 }
 
 #' Convert a Set of Intergers to a Vector of Unique Integers
@@ -25,16 +21,12 @@ to_dec <- function(vec, n) {
 #' @param n An `integer`, the number of unique elements.
 #' @noRd
 to_vec <- function(dec, n) {
-  if (n == 0L) {
-    integer(0L)
-  } else {
-    b <- integer(n)
-    for (i in seq_len(n)) {
-      b[n - i + 1L] <- (dec %% 2L) * 1L
-      dec <- (dec %/% 2)
-    }
-    rev(b)
+  b <- integer(n)
+  for (i in seq_len(n)) {
+    b[n - i + 1L] <- (dec %% 2L) * 1L
+    dec <- (dec %/% 2L)
   }
+  rev(b)
 }
 
 #' Create a Comma-separated Character String
@@ -43,6 +35,45 @@ to_vec <- function(dec, n) {
 #' @noRd
 cs <- function(x) {
   paste0(x, collapse = ", ")
+}
+
+#' Check that a Directed Graph is Acyclic via Topological Sort
+#'
+#' @param lhs A `character` vector giving the left-hand side
+#'   variables of the edges.
+#' @param rhs A `character` vector giving the right-hand side
+#'   variables of the edges.
+#' @noRd
+is_acyclic <- function(lhs, rhs) {
+  s <- setdiff(lhs, rhs)
+  while (length(s) > 0L) {
+    v <- s[1L]
+    s <- s[-1L]
+    e <- which(lhs == v)
+    e_rhs <- rhs[e]
+    for (i in seq_along(e)) {
+      w <- e_rhs[i]
+      lhs[e[i]] <- ""
+      rhs[e[i]] <- ""
+      if (!w %in% rhs) {
+        s <- c(s, w)
+      }
+    }
+  }
+  lhs <- lhs[nzchar(lhs)]
+  if (identical(length(lhs), 0L)) {
+    TRUE
+  } else {
+    FALSE
+  }
+}
+
+#' Wrapper for `requireNamespace` for Mocking
+#'
+#' @inheritParams reuireNamespace
+#' @noRd
+require_namespace <- function(package, ..., quietly = FALSE) {
+  requireNamespace(package, ..., quietly)
 }
 
 #' Add New Variables to a `dosearch` Call
@@ -118,6 +149,12 @@ parse_distribution <- function(d) {
     d
   } else if (is.numeric(d)) {
     v <- names(d)
+    if (is.null(v)) {
+      stop_(
+        "Invalid distribution format ", deparse1(d), ": ",
+        "role values must be given as a named vector."
+      )
+    }
     if (any(is.na(d) | !is.finite(d))) {
       stop_(
         "Invalid distribution format ", deparse1(d), ": ",
@@ -135,9 +172,6 @@ parse_distribution <- function(d) {
         "Invalid variable roles in distribution format ", deparse1(d), ": ",
         "at least one variable must have role value 0."
       )
-    }
-    if (is.null(v)) {
-      v <- seq_len(3L)
     }
     d <- as.integer(d)
     A_set <- v[which(d == 0L)]
@@ -158,7 +192,7 @@ parse_distribution <- function(d) {
       C, ")", sep = ""
     )
   } else {
-    stop_("Unsupported distribution format ", d, ".")
+    stop_("Unable to parse distribution format ", deparse1(d), ".")
   }
 }
 
@@ -168,7 +202,7 @@ parse_distribution <- function(d) {
 #' @noRd
 parse_graph <- function(graph) {
   if (inherits(graph, "igraph")) {
-    if (requireNamespace("igraph", quietly = TRUE)) {
+    if (require_namespace("igraph", quietly = TRUE)) {
       e <- igraph::E(graph)
       v <- igraph::vertex_attr(graph, "name")
       g_obs <- ""
@@ -202,7 +236,7 @@ parse_graph <- function(graph) {
       stop_("The `igraph` package is not available.")
     }
   } else if (inherits(graph, "dagitty")) {
-    if (requireNamespace("dagitty", quietly = TRUE)) {
+    if (require_namespace("dagitty", quietly = TRUE)) {
       if (!identical(dagitty::graphType(graph), "dag")) {
         stop_("Attempting to use `dagitty`, but argument `graph` is not a DAG.")
       }
@@ -245,8 +279,8 @@ control_defaults <- function(control) {
     draw_all = FALSE,
     draw_derivation = FALSE,
     formula = TRUE,
-    improve = TRUE,
     heuristic = FALSE,
+    improve = TRUE,
     md_sym = "1",
     rules = integer(0L),
     time_limit = -1.0,
@@ -280,8 +314,6 @@ control_defaults <- function(control) {
     )
   }
   control
-  # Default value for heuristic is set later
-  # after checking for missing data mechanisms
 }
 
 #' Is the Argument a `dosearch` Object?

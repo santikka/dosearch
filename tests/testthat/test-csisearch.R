@@ -197,3 +197,26 @@ test_that("trivial identifiability is checked", {
   expect_true(out$identifiable)
   expect_identical(out$formula, "p(y)")
 })
+
+test_that("verbose search works", {
+  data <- "p(X,Y,Z)"
+  query <- "p(Y|X,I_X = 1)"
+  graph <- "
+    X -> Y
+    I_X -> X
+    Z -> X : I_X = 1
+    Z -> Y
+  "
+  out <- capture.output(
+    dosearch(data, query, graph, control = list(verbose = TRUE))
+  )
+  out_len <- length(out)
+  expect_match(out[1L], "Setting target")
+  expect_match(out[2L], "Adding known distribution")
+  expect_match(out[3L], "Initializing search")
+  for (i in seq.int(4L, out_len - 3L)) {
+    expect_match(out[i], "Derived")
+  }
+  expect_match(out[out_len - 2L], "Target found")
+  expect_match(out[out_len - 1L], "Index")
+})

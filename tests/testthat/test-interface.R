@@ -182,4 +182,13 @@ test_that("alternative distribution format works", {
     dosearch(data, query, graph)$formula,
     dosearch(data_alt, query_alt, graph)$formula
   )
+  data_alt <- list(
+    "p(x)",
+    "p(y|x)",
+    "p(z|x,y)"
+  )
+  expect_identical(
+    dosearch(data, query, graph)$formula,
+    dosearch(data_alt, query_alt, graph)$formula
+  )
 })

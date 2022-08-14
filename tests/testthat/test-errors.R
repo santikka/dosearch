@@ -57,22 +57,33 @@ test_that("malformed alternative distribution format input fails", {
     dosearch(c(x = NA_real_), query, graph),
     paste0(
       "Invalid distribution format c\\(x = NA_real_\\): ",
-      "all role values must be non-missing and finite\\."
+      "all role values must be non-missing and finite"
     )
   )
   expect_error(
     dosearch(c(x = -1), query, graph),
     paste0(
       "Invalid variable roles in distribution format c\\(x = -1\\): ",
-      "all role values must be either 0, 1 or 2\\."
+      "all role values must be either 0, 1 or 2"
     )
   )
   expect_error(
     dosearch(c(x = 1, y = 1), query, graph),
     paste0(
       "Invalid variable roles in distribution format c\\(x = 1, y = 1\\): ",
-      "at least one variable must have role value 0\\."
+      "at least one variable must have role value 0"
     )
+  )
+  expect_error(
+    dosearch(c(0, 0), query, graph),
+    paste0(
+      "Invalid distribution format c\\(0, 0\\): ",
+      "role values must be given as a named vector"
+    )
+  )
+  expect_error(
+    dosearch(list(list()), query, graph),
+    "Unable to parse distribution format list()"
   )
 })
 
@@ -132,7 +143,7 @@ test_that("empty graph fails", {
   )
 })
 
-test_that("malformed lines fail", {
+test_that("malformed graph lines fail", {
   graph <- "
     x - > y
     x z w y
@@ -140,7 +151,14 @@ test_that("malformed lines fail", {
   "
   expect_error(
     dosearch("p(x)", "p(y)", graph),
-    "Invalid graph, malformed lines found: x - > y, x z w y, x y"
+    "Invalid graph, malformed lines found"
+  )
+  graph <- "
+    x z w y :: z = 1
+  "
+  expect_error(
+    dosearch("p(x)", "p(y)", graph),
+    "Invalid graph, malformed lines found"
   )
 })
 
@@ -154,19 +172,62 @@ test_that("unknown edge type fails", {
 test_that("self loops fail", {
   expect_error(
     dosearch("p(x)", "p(y)", "x -> x"),
-    "Invalid graph, no self loops are allowed: x -> x"
+    "the graph contains self-loops"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> x : y = 1"),
+    "the graph contains self-loops"
   )
   expect_error(
     dosearch("p(x)", "p(y)", "x <-> x"),
-    "Invalid graph, no self loops are allowed: x <-> x"
+    "the graph contains self-loops"
   )
 })
 
-test_that("syntactically incorrect inputs fail", {
-  malformed_inputs <- c("(", "p(", "p(x", "p(x|y", "p(x|do(x", "p(x|do(x)", NA)
+test_that("cyclic graph fails", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> z\nz -> y\ny -> x"),
+    "the graph contains cycles"
+  )
+})
+
+test_that("bidirected edge in an LDAG fails", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x <-> y : y = 1"),
+    "bidirected edges are not supported for LDAGs"
+  )
+})
+
+test_that("invalid edge labels fail", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y : x = 1"),
+    "x cannot appear in the label"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y : y = 1"),
+    "y cannot appear in the label"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y : z = 1, z = 0 \n z -> y"),
+    "duplicate assignment"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y : z = 0"),
+    "only other parents of y may be assigned"
+  )
+})
+
+test_that("syntactically incorrect data inputs fail", {
+  malformed_inputs <- c(NA, "(", "p(", "p(x", "p(x|y", "p(x|do(x", "p(x|do(x)")
   for (m in malformed_inputs) {
     expect_error(
       dosearch(m, "p(y)", "x -> y"),
+      "Unable to parse input distribution"
+    )
+  }
+  for (m in malformed_inputs) {
+    expect_error(
+      dosearch(m, "p(y)", "x -> y : z = 1 \n z -> y"),
       "Unable to parse input distribution"
     )
   }
@@ -175,8 +236,16 @@ test_that("syntactically incorrect inputs fail", {
 test_that("syntactically correct but semantically incorrect inputs fail", {
   md <- "r_x : x, r_y : y"
   expect_error(
-    dosearch("p(x,x)", "p(y)", "x -> r_x"),
+    dosearch("p(x,x)", "p(y)", "x -> y"),
     "duplicated variables"
+  )
+  expect_error(
+    dosearch("p(x,x)", "p(y)", "x -> y : z = 0 \n z -> y"),
+    "duplicated variables"
+  )
+  expect_error(
+    dosearch("p(x = 2)", "p(y)", "x -> y : z = 0 \n z -> y"),
+    "Invalid value assignment"
   )
   expect_error(
     dosearch("p(x,r_x=2,r_y=1)", "p(y)", "x -> r_x", missing_data = md),
@@ -211,6 +280,10 @@ test_that("syntactically correct but semantically incorrect inputs fail", {
     "same variable on the left and right-hand side"
   )
   expect_error(
+    dosearch("p(x|x)", "p(y)", "x -> y : z = 0 \n z -> y"),
+    "same variable on the left and right-hand side"
+  )
+  expect_error(
     dosearch("p(x|do(x))", "p(y)", "x -> y"),
     "same variable on the left and right-hand side"
   )
@@ -239,3 +312,38 @@ test_that("syntactically correct but semantically incorrect inputs fail", {
     "intervention on a selection bias node"
   )
 })
+
+test_that("igraph input fails when the package is not available", {
+  skip_if_not_installed("mockr")
+  skip_if_not_installed("igraph")
+  g_igraph <- igraph::graph.formula(
+    x -+ z, z -+ y, x -+ y, y -+ x,
+    simplify = FALSE
+  )
+  g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
+  mockr::with_mock(
+    require_namespace = function(...) FALSE,
+    {
+      expect_error(
+        dosearch("p(x)", "p(y)", g_igraph),
+        "The `igraph` package is not available"
+      )
+    }
+  )
+})
+
+test_that("dagitty input fails when the package is not available", {
+  skip_if_not_installed("mockr")
+  skip_if_not_installed("dagitty")
+  g_dagitty <- dagitty::dagitty("dag{x -> z -> y; x <-> y}")
+  mockr::with_mock(
+    require_namespace = function(...) FALSE,
+    {
+      expect_error(
+        dosearch("p(x)", "p(y)", g_dagitty),
+        "The `dagitty` package is not available"
+      )
+    }
+  )
+})
+

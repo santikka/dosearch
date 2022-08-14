@@ -25,6 +25,18 @@ additionally include mechanisms related to:
 -   Missing data (Mohan et al., 2013)
 -   Context-specific independence (Corander et al., 2019)
 
+See the mentioned references for further information.
+
+### Citing the package
+
+If you use the `dosearch` package in a publication, please cite the
+corresponding paper in the Journal of Statistical Software:
+
+Tikka S, Hyttinen A, Karvanen J (2021). “Causal Effect Identification
+from Multiple Incomplete Data Sources: A General Search-Based Approach.”
+*Journal of Statistical Software*, 99(5), 1–40.
+[doi:10.18637/jss.v099.i05](https://doi.org/10.18637/jss.v099.i05).
+
 ## Installation
 
 You can install the latest release version from CRAN:
@@ -81,31 +93,27 @@ dosearch(data, query, graph, missing_data = md)
 
 ## References
 
--   S. Tikka, A. Hyttinen, J. Karvanen, **Causal effect identification
-    from multiple incomplete data sources: a general search-based
-    approach**, *Journal of Statistical Software*, 99(5), 1–40, 2021.
-    ([published
-    version](https://www.jstatsoft.org/index.php/jss/article/view/v099i05),
-    [arXiv](https://arxiv.org/abs/1902.01073))
--   S. Tikka, A. Hyttinen, J. Karvanen, **Identifying causal effects via
-    context-specific independence relations**, In *Proceedings of the
-    33rd Annual Conference on Neural Information Processing Systems*,
-    2019. ([published
-          version](https://papers.nips.cc/paper/8547-identifying-causal-effects-via-context-specific-independence-relations),
-          [arXiv](https://arxiv.org/abs/2009.09768))
--   E. Bareinboim and J. Tian, **Recovering causal effects from
-    selection bias**, In *Proceedings of the Twenty-Ninth AAAI
-    Conference on Artificial Intelligence*,
-    2015. (<http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>)
--   E. Bareinboim and J. Pearl, **Transportability from multiple
-    environments with limited Experiments: completeness Results**, In
+-   Tikka S, Hyttinen A, Karvanen J (2021). “Causal effect
+    identification from multiple incomplete data sources: a general
+    search-based approach”, *Journal of Statistical Software*, 99(5),
+    1–40.
+    [doi:10.18637/jss.v099.i05](https://doi.org/10.18637/jss.v099.i05)
+-   Tikka S, Hyttinen A, Karvanen J (2019). “Identifying causal effects
+    via context-specific independence relations”, In *Proceedings of the
+    33rd Annual Conference on Neural Information Processing Systems*.
+    (<https://papers.nips.cc/paper/2019/hash/d88518acbcc3d08d1f18da62f9bb26ec-Abstract.html>)
+-   Bareinboim E, Tian J (2015). “Recovering causal effects from
+    selection bias”, In *Proceedings of the Twenty-Ninth AAAI Conference
+    on Artificial Intelligence*,
+    (<http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>)
+-   Bareinboim E, Pearl J (2014). “Transportability from multiple
+    environments with limited Experiments: completeness Results”, In
     *Advances of Neural Information Processing Systems 27*,
-    2014. (<http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>)
--   K. Mohan, J. Pearl, and J. Tian, **Graphical Models for Inference
-    with Missing Data**, In *Advances of Neural Information Processing
-    Systems 26*,
-    2013. (<http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>)
--   J. Corander, A. Hyttinen, J. Kontinen, J. Pensar, and J. Väänänen,
-    **A logical approach to context-specific independence**, *Annals of
-    Pure and Applied Logic*, 170(9), 975–992, 2019.
-    (<https://doi.org/10.1016/j.apal.2019.04.004>)
+    (<http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>)
+-   Mohan K, Pearl J, Tian J (2013). “Graphical models for inference
+    with missing data”, In *Advances of Neural Information Processing
+    Systems 26*, (<http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>)
+-   Corander J, Hyttinen A, Kontinen J, Pensar J, Väänänen J (2019). “A
+    logical approach to context-specific independence”, *Annals of Pure
+    and Applied Logic*, 170(9), 975–992.
+    [doi:10.1016/j.apal.2019.04.004](https://doi.org/10.1016/j.apal.2019.04.004)

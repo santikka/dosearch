@@ -5,3 +5,4 @@
 ^README\.Rmd$
 ^LICENSE\.md$
 ^codecov\.yml$
+^rep$

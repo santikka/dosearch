@@ -95,6 +95,8 @@ Rcpp::List initialize_dosearch(
     s->add_known(p[0], p[1], p[2], p[3]);
   }
 
+  if (verbose) Rcpp::Rcout << "Initializing search" << endl;
+
   Rcpp::List result = s->initialize();
 
   delete g;

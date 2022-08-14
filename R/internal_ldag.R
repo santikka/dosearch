@@ -7,8 +7,6 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   args <- list(
     dir_lhs = integer(0L),
     dir_rhs = integer(0L),
-    bi_lhs = integer(0L),
-    bi_rhs = integer(0L),
     vars = character(0L),
     nums = integer(0L),
     n = 0L,
@@ -17,7 +15,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
     parents = list(),
     contexts = c(),
     label_map = NULL,
-    local_csi = NULL
+    local_csi = list()
   )
   args <- transform_graph_ldag(args, graph)
   args <- parse_labels(args)
@@ -79,59 +77,55 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
 #' @param graph The graph as a `character` string.
 #' @noRd
 transform_graph_ldag <- function(args, graph) {
-  if (!nzchar(graph)){
-    stop_("Invalid graph: the graph is empty.")
-  } else {
-    row_pattern <- "^(.+(?>->|--|<->)[^\\:]+)(?>\\:(.+))?$"
-    graph_split <- strsplit(graph, "\r|\n")[[1L]]
-    graph_split <- gsub("\\s", "", graph_split)
-    valid_rows <- grep(row_pattern, graph_split, perl = TRUE)
-    graph_split <- graph_split[valid_rows]
-    graph_match <- regexec(row_pattern, graph_split, perl = TRUE)
-    split_rows <- regmatches(graph_split, graph_match)
-    edges <- sapply(split_rows, "[[", 2L)
-    directed <- strsplit(grep("(.+)->(.+)", edges, value = TRUE), "->")
-    if (length(directed) > 0L) {
-      args$dir_lhs <- vapply(directed, "[[", character(1L), 1L)
-      args$dir_rhs <- vapply(directed, "[[", character(1L), 2L)
-      if (any(args$dir_lhs == args$dir_rhs)) {
-        stop_("Invalid graph: no self loops are allowed.")
-      }
-    }
-    contexts_split <- list()
-    contextuals <- which(nzchar(vapply(split_rows, "[[", character(1L), 3L)))
-    labels_split <- list()
-    if (length(contextuals) > 0L) {
-      edges_split <- strsplit(edges, "(->)")
-      labels <- vapply(split_rows[contextuals], "[[", character(1L), 3L)
-      labels_split <- strsplit(labels, "[;]")
-      labels_split <- lapply(labels_split, strsplit, "[,]")
-      args$targets <- lapply(seq_len(length(labels_split)), function(i) {
-        c(
-          "from" = edges_split[[contextuals[i]]][1L],
-          "to" = edges_split[[contextuals[i]]][2L]
-        )
-      })
-    }
-    args$labels <- labels_split
-    args$vars <- unique(c(args$dir_rhs, args$dir_lhs))
-    args$n <- length(args$vars)
-    intv <- args$dir_lhs[substr(args$dir_lhs, 1L, 2L) == "I_"]
-    ivar <- which(args$vars %in% intv)
-    args$vars <- args$vars[c(setdiff(seq_len(args$n), ivar), ivar)]
-    args$intv_vars <- args$vars[which(args$vars %in% intv)]
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
-    for (v in args$vars) {
-      args$parents[[v]] <- character(0L)
-    }
-    for (i in seq_along(args$dir_rhs)) {
-      args$parents[[args$dir_rhs[i]]] <- union(
-        args$parents[[args$dir_rhs[i]]],
-        args$dir_lhs[i]
-      )
-    }
+  graph_lines <- trimws(strsplit(graph, "\r|\n")[[1L]])
+  graph_lines <- graph_lines[nzchar(graph_lines)]
+  row_pattern <- "^[^\\:]+(\\:[^\\:]+){0,1}$"
+  malformed_lines <- !grepl(row_pattern, graph_lines, perl = TRUE)
+  if (any(malformed_lines)) {
+    stop_(
+      "Invalid graph, malformed lines found: ",
+      cs(graph_lines[malformed_lines])
+    )
+  }
+  graph_split <- strsplit(graph_lines, ":")
+  graph_lines <- vapply(graph_split, "[[", character(1L), 1L)
+  args <- transform_graph_dag(
+    args,
+    paste0(graph_lines, collapse = "\n"),
+    NULL
+  )
+  if (!is.null(args$bi_lhs)) {
+    stop_(
+      "Invalid graph, bidirected edges are not supported for LDAGs."
+    )
+  }
+  labeled <- which(lengths(graph_split) > 1L)
+  labels_split <- list()
+  if (length(labeled) > 0L) {
+    labels <- vapply(graph_split[labeled], "[[", character(1L), 2L)
+    labels <- gsub("\\s+", "", labels)
+    labels_split <- strsplit(labels, "[;]")
+    labels_split <- lapply(labels_split, strsplit, "[,]")
+    args$targets <- lapply(seq_along(labels_split), function(i) {
+      c("from" = args$dir_lhs[labeled[i]], "to" = args$dir_rhs[labeled[i]])
+    })
+  }
+  args$labels <- labels_split
+  intv <- args$dir_lhs[substr(args$dir_lhs, 1L, 2L) == "I_"]
+  ivar <- which(args$vars %in% intv)
+  args$vars <- args$vars[c(setdiff(seq_len(args$n), ivar), ivar)]
+  args$intv_vars <- args$vars[which(args$vars %in% intv)]
+  args$nums <- seq_len(args$n)
+  names(args$vars) <- args$nums
+  names(args$nums) <- args$vars
+  for (v in args$vars) {
+    args$parents[[v]] <- character(0L)
+  }
+  for (i in seq_along(args$dir_rhs)) {
+    args$parents[[args$dir_rhs[i]]] <- union(
+      args$parents[[args$dir_rhs[i]]],
+      args$dir_lhs[i]
+    )
   }
   args
 }
@@ -147,7 +141,6 @@ parse_labels <- function(args) {
     args$null_context <- c()
     args$inferred <- 0L
     args$inferred_labels <- matrix(0L, 0L, 5L)
-    args$local_csi <- list()
     vanishing <- matrix(0L, 0L, 2L)
     # Loop labels
     for (i in seq_along(args$labels)) {
@@ -157,7 +150,7 @@ parse_labels <- function(args) {
       n_pa <- length(pa)
       vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
       names(vals) <- pa
-      vals$present <- FALSE
+      vals$present <- rep(FALSE, nrow(vals))
       # Loop individual assignments within label
       for (j in seq_along(args$labels[[i]])) {
         index <- index + 1L
@@ -211,18 +204,6 @@ parse_labels <- function(args) {
 #'   label value assignments.
 #' @noRd
 validate_label <- function(from, to, pa, label_lhs) {
-  if (length(pa) == 0L) {
-    stop_(
-      "Invalid label for edge ", from, " -> ", to, ": ",
-      "no parents to assign."
-    )
-  }
-  if (any(duplicated(label_lhs))) {
-    stop_(
-      "Invalid label for edge ", from, " -> ", to, ": ",
-      "duplicate assignment."
-    )
-  }
   if (from %in% label_lhs) {
     stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
@@ -233,6 +214,12 @@ validate_label <- function(from, to, pa, label_lhs) {
     stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
       to, " cannot appear in the label."
+    )
+  }
+  if (any(duplicated(label_lhs))) {
+    stop_(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      "duplicate assignment."
     )
   }
   if (any(!label_lhs %in% pa)) {
@@ -415,8 +402,8 @@ parse_local_csi <- function(args, z_set, o_set, input_labels, vanishing) {
         if (pa == lab) {
           args$index_csi <- args$index_csi + 1L
           args$local_csi[[args$index_csi]] <- list(
-            x = to_dec(input_labels[k, 3], args$n),
-            y = to_dec(input_labels[k, 4], args$n),
+            x = to_dec(input_labels[k, 3L], args$n),
+            y = to_dec(input_labels[k, 4L], args$n),
             z = pa,
             zero = z_set,
             one = o_set
@@ -486,7 +473,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
   d_split <- match_distribution_ldag(d_parsed)
   if (any(is.na(d_split[[1L]]))) {
     stop_(
-      "Invalid ", type, ": ", d, "."
+      stop_("Unable to parse ", type, ": ", d)
     )
   }
   d_null <- vapply(d_split, is.null, logical(1L))
@@ -495,7 +482,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
     if (any(dup)) {
       stop_(
         "Invalid ", type, ": ", d, ", ",
-        "cannot contain duplicated variables ", d_split[[j]][dup], "."
+        "duplicated variables ", d_split[[j]][dup], "."
       )
     }
     equals <- grep("=", d_split[[j]], value = FALSE)
@@ -568,6 +555,20 @@ parse_input_distributions_ldag <- function(args, data) {
   args
 }
 
+#' Check the Validity of a Distribution
+#'
+#' @param args A `list` of arguments for `initialize_dosearch`.
+#' @param d An `integer` vector of length 4 denoting the distribution.
+#' @noRd
+validate_distribution_ldag <- function(args, msg, d, d_str) {
+  if (bitwAnd(d[1L], d[2L]) > 0L) {
+    stop_(
+      "Invalid input distribution ", d_str, ": ",
+      "same variable on the left and right-hand side."
+    )
+  }
+}
+
 #' Check the Validity of Input Distributions
 #'
 #' @param args A `list` of arguments for `initialize_csisearch`.
@@ -581,13 +582,12 @@ validate_input_distributions_ldag <- function(args) {
       to_dec(p[[3L]], args$n),
       to_dec(p[[4L]], args$n)
     )
-    if (bitwAnd(args$p_list[[i]][1L], args$p_list[[i]][2L]) > 0L) {
-      stop_(
-        "Invalid input distribution on data line ",
-        i, ": ", p[[4L]], ", ",
-        "same variable on the left and right-hand side."
-      )
-    }
+    validate_distribution_ldag(
+      args,
+      "Invalid input distribution ",
+      args$p_list[[i]],
+      p[[5L]]
+    )
   }
   args
 }
@@ -597,19 +597,19 @@ validate_input_distributions_ldag <- function(args) {
 #' @param args A `list` of arguments for `initialize_csisearch`.
 #' @noRd
 validate_query_ldag <- function(args) {
+  q <- args$q_process
   args$q_vec <- c(
-    to_dec(args$q_process[[1L]], args$n),
-    to_dec(args$q_process[[2L]], args$n),
-    to_dec(args$q_process[[3L]], args$n),
-    to_dec(args$q_process[[4L]], args$n)
+    to_dec(q[[1L]], args$n),
+    to_dec(q[[2L]], args$n),
+    to_dec(q[[3L]], args$n),
+    to_dec(q[[4L]], args$n)
   )
-  if (bitwAnd(args$q_vec[1L], args$q_vec[2L]) > 0L) {
-    stop_(
-      "Invalid query: ",
-      args$q_process[[4L]], ", ",
-      "same variable on the left and right-hand side."
-    )
-  }
+  validate_distribution_ldag(
+    args,
+    "Invalid query ",
+    args$q_vec,
+    q[[5L]]
+  )
   args
 }
 
