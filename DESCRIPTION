@@ -1,7 +1,7 @@
 Package: dosearch
 Type: Package
-Version: 1.0.9
 Title: Causal Effect Identification from Multiple Incomplete Data Sources
+Version: 1.0.9
 Authors@R: c(
     person(given = "Santtu",
            family = "Tikka",
@@ -31,23 +31,27 @@ Description: Identification of causal effects from arbitrary observational and
     (LDAG). For details on CSIs see Corander et al. (2019) 
     <doi:10.1016/j.apal.2019.04.004>.
 License: GPL (>= 3)
-Encoding: UTF-8
-Imports: Rcpp (>= 0.12.19)
+Depends: R (>= 2.10)
 Suggests: 
     covr,
     dagitty,
     DOT,
     igraph,
+    knitr,
     mockr,
     testthat (>= 3.0.0)
+Imports: Rcpp (>= 0.12.19)
 LinkingTo: Rcpp
 SystemRequirements: C++11
+VignetteBuilder: 
+    knitr
+BugReports: https://github.com/santikka/dosearch/issues
+URL: https://github.com/santikka/dosearch
+Encoding: UTF-8
 NeedsCompilation: yes
-Author: Santtu Tikka [aut, cre] (<https://orcid.org/0000-0003-4039-4342>), 
-    Antti Hyttinen [ctb] (<https: //orcid.org/0000-0002-6649-3229>), 
-    Juha Karvanen [ctb] (<https: //orcid.org/0000-0001-5530-769X>)
-Maintainer: Santtu Tikka <santtuth@gmail.com>
-Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd", 
-    "srr::srr_stats_roclet"))
-RoxygenNote: 7.2.1.9000
+Roxygen: list(markdown = TRUE,
+    roclets = c("namespace", "rd", "srr::srr_stats_roclet"))
+RoxygenNote: 7.2.1
 Config/testthat/edition: 3
+LazyData: true
+Maintainer: Santtu Tikka <santtuth@gmail.com>

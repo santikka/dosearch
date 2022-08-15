@@ -8,7 +8,7 @@ csisearch::~csisearch() {
 
 void csisearch::set_target(const int& a, const int& b, const int& c, const int& d) {
   target.a = a; target.b = b; target.c = c; target.d = d;
-  if (verbose) Rcpp::Rcout << "Setting target: " << to_string(target) << endl;
+  if (verbose) Rcpp::Rcout << "Setting target: " << to_string(target) << std::endl;
 }
 
 void csisearch::set_graph(ldag* g_) {
@@ -43,7 +43,6 @@ void csisearch::set_interventions(const int& intv) {
   intv_vars = intv;
 }
 
-
 void csisearch::add_known(const int& a, const int& b, const int& c, const int& d) {
   index++;
   p pp;
@@ -63,7 +62,7 @@ void csisearch::add_known(const int& a, const int& b, const int& c, const int& d
     target_dist.push_back(L[index]);
   }
   lhs = lhs | a;
-  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
+  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << std::endl;
 }
 
 bool csisearch::check_trivial() {
@@ -94,17 +93,17 @@ void csisearch::derive_distribution(const distr& iquery, const distr& required, 
   
   if (equal_p(info.to, target)) {
     if (verbose) {
-      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
-      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
-      Rcpp::Rcout << "Target found" << endl;
-      Rcpp::Rcout << "Index = " << index << endl;
+      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
+      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << std::endl;
+      Rcpp::Rcout << "Target found" << std::endl;
+      Rcpp::Rcout << "Index = " << index << std::endl;
     }
     target_dist.push_back(nquery);
     found = true;
   } else {
     if (verbose) {
-      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
-      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
+      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
+      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << std::endl;
     }
     index++;
     remaining++;
@@ -477,7 +476,6 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
   get_ruleinfo(ruleid, a, b, c, d, z);
 }
 
-
 void csisearch::get_ruleinfo(const int& ruleid, const int& y, const int& x, const int& u, const int& v, const int& z) {
   info.from.a = y; info.from.b = x; info.from.c = u; info.from.d = v;
 
@@ -651,7 +649,7 @@ void csisearch_heuristic::add_known(const int& a, const int& b, const int& c, co
   }
   Q.push(&L[index]);
   lhs = lhs | a;
-  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
+  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << std::endl;
 }
 
 // Heuristic for search order

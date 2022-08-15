@@ -7,8 +7,6 @@
 #include <string>
 #include "set.h"
 
-using namespace std;
-
 class ldag {
 public:
   struct dirvar {
@@ -16,8 +14,8 @@ public:
     int v;
   };
   struct context {
-    vector<int> from;
-    vector<int> to;
+    std::vector<int> from;
+    std::vector<int> to;
   };
   struct config {
     int zero, one, equiv;
@@ -29,10 +27,10 @@ public:
   bool E[MAX_SIZE][MAX_SIZE];
   int n;
   int con_vars, intv_vars;
-  vector<int> context_sets;
-  vector<csi> local_csi;
-  unordered_map<string, context> C;
-  unordered_map<int, vector<config>> context_settings;
+  std::vector<int> context_sets;
+  std::vector<csi> local_csi;
+  std::unordered_map<std::string, context> C;
+  std::unordered_map<int, std::vector<config>> context_settings;
 
   ldag(const int& n);
 
@@ -43,19 +41,19 @@ public:
 
   virtual bool csi_criterion(const int& x, const int& y, const int& z, const int& zero, const int& one, const int& intv, const int& old_con);
 
-  void add_context(const int& zero, const int& one, const int& equiv, const vector<int>& from, const vector<int>& to);
+  void add_context(const int& zero, const int& one, const int& equiv, const std::vector<int>& from, const std::vector<int>& to);
   void add_context_set(const int& set);
   void add_local_csi(const int& x, const int& y, const int& z, const int& zero, const int& one);
   void set_contexts(const int& con, const int& intv);
   int get_ancestors(const int& set, const bool& inc) const;
-  void visitable_parents(const int& set, const int& xyz, stack<dirvar>& l) const;
-  void visitable_children(const int& set, const int& xyz, stack<dirvar>& l) const;
+  void visitable_parents(const int& set, const int& xyz, std::stack<dirvar>& l) const;
+  void visitable_children(const int& set, const int& xyz, std::stack<dirvar>& l) const;
   void enter_context(const context& con, const context& ivar);
   void exit_context(const context& con, const context& ivar);
   bool in_label(const int& x, const int& y, const int& z, const int& zero, const int& one);
   bool d_sep(const int& x, const int& y, const int& z) const;
   bool csi_sep(const int& x, const int& y, const int& z, const context& con, const context& ivar);
-  string context_key(const int& zero, const int& one) const;
+  std::string context_key(const int& zero, const int& one) const;
 
   virtual ~ldag();
 
@@ -67,10 +65,10 @@ public:
   bool csi_criterion(const int& x, const int& y, const int& z, const int& zero, const int& one, const int& intv, const int& old_con);
   ~ldag_cache();
 private:
-  unordered_map<string, int> separations;
+  std::unordered_map<std::string, int> separations;
   void add_separation(const int& x, const int& y, const int& z, const int& zero, const int& one, const bool& sep);
   int evaluated_separation(const int& x, const int& y, const int& z, const int& zero, const int& one);
-  string separation_key(const int& x, const int& y, const int& z, const int& zero, const int& one);
+  std::string separation_key(const int& x, const int& y, const int& z, const int& zero, const int& one);
 };
 
 #endif

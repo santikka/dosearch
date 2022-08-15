@@ -14,3 +14,14 @@
 \description{
 Print a \code{dosearch} Object
 }
+\examples{
+data <- "p(x,y,z)"
+query <- "p(y|do(x))"
+graph <- "
+  x -> z
+  Z -> y
+  x <-> y
+"
+x <- dosearch(data, query, graph)
+print(x)
+}

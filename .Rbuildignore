@@ -1,8 +1,10 @@
 ^dosearch\.Rproj$
 ^\.Rproj\.user$
 ^\.github$
+^codemeta\.json$
 ^README\.md$
 ^README\.Rmd$
 ^LICENSE\.md$
 ^codecov\.yml$
 ^rep$
+\.o$

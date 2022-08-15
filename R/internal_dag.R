@@ -175,8 +175,8 @@ parse_missing_data <- function(args, missing_data) {
       stop_("Invalid missing data mechanisms.")
     }
     md_mechanisms <- strsplit(md_pairs, ":")
-    md_true <- sapply(md_mechanisms, "[[", 2L)
-    md_switch <- sapply(md_mechanisms, "[[", 1L)
+    md_true <- vapply(md_mechanisms, "[[", character(1L), 2L)
+    md_switch <- vapply(md_mechanisms, "[[", character(1L), 1L)
     md_proxy <- paste0(md_true, "*")
     if (any(md_switch %in% args$dir_lhs[args$dir_rhs %in% md_true])) {
       stop_("A missing data mechanism cannot be a parent of a true variable.")
@@ -316,9 +316,9 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
       equals <- grep("=", d_split[[j]], value = FALSE)
       if (length(equals) > 0L) {
         eq_split <- strsplit(d_split[[j]][equals], "[=]")
-        eq_lhs <- sapply(eq_split, "[[", 1L)
+        eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
         eq_lhs <- gsub("\\s+", "", eq_lhs)
-        eq_rhs <- sapply(eq_split, "[[", 2L)
+        eq_rhs <- vapply(eq_split, "[[", character(1L), 2L)
         eq_rhs <- gsub("\\s+", "", eq_rhs)
         uniq_rhs <- unique(eq_rhs)
         if (length(uniq_rhs) > 1L) {
@@ -421,7 +421,7 @@ validate_distribution_dag <- function(args, msg, d, d_str) {
   if (left_true > 0L) {
     stop_(
       msg, d_str, ": ",
-     "true variable of a proxy variable on the left-hand side."
+      "true variable of a proxy variable on the left-hand side."
     )
   }
   both_left <- bitwAnd(
@@ -474,7 +474,7 @@ validate_distribution_dag <- function(args, msg, d, d_str) {
       "intervention on a selection bias node."
     )
   }
-  if (bitwAnd(d[4L], args$md_s) != d[4L] ) {
+  if (bitwAnd(d[4L], args$md_s) != d[4L]) {
     stop_(
       msg, d_str, ": ",
       "value assignment of a non-missing data mechanism."
@@ -594,9 +594,13 @@ match_distribution_dag <- function(d) {
   matches <- lapply(dist_pattern, function(p) {
     regexec(p, d, perl = TRUE)
   })
-  match_lens <- sapply(matches, function(x) {
-    length(attr(x[[1L]], "match.length"))
-  })
+  match_lens <- vapply(
+    matches,
+    function(x) {
+      length(attr(x[[1L]], "match.length"))
+    },
+    integer(1L)
+  )
   best_match <- which.max(match_lens)[1L]
   parts <- regmatches(d, matches[[best_match]])[[1L]]
   d_split <- vector(mode = "list", length = 3L)
@@ -614,4 +618,3 @@ match_distribution_dag <- function(d) {
   }
   d_split
 }
-

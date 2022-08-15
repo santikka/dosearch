@@ -3,34 +3,34 @@
 
 // [[Rcpp::plugins(cpp11)]]
 
-/* 
-  Function to handle R requests
-
-  dir_lhs           : vector of vertices with outgoing directed edges
-  dir_rhs           : vector of vertices with incoming directed edges
-  bi_lhs            : vector of vertices with incoming bidirected edges
-  bi_rhs            : vector of vertices with incoming bidirected edges
-  lab               : vector of labels for vertices
-  p_list            : a list of known distributions
-  q_vec             : vector of vertices representing the causal query
-  n                 : number of vertices
-  tr                : a set representing transportability nodes
-  sb                : a set representing selection bias nodes
-  md_s              : a set representing missing data switches
-  md_p              : a set representing missing data proxies
-  time_limit        : time limit for the search (in hours)
-  rules             : overrides the set of default rules
-  benchmark         : record the search time
-  benchmark_rules   : record time taken by each individual rule
-  draw_derivation   : form a string representing the derivation steps (as dot)
-  draw_all          : draw every distribution that was derived (vs only those that were used to derive the effect)
-  formula           : output formula as string
-  improve           : enable search enhancements
-  heuristic         : use search heuristic
-  md_sym            : symbol used to represent active missing data mechanisms
-  verbose           : print diagnostics during search
-*/
-
+//' Process `dosearch` Calls from R
+//'
+//' @param dir_lhs A vector of vertices with outgoing directed edges
+//' @param dir_rhs A vector of vertices with incoming directed edges
+//' @param bi_lhs A vector of vertices with incoming bidirected edges
+//' @param bi_rhs A vector of vertices with incoming bidirected edges
+//' @param lab A vector of labels for vertices
+//' @param p_list A list of known distributions
+//' @param q_vec A vector of vertices representing the causal query
+//' @param n The number of vertices
+//' @param tr A set representing transportability nodes
+//' @param sb A set representing selection bias nodes
+//' @param md_s A set representing missing data switches
+//' @param md_p A set representing missing data proxies
+//' @param time_limit Time limit for the search (in hours)
+//' @param rules Overrides the set of default rules
+//' @param benchmark Record the search time
+//' @param benchmark_rules Record time taken by each individual rule
+//' @param draw_derivation Form a string representing the
+//'   derivation steps (as dot)
+//' @param draw_all Draw every distribution that was derived
+//'   (vs only those that were used to derive the effect)
+//' @param formula Output formula as string
+//' @param improve Enable search enhancements
+//' @param heuristic Use search heuristic
+//' @param md_sym Symbol used to represent active missing data mechanisms
+//' @param verbose Print diagnostics during search
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List initialize_dosearch(
   const std::vector<int>& dir_lhs,
@@ -95,7 +95,7 @@ Rcpp::List initialize_dosearch(
     s->add_known(p[0], p[1], p[2], p[3]);
   }
 
-  if (verbose) Rcpp::Rcout << "Initializing search" << endl;
+  if (verbose) Rcpp::Rcout << "Initializing search" << std::endl;
 
   Rcpp::List result = s->initialize();
 

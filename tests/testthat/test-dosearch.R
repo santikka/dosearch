@@ -76,7 +76,8 @@ test_that("all rules are needed", {
       data,
       query,
       graph,
-      control = list(heuristic = TRUE, draw_derivation = TRUE)),
+      control = list(heuristic = TRUE, draw_derivation = TRUE)
+    ),
     NA
   )
   expect_true(out$identifiable)
@@ -217,7 +218,7 @@ test_that("time limit works", {
     control = list(
       heuristic = TRUE,
       improve = FALSE,
-      time_limit = 1/3600000,
+      time_limit = 1 / 3600000,
       benchmark = TRUE,
       benchmark_rules = TRUE
     )
@@ -231,7 +232,7 @@ test_that("time limit works", {
     control = list(
       heuristic = TRUE,
       improve = FALSE,
-      time_limit = 1/3600000,
+      time_limit = 1 / 3600000,
       benchmark = TRUE
     )
   )
@@ -245,5 +246,14 @@ test_that("missing response indicators warns", {
       "There are response indicators that are not present ",
       "in any input distribution"
     )
+  )
+})
+
+test_that("extra variables do not influence identifiability", {
+  query <- "p(y|do(x))"
+  graph <- "x -> z \n z -> y \n x <-> y"
+  expect_identical(
+    dosearch("p(x,y,z,w)", query, graph)$identifiable,
+    dosearch("p(x,y,z)", query, graph)$identifiable
   )
 })

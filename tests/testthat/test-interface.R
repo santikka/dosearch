@@ -110,9 +110,9 @@ test_that("summary time units are correct", {
 
 test_that("gets can be got", {
   out <- dosearch(
-    "p(x,y)",
+    "p(x,y,z, w)",
     "p(y|do(x))",
-    "x -> y",
+    "x -> y \n z -> x \n w -> z \n x <-> w \n w <-> y",
     control = list(
       benchmark = TRUE,
       benchmark_rules = TRUE,
@@ -135,13 +135,13 @@ test_that("gets can be got", {
   expect_equal(
     get_benchmark(out),
     get_benchmark(out, run_again = TRUE, include_rules = TRUE),
-    tolerance = 0.1
+    tolerance = 10
   )
   out$rule_times <- NULL
   expect_equal(
     get_benchmark(out),
     get_benchmark(out, run_again = TRUE, include_rules = FALSE),
-    tolerance = 0.1
+    tolerance = 10
   )
   out$time <- NULL
   out$formula <- NULL

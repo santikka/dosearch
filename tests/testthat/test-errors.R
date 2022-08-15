@@ -143,6 +143,13 @@ test_that("empty graph fails", {
   )
 })
 
+test_that("multiple graphs fail", {
+  expect_error(
+    dosearch("p(x)", "p(y)", c("x -> y", "z -> x")),
+    "Argument `graph` must be of length 1 when of `character` type"
+  )
+})
+
 test_that("malformed graph lines fail", {
   graph <- "
     x - > y
@@ -347,3 +354,11 @@ test_that("dagitty input fails when the package is not available", {
   )
 })
 
+test_that("non-DAG dagitty input fails", {
+  skip_if_not_installed("dagitty")
+  g_dagitty <- dagitty::dagitty("mag{x -> z -> y; x <-> y}")
+  expect_error(
+    dosearch("p(x)", "p(y)", g_dagitty),
+    "Attempting to use `dagitty`, but the graph type is not `dag`"
+  )
+})

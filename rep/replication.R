@@ -1,28 +1,28 @@
-## Replication R script for: 
-## Causal Effect Identification from Multiple Incomplete Data Sources:
-## A General Search-based Approach
-## Santtu Tikka, Antti Hyttinen, Juha Karvanen
-## 2021-08-09
+# Replication R script for:
+# Causal Effect Identification from Multiple Incomplete Data Sources:
+# A General Search-based Approach
+# Santtu Tikka, Antti Hyttinen, Juha Karvanen
+# 2021-08-09
 
-## Install the dosearch package
+# Install the dosearch package
 # devtools::install_github("santikka/dosearch")
 # install.packages("dosearch_1.0.7.tar.gz")
 # install.packages("dosearch")
 
-## Install other required packages
+# Install other required packages
 # install.packages(c("ggplot2", "scales", "foreach"))
 
-## Load the packages
+# Load the packages
 library("dosearch")
 library("ggplot2")
 library("scales")
 library("foreach")
 
-## Assume that the file path is the directory of this script
-## and contains the directory "Results"
+# Assume that the file path is the directory of this script
+# and contains the directory "Results"
 file_path <- "."
 
-## Examples of Section 5
+# Examples of Section 5
 data <- "
   P(W)
   P(Y|X)
@@ -53,11 +53,12 @@ library("dagitty")
 graph <- dagitty("dag{X -> Y; Z -> X; Z -> Y; X <-> Y}")
 
 
-## Simulations
-## Parsing and plotting functions
+# Simulations
+# Parsing and plotting functions
 
-## A function to read and combine the individual result objects
-# path : path to the 'Results' directory as a string
+#' Combine the Individual Result Objects
+#'
+#' @param path Path to the 'Results' directory as a string
 parse_results <- function(path) {
   file_paths <- list.files(path, full.names = TRUE)
   is_result <- grepl(".*dosearch_simulation_results.*", file_paths)
@@ -72,11 +73,15 @@ parse_results <- function(path) {
   size_max <- size_min + length(y) - 1L
   n_conf <- length(confs)
   n_inst <- length(y[[1]])
-  res <- setNames(vector(mode = "list", length = length(y)), 
-                  size_min:size_max)
+  res <- setNames(
+    vector(mode = "list", length = length(y)),
+    size_min:size_max
+  )
   for (i in seq_along(y)) {
-    res[[i]] <- setNames(vector(mode = "list", length = n_conf),
-                         sapply(confs, "[[", "name"))
+    res[[i]] <- setNames(
+      vector(mode = "list", length = n_conf),
+      sapply(confs, "[[", "name")
+    )
     for (j in 1:n_conf) {
       res[[i]][[j]] <- vector(mode = "list", length = n_inst)
       for (k in 1:n_inst) {
@@ -87,96 +92,119 @@ parse_results <- function(path) {
   return(res)
 }
 
-## A function that creates a data frame 
-## representation of the simulation results
-# res_single : simulation result object for a single graph size
+#' Creates a Data Frame Representation of the Simulation Results
+#'
+#' @param res_single Simulation result object for a single graph size
 result_dataframe <- function(res_single) {
   n_conf <- length(res_single)
   n_inst <- length(res_single[[1]])
   confs <- names(res_single)
   total <- n_conf * n_inst * 2
-  res_df <- data.frame(time = numeric(total), 
-                       config = factor(rep(NA, total), levels = confs),
-                       id = factor(rep(NA, total), 
-                                   levels = c("id", "nonid")))
+  res_df <- data.frame(
+    time = numeric(total),
+    config = factor(rep(NA, total), levels = confs),
+    id = factor(rep(NA, total), levels = c("id", "nonid"))
+  )
   for (j in 1:n_conf) {
     for (i in 1:n_inst) {
       x <- res_single[[j]][[i]]
       res_df[(j - 1) * n_inst + i, 1] <- x$R$t
       res_df[(j - 1) * n_inst + i, 2:3] <- c(confs[j], "id")
       res_df[n_inst * n_conf + (j - 1) * n_inst + i, 1] <- x$Rprev$t
-      res_df[n_inst * n_conf + (j - 1) * n_inst + i, 2:3] <- c(confs[j],
-                                                               "nonid")
+      res_df[n_inst * n_conf + (j - 1) * n_inst + i, 2:3] <-
+        c(confs[j], "nonid")
     }
   }
   return(res_df)
 }
 
-## A function that computes several statistics of the computation times
-# df : a data frame of the simulation results (via result_dataframe)
+#' Compute Statistics of the Computation Times
+#'
+#' @param df A `data.frame` of the simulation results (via `result_dataframe`)
 result_stats <- function(df) {
-  with(df, { list(
-    dominance = data.frame(
-      mean_id = mean(df[id == "id" & 
-        config == "Heuristic & Improvements", "time"] <=
-        df[id == "id" & config == "Baseline", "time"]),
-      mean_nonid = mean(df[id == "nonid" & 
-        config == "Heuristic & Improvements", "time"] <=
-        df[id == "nonid" & config == "Baseline", "time"]),
-      total_id = sum(df[id == "id" & 
-        config == "Heuristic & Improvements", "time"] <=
-        df[id == "id" & config == "Baseline", "time"]),
-      total_nonid = sum(df[id == "nonid" & 
-        config == "Heuristic & Improvements", "time"] <=
-        df[id == "nonid" & config == "Baseline", "time"])),
-    mean_times = aggregate(time ~ config + id, FUN = mean, data = df))
+  with(df, {
+    list(
+      dominance = data.frame(
+        mean_id = mean(df[id == "id" &
+          config == "Heuristic & Improvements", "time"] <=
+          df[id == "id" & config == "Baseline", "time"]
+        ),
+        mean_nonid = mean(df[id == "nonid" &
+          config == "Heuristic & Improvements", "time"] <=
+          df[id == "nonid" & config == "Baseline", "time"]
+        ),
+        total_id = sum(df[id == "id" &
+          config == "Heuristic & Improvements", "time"] <=
+          df[id == "id" & config == "Baseline", "time"]
+        ),
+        total_nonid = sum(df[id == "nonid" &
+          config == "Heuristic & Improvements", "time"] <=
+          df[id == "nonid" & config == "Baseline", "time"]
+        )
+      ),
+      mean_times = aggregate(time ~ config + id, FUN = mean, data = df)
+    )
   })
 }
 
-## A function to create a scatter plot of computation times
-## of different configurations vs. baseline for identifiable instances
-# df   : a data frame of the simulation results (via result_dataframe)
-# id   : either TRUE for identifiable instances or FALSE if non-ID
-# conf : the configuration of the search
-# sim_scale : either "small" or "large" depending on the scale of the
-#             simulation
-plot_scatter <- function(df, id = TRUE, 
+#' Create a Scatter Plot of the Computation Times
+#'
+#' Creates scatter plots of different configurations vs. baseline for
+#' identifiable instances
+#'
+#' @param df A `data.frame` of the simulation results (via `result_dataframe`)
+#' @param id Either `TRUE` for identifiable instances or `FALSE` if non-ID
+#' @param conf The configuration of the search
+#' @param sim_scale Either "small" or "large" depending on the scale of the
+#'   simulation
+plot_scatter <- function(df, id = TRUE,
                          sim_scale = c("large", "small"),
                          conf = "Heuristic & Improvements") {
   id_str <- if (id) "id" else "nonid"
   sim_scale <- match.arg(sim_scale)
   scale_limits <- c(0, 500)
-  if (identical(sim_scale, "small")) scale_limits <- c(0, 1)
+  if (identical(sim_scale, "small")) {
+    scale_limits <- c(0, 1)
+  }
   df1 <- subset(df, id == id_str & config == conf)
   df2 <- subset(df, id == id_str & config == "Baseline")
   df1$btime <- df2$time
   keep <- function(x, ...) x
-  p <- ggplot(df1, aes(x = time, y = btime)) + 
-    geom_point() + 
-    geom_abline(intercept = 0, slope = 1, lwd = 1.0) + 
-    theme_bw(base_size = 24) + 
-    theme(aspect.ratio = 1, 
-          axis.title.y = element_text(size = 22,
-                                      margin = margin(t = 0, r = 12,
-                                                      b = 0, l = 0)), 
-          axis.title.x = element_text(size = 22, 
-                                      margin = margin(t = 12, r = 0, 
-                                                      b = 0, l = 0))) + 
-    ylab("Basic (s)") + 
+  p <- ggplot(df1, aes(x = time, y = btime)) +
+    geom_point() +
+    geom_abline(intercept = 0, slope = 1, lwd = 1.0) +
+    theme_bw(base_size = 24) +
+    theme(
+      aspect.ratio = 1,
+      axis.title.y = element_text(
+        size = 22,
+        margin = margin(t = 0, r = 12, b = 0, l = 0)
+      ),
+      axis.title.x = element_text(
+        size = 22,
+        margin = margin(t = 12, r = 0, b = 0, l = 0)
+      )
+    ) +
+    ylab("Basic (s)") +
     xlab(paste(conf, "(s)")) +
-    scale_y_continuous(limits = scale_limits, 
-                       oob = keep,
-                       expand = expansion(mult = c(0.015, 0.01))) + 
-    scale_x_continuous(limits = scale_limits,
-                       oob = keep,
-                       expand = expansion(mult = c(0.015, 0.01)))
-  return(p)
+    scale_y_continuous(
+      limits = scale_limits,
+      oob = keep,
+      expand = expansion(mult = c(0.015, 0.01))
+    ) +
+    scale_x_continuous(
+      limits = scale_limits,
+      oob = keep,
+      expand = expansion(mult = c(0.015, 0.01))
+    )
+  p
 }
 
-## A function for boxplots of computation times for each graph size
-# res : simulation result object
-# sim_scale : either "small" or "large" depending on the scale of the
-#             simulation
+#' Create Boxplots of Computation Times for Each Graph Size
+#'
+#' @param res A simulation result object
+#' @param sim_scale : either "small" or "large" depending on the scale of the
+#'   simulation
 scalability_boxplots <- function(res, sim_scale = c("small", "large")) {
   m <- length(res)
   N <- as.numeric(names(res))
@@ -203,69 +231,129 @@ scalability_boxplots <- function(res, sim_scale = c("small", "large")) {
   colnames(res_mat) <- c("time", "n")
   df <- as.data.frame(res_mat)
   df$n <- as.factor(df$n)
-  point <- format_format(big.mark = " ", 
-                         decimal.mark = ".", 
-                         scientific = FALSE,
-                         drop0trailing = TRUE)
-  p <- ggplot(df, aes(x = n, y = time)) + 
-    geom_boxplot() + 
+  point <- format_format(
+    big.mark = " ",
+    decimal.mark = ".",
+    scientific = FALSE,
+    drop0trailing = TRUE
+  )
+  p <- ggplot(df, aes(x = n, y = time)) +
+    geom_boxplot() +
     theme_bw(base_size = 24) +
-    theme(legend.key.width = unit(2, "cm"), 
-          axis.title.y = element_text(size = 18,
-                                      margin = margin(t = 0, r = 12, 
-                                                      b = 0, l = 0)), 
-          axis.title.x = element_text(size = 18,
-                                      margin = margin(t = 8, r = 0, 
-                                                      b = 0, l = 0)), 
-          panel.grid.major.x = element_blank()) +
+    theme(
+      legend.key.width = unit(2, "cm"),
+      axis.title.y = element_text(
+        size = 18,
+        margin = margin(t = 0, r = 12, b = 0, l = 0)
+      ),
+      axis.title.x = element_text(
+        size = 18,
+        margin = margin(t = 8, r = 0, b = 0, l = 0)
+      ),
+      panel.grid.major.x = element_blank()
+    ) +
     coord_cartesian(ylim = scale_limits) +
-    scale_y_continuous(trans = log10_trans(),
-                       breaks = scale_breaks,
-                       labels = point) + 
-    ylab("Time (s)") + xlab("n")
-  return(p)
+    scale_y_continuous(
+      trans = log10_trans(),
+      breaks = scale_breaks,
+      labels = point
+    ) +
+    ylab("Time (s)") +
+    xlab("n")
+  p
 }
 
-## A function to generate the scatterplots comparing various
-## configurations of the search, and the boxplot with varying
-## graph size
-# res : simulation result object
-# df  : a data frame of the simulation results (via result_dataframe)
-# sim_scale : either "small" or "large" depending on the scale of the
-#             simulation
-# save_plots : if TRUE, plots will be saved as .pdf to 'path'
-# path : directory to save plots if save_plots is TRUE 
-generate_plots <- function(res, df, sim_scale, 
+#' Generate All Plots of the Simulation
+#'
+#' @param res A Simulation result object
+#' @param df A `data.frame` of the simulation results (via result_dataframe)
+#' @param sim_scale Either "small" or "large" depending on the scale of the
+#'   simulation
+#' @param save_plots If `TRUE`, plots will be saved as .pdf to 'path'
+#' @param path A directory to save the plots if save_plots is `TRUE`
+generate_plots <- function(res, df, sim_scale,
                            save_plots = FALSE, path) {
   plots <- list()
-  plots[[1]] <- plot_scatter(df, id = TRUE, sim_scale,
-                             conf = "Heuristic & Improvements")
-  plots[[2]] <- plot_scatter(df, id = TRUE, sim_scale, 
-                             conf = "Heuristic only")
-  plots[[3]] <- plot_scatter(df, id = TRUE, sim_scale,
-                             conf = "Improvements only")
-  plots[[4]] <- plot_scatter(df, id = FALSE, sim_scale,
-                             conf = "Heuristic & Improvements")
-  plots[[5]] <- plot_scatter(df, id = FALSE, sim_scale,
-                             conf = "Heuristic only")
-  plots[[6]] <- plot_scatter(df, id = FALSE, sim_scale,
-                             conf = "Improvements only")
+  plots[[1]] <- plot_scatter(
+    df,
+    id = TRUE,
+    sim_scale,
+    conf = "Heuristic & Improvements"
+  )
+  plots[[2]] <- plot_scatter(
+    df,
+    id = TRUE,
+    sim_scale,
+    conf = "Heuristic only"
+  )
+  plots[[3]] <- plot_scatter(
+    df,
+    id = TRUE,
+    sim_scale,
+    conf = "Improvements only"
+  )
+  plots[[4]] <- plot_scatter(
+    df,
+    id = FALSE,
+    sim_scale,
+    conf = "Heuristic & Improvements"
+  )
+  plots[[5]] <- plot_scatter(
+    df,
+    id = FALSE,
+    sim_scale,
+    conf = "Heuristic only"
+  )
+  plots[[6]] <- plot_scatter(
+    df,
+    id = FALSE,
+    sim_scale,
+    conf = "Improvements only"
+  )
   plots[[7]] <- scalability_boxplots(res, sim_scale)
   if (save_plots) {
-    ggsave(paste0(path, "/scatter_id_hi.pdf"),
-           plot = plots[[1]], width = 7, height = 7)
-    ggsave(paste0(path, "/scatter_id_h.pdf"),
-           plot = plots[[2]], width = 7, height = 7)
-    ggsave(paste0(path, "/scatter_id_i.pdf"),
-           plot = plots[[3]], width = 7, height = 7)
-    ggsave(paste0(path, "/scatter_nonid_hi.pdf"),
-           plots[[4]], width = 7, height = 7)
-    ggsave(paste0(path, "/scatter_nonid_h.pdf"),
-           plot = plots[[5]], width = 7, height = 7)
-    ggsave(paste0(path, "/scatter_nonid_i.pdf"),
-           plot = plots[[6]], width = 7, height = 7)
-    ggsave(paste0(path, "/time_by_n.pdf"), 
-           plot = plots[[7]], width = 8.5, height = 7)
+    ggsave(
+      paste0(path, "/scatter_id_hi.pdf"),
+      plot = plots[[1]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/scatter_id_h.pdf"),
+      plot = plots[[2]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/scatter_id_i.pdf"),
+      plot = plots[[3]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/scatter_nonid_hi.pdf"),
+      plots[[4]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/scatter_nonid_h.pdf"),
+      plot = plots[[5]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/scatter_nonid_i.pdf"),
+      plot = plots[[6]],
+      width = 7,
+      height = 7
+    )
+    ggsave(
+      paste0(path, "/time_by_n.pdf"),
+      plot = plots[[7]],
+      width = 8.5,
+      height = 7
+    )
   } else {
     return(plots)
   }
@@ -274,11 +362,13 @@ generate_plots <- function(res, df, sim_scale,
 
 
 result_path <- paste0(file_path, "/Results")
-## Check that the "Results" directory exists, or create it
-if (!dir.exists(result_path)) dir.create(result_path)
-## Check that there are result files in the directory
+# Check that the "Results" directory exists, or create it
+if (!dir.exists(result_path)) {
+  dir.create(result_path)
+}
+# Check that there are result files in the directory
 file_names <- list.files(result_path)
-if (!length(file_names) || 
+if (!length(file_names) ||
     all(!grepl("dosearch_simulation_results.*", file_names))) {
   print("No pre-existing simulation results found!")
   print("Running the small-scale simulation...")
@@ -286,40 +376,45 @@ if (!length(file_names) ||
   source(paste0(file_path, "/simulation_small.R"))
 }
 
-## Generate the plots
+# Generate the plots
 res <- parse_results(result_path)
 sim_scale <- if (tail(names(tail(res)), 1) == "7") "small" else "large"
 df <- result_dataframe(res[[length(res)]])
 plots <- generate_plots(res, df, sim_scale, save_plots = FALSE)
 
-## View the individual plots
-## Scatterplots
+# View the individual plots
+
+# Scatterplots
 print(plots[[1]]) # ID instances, heuristic and improvements
 print(plots[[2]]) # ID instances, heuristic only
 print(plots[[3]]) # ID instances, improvements only
 print(plots[[4]]) # Non-ID instances, heuristic and improvements
 print(plots[[5]]) # Non-ID instances, heuristic only
 print(plots[[6]]) # Non-ID instances, improvements only
-## Boxplots of computation time for different graph sizes
-print(plots[[7]])
+print(plots[[7]]) # Boxplots of computation time
 
-## Save plots as .pdf
-generate_plots(res, df, sim_scale,
-               save_plots = TRUE, path = result_path)
+# Save plots as .pdf
+generate_plots(
+  res,
+  df,
+  sim_scale,
+  save_plots = TRUE,
+  path = result_path
+)
 
-## Get the simulation metrics (proportion of dominated instances and
-## mean computation times)
-## the first two elements of $dominance are the proportions of
-## instances where heuristic and improvements are at least as good
-## as the baseline search (id and non-id)
-## the last two are the instance counts, respectively.
-## $mean_times gives the mean computation times of instances
-## for each configuration
+# Get the simulation metrics (proportion of dominated instances and
+# mean computation times)
+# the first two elements of $dominance are the proportions of
+# instances where heuristic and improvements are at least as good
+# as the baseline search (id and non-id)
+# the last two are the instance counts, respectively.
+# $mean_times gives the mean computation times of instances
+# for each configuration
 result_stats(df)
 
-## Examples of Section 6
+# Examples of Section 6
 
-## Subsection 6.1 HR department example
+# Subsection 6.1 HR department example
 data1 <- "
    p(y,b,e,x)
    p(a,b,x)
@@ -338,7 +433,7 @@ dosearch(data1, query1, graph1, control = list(heuristic = TRUE))
 # Joint distribution is not identifiable in this case
 dosearch(data1, "p(y,b,e,x,a)", graph1, control = list(heuristic = TRUE))
 
-## 2nd example
+# 2nd example
 data2 <- "
   p(x_1,y_1,x_2,y_2,z,w)
   p(y_1,y_2|z,w,x_2,do(x_1))
@@ -361,7 +456,7 @@ graph2 <- "
 "
 dosearch(data2, query2, graph2, control = list(heuristic = TRUE))
 
-## 3rd example
+# 3rd example
 data3 <- "
   p(x_1,y_1,x_2,y_2,z,w)
   p(y_1,y_2|w,x_1,x_2,do(z))
@@ -390,7 +485,7 @@ dosearch(data3, query3, graph3, control = list(heuristic = TRUE))
 # Same effect but without the heuristic
 dosearch(data3, query3, graph3)
 
-## Subsection 6.2
+# Subsection 6.2
 data4 <- "
   p(x,z,y|s)
   p(y,z|t,do(x))
@@ -403,12 +498,12 @@ graph4 <- "
   t -> z
   x <-> y
 "
-dosearch(data4, query4, graph4, 
-         transportability = "t", 
+dosearch(data4, query4, graph4,
+         transportability = "t",
          selection_bias = "s",
          control = list(heuristic = TRUE))
 
-## Subsection 6.3
+# Subsection 6.3
 data5 <- "
   p(x,y,z,w_1,w_2|s_1,s_2)
   p(z|s_1)
@@ -426,7 +521,7 @@ graph5 <- "
 "
 dosearch(data5, query5, graph5, selection_bias = "s_1, s_2")
 
-## Subsection 6.4
+# Subsection 6.4
 data6 <- "p(x*,y*,r_x,r_y)"
 graph61 <- "
   x -> y
@@ -507,7 +602,7 @@ dosearch(data6, "p(x,y)", graph66, missing_data = md6)
 dosearch(data6, "p(y|do(x))", graph66, missing_data = md6)
 dosearch(data6, "p(y|x)", graph66, missing_data = md6)
 
-## Subsection 6.5
+# Subsection 6.5
 data7 <- "
   p(x*,y*,z*,r_x,r_y,r_z)
   p(y)

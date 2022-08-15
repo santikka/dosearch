@@ -233,9 +233,9 @@ validate_label <- function(from, to, pa, label_lhs) {
 #' Get Value Combinations that Appear in an Edge Label
 #'
 #' @inheritParams validate_label
-#' @param vals TODO
-#' @param zero TODO
-#' @param one TODO
+#' @param vals A `data.frame` of possible value assignments of the parents.
+#' @param zero An `integer` vector denoting the indices of assignment to 0.
+#' @param one An `integer` vector denoting the indices of assignment to 1.
 #' @noRd
 label_values <- function(vals, zero, one, pa, label_lhs) {
   zl <- length(zero)
@@ -320,8 +320,15 @@ infer_labels <- function(args, vals, from, to, pa) {
 #' Parse Context Implied by the Edge Labels
 #'
 #' @param args A `list` of arguments for `initialize_csisearch`
-#' @param input_labels TODO
-#' @param vanishing TODO
+#' @param input_labels A `matrix` with 5 columns that holds information on
+#'   the explicit and implied labels of the graph (one label per row).
+#'   The columns are:
+#'   1. Set of variables assigned to 0.
+#'   2. Set of variables assigned to 1.
+#'   3. The origin of the edge.
+#'   4. The endpoint of the edge.
+#'   5. The (other) parents of the edge endpoint.
+#' @param vanishing A `matrix` denoting edges that do not exist in any context
 #' @noRd
 parse_contexts <- function(args, input_labels, vanishing) {
   all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
@@ -477,7 +484,7 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
     )
   }
   d_null <- vapply(d_split, is.null, logical(1L))
-  for (j in which(!d_null))  {
+  for (j in which(!d_null)) {
     dup <- duplicated(d_split[[j]])
     if (any(dup)) {
       stop_(
@@ -632,9 +639,13 @@ match_distribution_ldag <- function(d) {
   matches <- lapply(dist_pattern, function(p) {
     regexec(p, d, perl = TRUE)
   })
-  match_lens <- sapply(matches, function(x) {
-    length(attr(x[[1L]], "match.length"))
-  })
+  match_lens <- vapply(
+    matches,
+    function(x) {
+      length(attr(x[[1L]], "match.length"))
+    },
+    integer(1L)
+  )
   best_match <- which.max(match_lens)[1L]
   parts <- regmatches(d, matches[[best_match]])[[1L]]
   d_split <- vector(mode = "list", length = 2L)

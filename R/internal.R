@@ -6,7 +6,7 @@ stop_ <- function(..., domain = NULL) {
   stop(..., call. = FALSE, domain = domain)
 }
 
-#' Convert a Vector of Unique Intergers to a Set
+#' Convert a Vector of Unique Integers to a Set
 #'
 #' @param vec An `integer` vector.
 #' @param n An `integer`, the number of unique elements.
@@ -15,7 +15,7 @@ to_dec <- function(vec, n) {
   sum(2L^seq.int(0L, n - 1L)[vec])
 }
 
-#' Convert a Set of Intergers to a Vector of Unique Integers
+#' Convert a Set of Integers to a Vector of Unique Integers
 #'
 #' @param dec An `integer`, representing a set of integers.
 #' @param n An `integer`, the number of unique elements.
@@ -186,10 +186,16 @@ parse_distribution <- function(d) {
     nb <- nchar(B)
     nc <- nchar(C)
     paste(
-      "p(", A, ifelse(nb > 0 | nc > 0, "|", ""),
-      ifelse(nb > 0, "do(", ""), B, ifelse(nb > 0, ")", ""),
+      "p(",
+      A,
+      ifelse(nb > 0 | nc > 0, "|", ""),
+      ifelse(nb > 0, "do(", ""),
+      B,
+      ifelse(nb > 0, ")", ""),
       ifelse(nb > 0 & nc > 0, ",", ""),
-      C, ")", sep = ""
+      C,
+      ")",
+      sep = ""
     )
   } else {
     stop_("Unable to parse distribution format ", deparse1(d), ".")
@@ -222,7 +228,8 @@ parse_graph <- function(graph) {
       if (length(unobs_edges) > 0L) {
         unobs_ind <- igraph::get.edges(graph, unobs_edges)
         unobs_ind <- unobs_ind[
-          unobs_ind[, 1L] < unobs_ind[, 2L], , drop = FALSE
+          unobs_ind[, 1L] < unobs_ind[, 2L], ,
+          drop = FALSE
         ]
         g_unobs <- paste(
           v[unobs_ind[, 1L]],
@@ -238,7 +245,7 @@ parse_graph <- function(graph) {
   } else if (inherits(graph, "dagitty")) {
     if (require_namespace("dagitty", quietly = TRUE)) {
       if (!identical(dagitty::graphType(graph), "dag")) {
-        stop_("Attempting to use `dagitty`, but argument `graph` is not a DAG.")
+        stop_("Attempting to use `dagitty`, but the graph type is not `dag`.")
       }
       e <- dagitty::edges(graph)
       paste(e[, 1L], e[, 3L], e[, 2L], collapse = "\n")

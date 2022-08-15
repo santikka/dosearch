@@ -1,0 +1,142 @@
+---
+title: "dosearch"
+link-citations: yes
+output:
+  html_document: default
+  pdf_document: default
+bibliography: dosearch.bib
+vignette: >
+  %\VignetteIndexEntry{dosearch} 
+  %\VignetteEngine{knitr::rmarkdown} 
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+\newcommand{\NA}{\textrm{NA}}
+\newcommand{\doo}{\textrm{do}}
+\newcommand{\+}[1]{\mathbf{#1}}
+\newcommand{\given}{{ \, | \, }}
+
+# Introduction
+
+This vignette is a modification of [@tikka21].
+
+A causal effect is defined as the distribution $P(\+Y \given \doo(\+X),\+Z)$ where variables $\+ Y$ are observed, variables $\+ X$ are intervened upon (forced to values irrespective of their natural causes) and variables $\+ Z$ are conditioned on. Instead of placing various parametric restrictions based on background knowledge, we are interested in this paper in the question of identifiability: can the causal effect be uniquely determined from the distributions (data) we have and a graph representing our structural knowledge on the generating causal system. 
+
+In the most basic setting we are identifying causal effects from a single observational input distribution, corresponding to passively observed data. To solve such problems more generally than what is possible with the back-door adjustment [@SGS; @Pearl:book2009; @greenland1999], @pearl1995causal introduced **do-calculus**, a set of three rules that together with probability theory enable the manipulation of interventional distributions. @Shpitser and @huangvaltorta:complete showed that do-calculus is complete by presenting polynomial-time algorithms whose each step can be seen as a rule of do-calculus or as an operation based on basic probability theory. The algorithms have a high practical value because the rules of do-calculus do not by themselves provide an indication on the order in which they should be applied. The algorithms save us from manual application of do-calculus, which is a tedious task in all but the simplest problems.
+
+Since then many extensions of the basic identifiability problem have appeared. 
+In identifiability using surrogate experiments [@Bareinboim:zidentifiability], or $z$-identifiability, an experimental distribution is available in addition to the observed probability distribution.
+For data observed in the presence of selection bias, both algorithmic and graphical identifiability results have been derived [@bareinboim2015recovering; Correa2018]. More generally, the presence of missing data necessitates the representation of the missingness mechanism, which poses additional challenges [@Mohan2013; @Shpitser2015]. Another dimension of complexity is the number of available data sources. Identification from a mixture of observational and interventional distributions that originate from multiple conceptual domains is known as transportability for which complete solutions exist in a specific setting [@bareinboim2014transportability].
+
+While completeness has been accomplished for a number of basic identifiability problems, there are still many challenging but important extensions to the identifiability problem that have not been studied so far. To find solutions to the more complicated identifiability problems, we present a unified approach to the identification of observational and interventional causal queries by constructing a search algorithm that directly applies the rules of do-calculus.  We impose no restrictions to the number or type of known input distributions: we thus provide a solution to problems for which no other algorithmic solutions exist. We also extend to identifiability under missing data together with mechanisms related to selection bias and transportability.
+
+To combat the inherent computational complexity of the search-based approach, we derive rules and techniques that avoid unnecessary computational steps. We are able to detect trivial queries where non-identifiability can be determined directly from the inputs. We also present a search heuristic that considerably speeds up the search in the cases where the effect is indeed identifiable. The approach, called **do-search**, is provably sound and it retains the completeness in the cases previously proven to be solved by do-calculus rules. We can easily scale up to the problems sizes commonly reported in the literature. The R package `dosearch` [@rsoft,@dosearch] provides an implementation of the search algorithm and is available on [CRAN](https://CRAN.R-project.org/package=dosearch). The complete details of **do-search** can be found in [@tikka21].
+
+# The General Causal Effect Identification Problem
+
+Our presentation is based on Structural Causal Models (SCM) and the language of directed graphs. We assume the reader to be familiar with these concepts and refer them to detailed works on these topics for extended discussion and descriptions, such as [@Pearl:book2009] and [@Koller09]. 
+
+Following the standard set-up of do-calculus [@pearl1995causal], we assume that the causal structure can be represented by a *semi-Markovian causal graph* $G$ over a set of vertices $\+ V$. 
+The directed edges correspond to direct causal relations between the variables (relative to $\+ V$); directed edges do not form any cycles. Confounding of any two observed variables in $\+ V$ by some unobserved common cause is represented by a bidirected edge between the variables.
+
+In a non-parametric setting, the problem of expressing a causal quantity of interest in terms of available information has been be described in various ways depending on the context. When available data are affected by selection bias or missing data, a typical goal is to "recover" some joint or marginal distributions. If data are available from multiple conceptual domains, a distribution is "transported" from the source domains, from which a combination of both observational and experimental data are available, to a target domain. The aforementioned can be expressed in the SCM framework by equipping the graph of the model with special vertices. However, on a fundamental level these problems are simply variations of the original identifiability problem of causal effects and as such, our goal is to represent them as a single generalized identifiability problem.
+
+The general form for a causal identifiability problem that we consider is formulated as follows.
+
+* *Input*: A set of known distributions of the form $P(\+ A_i | \doo(\+ B_i), \+ C_i)$, a query $P(\+ Y \given \doo(\+ X), \+ Z)$  and a semi-Markovian causal graph $G$ over $\+ V$. 
+* *Task*: Output a formula  for the query  $P(\+ Y \given \doo(\+ X),\+ Z)$ over the input distributions, or decide that it is not identifiable.
+ 
+Here  $\+ A_i,\+ B_i, \+ C_i$ are disjoint subsets of $\+ V$ for all $i$, and $\+ X,\+ Y,\+ Z$ are disjoint subsets of $\+ V$. The causal graph $G$ may contain vertices which describe mechanisms related to transportability and selection bias. In the following subsections we explain several important special cases of this problem definition, some that have been considered in the literature and some which have not been.
+
+The SCM framework can be extended to describe missing data mechanisms. For each variable $V_i$, two special vertices are added to the causal graph. The vertex $V_i^*$ is the observed proxy variable which is linked to the true variable $V_i$ via the missingness mechanism [@missing; @Mohan2013]:
+\begin{equation}
+V_i^* = \begin{cases}
+  V_i, & \mathrm{if}\; R_{V_i} = 1, \\
+  \NA,  & \mathrm{if}\; R_{V_i} = 0,
+  \end{cases}
+\end{equation}
+where $\NA$ denotes a missing value and $R_{V_i}$ is called the response indicator (of $V_i$). In other words, the variable $V_i^*$ that is actually observed matches the true value $V_i$ if it is not missing ($R_{V_i} = 1$). We note that in this formulation, each true variable has its own response indicator, meaning that we do not consider shared indicators between variables or multiple indicators for a single variable. Furthermore, if there is no missingness associated with a given variable $V_i$ meaning that it is fully observed, the corresponding response indicator $R_{V_i}$ always has the value $1$. The omission of a proxy variable and a response indicators of a specific variable from a graph encodes the assumption that the variable in question if fully observed. Note that intervention nodes are added for true variables and response indicators but not for proxy variables. On a symbolic level one could intervene on proxy variables, however we are only interested in interventions that keep equation 1 intact.
+
+# The dosearch package
+
+We implemented **do-search** in C++ and constructed an R interface using the `Rcpp` package [@Rcpp]. This interface is provided by the R package `dosearch`.
+
+```{r setup}
+library(dosearch)
+```
+Calling the search from R is straightforward via the primary function that carries the name of package.
+```{r, eval = FALSE}
+dosearch(
+  data, query, graph, 
+  transportability = NULL, selection_bias = NULL, missing_data = NULL,
+  control = list()
+)
+```
+The required inputs of the function are `data`, `query` and `graph`. Argument `data` is used to encode the set of known input distributions in the general identifiability problem as a character string, where each distribution is separated by a new line. For example, if we have access to distributions $P(W), P(Y \given X)$, and $P(Z \given \doo(X), W)$, we would write
+```{r}
+data <- "
+  P(W)
+  P(Y|X)
+  P(Z|do(X),W)
+"
+```
+The individual distributions can also be given as a list of character vectors of length one:
+```{r}
+data <- list(
+  "P(W)",
+  "P(Y|X)",
+  "P(Z|do(X),W)"
+)
+```
+The $\doo(\cdot)$-operator can either precede or succeed conditioning variables, but it must appear only once in a given term, meaning that expressions such as `P(Y|do(A),B,do(C))` are not allowed, but should instead be given as `P(Y|B,do(A,C))` or `P(Y|do(A,C),B)`. If variable sets are desired, each member of the set has to be included explicitly.
+
+Argument `query` is used to describe the query of the general identifiability problem as a character string, similarly as `data`. If we are interested in identifying $P(Y \given \doo(X), W)$ we would write
+```{r}
+query <- "P(Y|do(X),W)"
+```
+Instead of describing distributions via text, it is also possible to use the following structure that encodes the role of each variable via a numeric vector:
+```{r}
+query <- c(Y = 0, X = 1, W = 2)
+```
+Given a distribution of the form $P(\+ A \given \doo(\+B),\+ C)$ and a variable $V$, a value 0 means that $V \in \+ A$, value 1 means that $V \in \+ B$ and value 2 means that $V \in \+ C$. This format can also be used to input `data` as a list of numeric vectors:
+```{r}
+data <- list(
+  c(W = 0),
+  c(Y = 0, X = 2),
+  c(Z = 0, X = 1, W = 2)
+)
+```
+
+Finally, `graph` encodes the semi-Markovian graph $G$ of the causal model as a character string with each edge on its own line. A directed edge from $X$ to $Y$ is given as `X -> Y` and a bidirected edge between $X$ and $Y$ is given as `X <-> Y`. Intervention nodes should not be given explicitly, since they are added automatically after calling `dosearch`. Furthermore, only vertices with incoming or outgoing edges should be included in `graph`. As an example, we can encode a simple back-door graph with an added unobserved confounded between $X$ and $Y$ as follows:
+```{r}
+graph <- "
+  X -> Y
+  Z -> X
+  Z -> Y
+  X <-> Y
+"
+```
+Alternatively, one may use `igraph` graphs [@igraph] in the syntax of the `causaleffect` package [@Tikka:identifying] or DAGs created using the `dagitty` package.
+```{r}
+library("igraph")
+graph <- graph.formula(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
+graph <- set.edge.attribute(graph, "description", 4:5, "U")
+```
+```{r}
+library("dagitty")
+graph <- dagitty("dag{X -> Y; Z -> X; Z -> Y; X <-> Y}")
+```
+The next two optional parameters, \code{transportability} and \code{selection_bias}, are used to denote those vertices of $G$ that should be understood as either transportability nodes or selection bias nodes, respectively. Providing these parameters may increase search performance in relevant problems. Both of these parameters should be given as character strings, where individual variables are separated by a comma, for example `transportability = "S,T"`. Parameter `missing_data`, as the name suggests, is used to define missingness mechanisms (1) as a character string, where individual mechanisms are separated by a comma. In order to describe that $R_X$ is the response indicator of $X$ we would write `R_X : X`, which also implicitly defines that `X*` is the proxy variable of `X`. 
+
+The list `control` can be used to set various additional parameters that are not directly related to the identifiability problem itself, but more so to the output of the search and other auxiliary details, such as benchmarking and obtaining derivations that show how the query distribution can be reached from the inputs using do-calculus. One such control parameter determines whether to use the search heuristic or not. Documentation of the `dosearch` package contains detailed information on the full list of control parameters.
+
+The return object of `dosearch` is a list with three components by default. The first component, `identifiable`, is a logical value that takes the value `TRUE` when the target distribution described by `query` is identifiable from the inputs. The second component, `formula`, is a character string describing the target distribution in terms of the inputs in LaTeX syntax if the target is identifiable. Otherwise this component is just an empty character string. The third component `call` contains the arguments of the original function call.
+
+# References

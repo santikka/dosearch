@@ -5,8 +5,6 @@
 #include "dcongraph.h"
 #include "derivation.h"
 
-using namespace std;
-
 class dosearch: public search {
 public:
   dosearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
@@ -23,14 +21,14 @@ public:
   int rule_limit(const int& ruleid, const unsigned int& z_size);
   void set_target(const int& a, const int& b, const int& c, const int& d);
   void set_graph(dcongraph* g_);
-  void set_options(const vector<int>& rule_vec);
+  void set_options(const std::vector<int>& rule_vec);
   void set_labels(const Rcpp::StringVector& lab);
   void set_md_symbol(const char& mds);
   bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid);
-  string derive_formula(distr& dist);
-  string dec_to_text(const int& dec, const int& enabled) const;
-  string to_string(const p& pp) const;
-  string rule_name(const int& rule_num) const;
+  std::string derive_formula(distr& dist);
+  std::string dec_to_text(const int& dec, const int& enabled) const;
+  std::string to_string(const p& pp) const;
+  std::string rule_name(const int& rule_num) const;
   bool valid_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const bool& primi) const;
   void apply_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z);
   void derive_distribution(const distr& iquery, const distr& required, const int& ruleid, int& remaining, bool& found);
@@ -55,7 +53,7 @@ public:
 private:
   int compute_score(const p& pp) const;
   int compute_score_md(const p& pp) const;
-  priority_queue<distr*, std::vector<distr*>, comp_distr> Q;
+  std::priority_queue<distr*, std::vector<distr*>, comp_distr> Q;
 };
 
 #endif

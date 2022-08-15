@@ -1,8 +1,6 @@
 #include "search.h"
 
-using namespace std;
-
-search::search(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb): 
+search::search(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb):
   n(n_), time_limit(tl), benchmark(bm), benchmark_rules(br), draw_derivation(dd), draw_all(da), formula(fa), improve(im), verbose(verb) {
 }
 
@@ -10,16 +8,16 @@ search::~search() {
 }
 
 Rcpp::List search::initialize() {
-  
+
   info.to.a   = 0; info.to.b   = 0; info.to.c   = 0; info.to.d   = 0;
   info.from.a = 0; info.from.b = 0; info.from.c = 0; info.from.d = 0;
   info.rp.a   = 0; info.rp.b   = 0; info.rp.c   = 0; info.rp.d   = 0;
   info.ri.x   = 0; info.ri.y   = 0; info.ri.z   = 0; info.ri.u   = 0; info.ri.v = 0;
   info.valid = false; info.enumerate = false;
-  
-  string formula_str = "";
-  string derivation = "";
-  
+
+  std::string formula_str = "";
+  std::string derivation = "";
+
   bool trivial_nonid = check_trivial();
   if (improve && trivial_nonid) {
     return Rcpp::List::create(
@@ -30,22 +28,22 @@ Rcpp::List search::initialize() {
       Rcpp::Named("rule_times") = rule_times
     );
   }
-  
+
   z_sets = get_subsets(n);
   std::chrono::duration<double, std::milli> total_time;
-  
+
   auto t1 = std::chrono::high_resolution_clock::now();
   auto t2 = std::chrono::high_resolution_clock::now();
-  
+
   if (!trivial_id) {
     t1 = std::chrono::high_resolution_clock::now();
     find();
     t2 = std::chrono::high_resolution_clock::now();
   }
   total_time = t2 - t1;
-  
+
   bool identifiable = target_dist.size() > 0;
-  
+
   if (identifiable && formula) {
     formula_str = derive_formula(target_dist[0]);
   }
@@ -66,7 +64,7 @@ Rcpp::List search::initialize() {
     deriv->finish();
     derivation = deriv->get();
   }
-  
+
   return Rcpp::List::create(
     Rcpp::Named("identifiable") = identifiable,
     Rcpp::Named("formula") = formula_str,
@@ -74,7 +72,7 @@ Rcpp::List search::initialize() {
     Rcpp::Named("time") = total_time.count(),
     Rcpp::Named("rule_times") = rule_times
   );
-  
+
 }
 
 void search::find() {
@@ -88,14 +86,14 @@ void search::find() {
   int remaining = L.size();
   bool enable_limit = time_limit > 0;
   if (enable_limit) {
-    chrono::high_resolution_clock::time_point start, current;
-    chrono::duration<double, std::ratio<3600>> total;
-    start = chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point start, current;
+    std::chrono::duration<double, std::ratio<3600>> total;
+    start = std::chrono::high_resolution_clock::now();
     if (benchmark_rules) {
-      chrono::high_resolution_clock::time_point t1, t2;
-      chrono::duration<double, std::milli> ms;
+      std::chrono::high_resolution_clock::time_point t1, t2;
+      std::chrono::duration<double, std::milli> ms;
       while (remaining > 0 && !found) {
-        current = chrono::high_resolution_clock::now();
+        current = std::chrono::high_resolution_clock::now();
         total = current - start;
         if (total.count() > time_limit) return;
         distr& iquery = next_distribution(i);
@@ -106,7 +104,7 @@ void search::find() {
         d = iquery.pp.d;
         primi = iquery.primitive;
         for (unsigned int r = 0; r < rules.size(); r++) {
-          t1 = chrono::high_resolution_clock::now();
+          t1 = std::chrono::high_resolution_clock::now();
           ruleid = rules[r];
           if (!valid_rule(ruleid, a, b, c, d, primi)) continue;
           z_lim = rule_limit(ruleid, z_size);
@@ -116,7 +114,7 @@ void search::find() {
             enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
             if (found) break;
           }
-          t2 = chrono::high_resolution_clock::now();
+          t2 = std::chrono::high_resolution_clock::now();
           ms = t2 - t1;
           rule_times[r] += ms.count();
           if (found) return;
@@ -125,7 +123,7 @@ void search::find() {
       }
     } else {
       while (remaining > 0 && !found) {
-        current = chrono::high_resolution_clock::now();
+        current = std::chrono::high_resolution_clock::now();
         total = current - start;
         if (total.count() > time_limit) return;
         distr& iquery = next_distribution(i);
@@ -151,8 +149,8 @@ void search::find() {
     }
   } else {
     if (benchmark_rules) {
-      chrono::high_resolution_clock::time_point t1, t2;
-      chrono::duration<double, std::milli> ms;
+      std::chrono::high_resolution_clock::time_point t1, t2;
+      std::chrono::duration<double, std::milli> ms;
       while (remaining > 0 && !found) {
         distr& iquery = next_distribution(i);
         remaining--;
@@ -162,7 +160,7 @@ void search::find() {
         d = iquery.pp.d;
         primi = iquery.primitive;
         for (unsigned int r = 0; r < rules.size(); r++) {
-          t1 = chrono::high_resolution_clock::now();
+          t1 = std::chrono::high_resolution_clock::now();
           ruleid = rules[r];
           if (!valid_rule(ruleid, a, b, c, d, primi)) continue;
           z_lim = rule_limit(ruleid, z_size);
@@ -172,7 +170,7 @@ void search::find() {
             enumerate_distribution(ruleid, a, b, c, d, z, cd, exist, req, found, iquery, required, remaining);
             if (found) break;
           }
-          t2 = chrono::high_resolution_clock::now();
+          t2 = std::chrono::high_resolution_clock::now();
           ms = t2 - t1;
           rule_times[r] += ms.count();
           if (found) return;
@@ -205,13 +203,12 @@ void search::find() {
   }
 }
 
-
 void search::enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining) {
-  
+
   apply_rule(ruleid, a, b, c, d, z);
-  
+
   if (!info.valid) return;
-  
+
   if (info.enumerate) {
     enumerate_candidates();
     cd = candidates.size();
@@ -239,9 +236,9 @@ void search::enumerate_distribution(const int& ruleid, const int& a, const int& 
       derive_distribution(iquery, required, ruleid, remaining, found);
     }
   }
-  
+
   return;
-  
+
 }
 
 void search::set_derivation(derivation* d_) {
@@ -259,7 +256,7 @@ void search::get_candidate(distr& required, const int& req) {
   required.score = reqd.score;
 }
 
-string search::make_key(const p& pp) const {
+std::string search::make_key(const p& pp) const {
   return std::to_string(pp.a) + "," + std::to_string(pp.b) + "," + std::to_string(pp.c) + "," + std::to_string(pp.d);
 }
 

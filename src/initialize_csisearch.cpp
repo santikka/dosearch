@@ -3,32 +3,32 @@
 
 // [[Rcpp::plugins(cpp11)]]
 
-/* 
-  Function to handle R requests
- 
-  dir_lhs           : vector of vertices with outgoing directed edges
-  dir_rhs           : vector of vertices with incoming directed edges
-  lab               : vector of labels for vertices
-  p_list            : a list of known distributions
-  q_vec             : vector of vertices representing the causal query
-  label_map         : a list of edge labels
-  local_csi         : local CSI statements
-  con_vars          : a set of variables that have assignments in labels (non-interventional)
-  intv_vars         : a set of of interventional variables
-  n                 : number of vertices
-  time_limit        : time limit for the search (in hours)
-  rules             : overrides the set of default rules
-  benchmark         : record the search time
-  benchmark_rules   : record time taken by each individual rule
-  draw_derivation   : form a string representing the derivation steps (as dot)
-  draw_all          : draw every distribution that was derived (vs only those that were used to derive the effect)
-  formula           : output formula as string
-  improve           : enable search enhancements
-  heuristic         : use search heuristic
-  cache             : use caching for separation criteria
-  verbose           : print diagnostics during search
-*/
-
+//' Process `csisearch` Calls from R
+//'
+//' @param dir_lhs A vector of vertices with outgoing directed edges
+//' @param dir_rhs A vector of vertices with incoming directed edges
+//' @param lab A vector of labels for vertices
+//' @param p_list A list of known distributions
+//' @param q_vec A vector of vertices representing the causal query
+//' @param label_map A list of edge labels
+//' @param local_csi Local CSI statements
+//' @param con_vars A set of variables that have assignments in labels
+//'   (non-interventional)
+//' @param intv_vars A set of of interventional variables
+//' @param n Number of vertices
+//' @param time_limit Time limit for the search (in hours)
+//' @param rules Overrides the set of default rules
+//' @param benchmark Record the search time
+//' @param benchmark_rules Record time taken by each individual rule
+//' @param draw_derivation Form a string representing the derivation steps (as dot)
+//' @param draw_all Draw every distribution that was derived
+//'   (vs only those that were used to derive the effect)
+//' @param formula Output formula as string
+//' @param improve Enable search enhancements
+//' @param heuristic Use search heuristic
+//' @param cache Use caching for separation criteria
+//' @param verbose Print diagnostics during search
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List initialize_csisearch(
   const std::vector<int>& dir_lhs,
@@ -112,7 +112,7 @@ Rcpp::List initialize_csisearch(
     g->add_local_csi(x, y, z, zero, one);
   }
 
-  if (verbose) Rcpp::Rcout << "Initializing search" << endl;
+  if (verbose) Rcpp::Rcout << "Initializing search" << std::endl;
 
   Rcpp::List result = s->initialize();
 

@@ -30,7 +30,6 @@ data(bivariate_missingness)
 This data set contains the results of a systematic analysis of all missing
 data problems of two variables. Each problem is associated with a graph
 containing two vertices, \eqn{X} and \eqn{Y}, and their response indicators,
-\ifelse{html}{\out{R<sub>X</sub>}}{\eqn{R_X}} and
-\ifelse{html}{\out{R<sub>Y</sub>}}{\eqn{R_Y}}.
+\eqn{R_X} and \eqn{R_Y}.
 }
 \keyword{datasets}

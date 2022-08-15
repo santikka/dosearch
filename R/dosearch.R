@@ -9,11 +9,11 @@
 #'
 #' Argument `data` is used to list the available input distributions.
 #' When `graph` is a DAG the distributions should be of the form
-#' \ifelse{html}{\out{<p> P(A<sub>i</sub>|do(B<sub>i</sub>),C<sub>i</sub>) </p>}}{\deqn{P(A_i|do(B_i),C_i).}}
+#' \deqn{P(A_i|do(B_i),C_i)}
 #'
 #' Individual variables within sets should be separated by a comma.
 #' For example, three input distributions:
-#' \ifelse{html}{\out{<p> P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z) </p>}}{\deqn{P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z), }}
+#' \deqn{P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z)}
 #'
 #' should be given as follows:
 #' \preformatted{
@@ -29,7 +29,7 @@
 #' variable must either precede the do-operator or follow it. When `graph` is
 #' an LDAG, the do-operation is represented by an intervention node, i.e.,
 #'
-#' \ifelse{html}{\out{<p>P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)</p>}}{\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}}
+#' \deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}
 #'
 #' For example, in the case of the previous example in an LDAG,
 #' the three input distributions become:
@@ -351,7 +351,7 @@
 #'     graph1,
 #'     control = list(draw_derivation = TRUE)
 #'   )
-#'    DOT::dot(d$derivation, "derivation.svg")
+#'   DOT::dot(d$derivation, "derivation.svg")
 #' }
 #' }
 dosearch <- function(data, query, graph, transportability = NULL,
@@ -386,7 +386,7 @@ dosearch <- function(data, query, graph, transportability = NULL,
       selection_bias,
       missing_data,
       control
-     )
+    )
   }
 }
 
@@ -395,6 +395,16 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' @param object An object of class `dosearch`.
 #' @param ... Not used.
 #' @export
+#' @examples
+#' data <- "p(x,y,z)"
+#' query <- "p(y|do(x))"
+#' graph <- "
+#'   x -> y
+#'   Z -> x
+#'   z -> y
+#' "
+#' x <- dosearch(data, query, graph)
+#' y <- summary(x)
 summary.dosearch <- function(object, ...) {
   took <- NA
   units <- NA
@@ -432,6 +442,17 @@ summary.dosearch <- function(object, ...) {
 #' @param x An object of class `summary.dosearch`.
 #' @param ... Not used.
 #' @export
+#' @examples
+#' data <- "p(x,y,z)"
+#' query <- "p(y|do(x))"
+#' graph <- "
+#'   x -> y
+#'   Z -> x
+#'   z -> y
+#' "
+#' x <- dosearch(data, query, graph)
+#' y <- summary(x)
+#' print(y)
 print.summary.dosearch <- function(x, ...) {
   res <- x$result
   y <- x$call
@@ -460,6 +481,16 @@ print.summary.dosearch <- function(x, ...) {
 #' @param x An object of class `dosearch`.
 #' @param ... Additional arguments passed to [base::format()].
 #' @export
+#' @examples
+#' data <- "p(x,y,z)"
+#' query <- "p(y|do(x))"
+#' graph <- "
+#'   x -> z
+#'   Z -> y
+#'   x <-> y
+#' "
+#' x <- dosearch(data, query, graph)
+#' print(x)
 print.dosearch <- function(x, ...) {
   if (is.null(x$formula) || identical(x$formula, "")) {
     cat(

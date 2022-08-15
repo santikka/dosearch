@@ -11,6 +11,9 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![R-CMD-check](https://github.com/santikka/dosearch/workflows/R-CMD-check/badge.svg)](https://github.com/santikka/dosearch/actions)
 [![Codecov test
 coverage](https://codecov.io/gh/santikka/dosearch/branch/master/graph/badge.svg)](https://app.codecov.io/gh/santikka/dosearch?branch=master)
+[![CRAN
+version](http://www.r-pkg.org/badges/version/dosearch)](https://CRAN.R-project.org/package=dosearch)
+<!-- badges::end -->
 
 The `dosearch` [R](https://www.r-project.org/) package factilitates
 identification of causal effects from arbitrary observational and
@@ -25,7 +28,7 @@ additionally include mechanisms related to:
 -   Missing data (Mohan et al., 2013)
 -   Context-specific independence (Corander et al., 2019)
 
-See the mentioned references for further information.
+See the package vignette or the references for further information.
 
 ### Citing the package
 
@@ -95,25 +98,25 @@ dosearch(data, query, graph, missing_data = md)
 
 -   Tikka S, Hyttinen A, Karvanen J (2021). “Causal effect
     identification from multiple incomplete data sources: a general
-    search-based approach”, *Journal of Statistical Software*, 99(5),
+    search-based approach.” *Journal of Statistical Software*, 99(5),
     1–40.
     [doi:10.18637/jss.v099.i05](https://doi.org/10.18637/jss.v099.i05)
 -   Tikka S, Hyttinen A, Karvanen J (2019). “Identifying causal effects
-    via context-specific independence relations”, In *Proceedings of the
+    via context-specific independence relations.” In *Proceedings of the
     33rd Annual Conference on Neural Information Processing Systems*.
     (<https://papers.nips.cc/paper/2019/hash/d88518acbcc3d08d1f18da62f9bb26ec-Abstract.html>)
 -   Bareinboim E, Tian J (2015). “Recovering causal effects from
-    selection bias”, In *Proceedings of the Twenty-Ninth AAAI Conference
+    selection bias.” In *Proceedings of the Twenty-Ninth AAAI Conference
     on Artificial Intelligence*,
     (<http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>)
 -   Bareinboim E, Pearl J (2014). “Transportability from multiple
-    environments with limited Experiments: completeness Results”, In
+    environments with limited Experiments: completeness Results.” In
     *Advances of Neural Information Processing Systems 27*,
     (<http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>)
 -   Mohan K, Pearl J, Tian J (2013). “Graphical models for inference
-    with missing data”, In *Advances of Neural Information Processing
+    with missing data.” In *Advances of Neural Information Processing
     Systems 26*, (<http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>)
 -   Corander J, Hyttinen A, Kontinen J, Pensar J, Väänänen J (2019). “A
-    logical approach to context-specific independence”, *Annals of Pure
+    logical approach to context-specific independence.” *Annals of Pure
     and Applied Logic*, 170(9), 975–992.
     [doi:10.1016/j.apal.2019.04.004](https://doi.org/10.1016/j.apal.2019.04.004)

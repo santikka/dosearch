@@ -8,7 +8,7 @@ dosearch::~dosearch() {
 
 void dosearch::set_target(const int& a, const int& b, const int& c, const int& d) {
   target.a = a; target.b = b; target.c = c; target.d = d;
-  if (verbose) Rcpp::Rcout << "Setting target: " << to_string(target) << endl;
+  if (verbose) Rcpp::Rcout << "Setting target: " << to_string(target) << std::endl;
 }
 
 void dosearch::set_graph(dcongraph* g_) {
@@ -76,7 +76,7 @@ void dosearch::add_known(const int& a, const int& b, const int& c, const int& d)
   }
   if (md) lhs = (lhs | a) | ((a & md_p) >> 2);
   else lhs = lhs | a;
-  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
+  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << std::endl;
 }
 
 bool dosearch::check_trivial() {
@@ -108,17 +108,17 @@ void dosearch::derive_distribution(const distr& iquery, const distr& required, c
 
   if (equal_p(info.to, target)) {
     if (verbose) {
-      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
-      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
-      Rcpp::Rcout << "Target found" << endl;
-      Rcpp::Rcout << "Index = " << index << endl;
+      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
+      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << std::endl;
+      Rcpp::Rcout << "Target found" << std::endl;
+      Rcpp::Rcout << "Index = " << index << std::endl;
     }
     target_dist.push_back(nquery);
     found = true;
   } else {
     if (verbose) {
-      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << endl;
-      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << endl;
+      if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
+      else Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " using rule: " << std::to_string(ruleid) << std::endl;
     }
     remaining++;
     add_distribution(nquery);
@@ -142,8 +142,8 @@ void dosearch::enumerate_candidates() {
     rq.a = info.rp.a;
     rq.b = info.rp.b;
     rq.c = info.rp.c;
-    vector<int> elems;
-    vector<int> total;
+    std::vector<int> elems;
+    std::vector<int> total;
     int e = 0;
     for (int i = 1; i <= n; i++) {
       i_set = unary(i);
@@ -225,7 +225,7 @@ std::string dosearch::derive_formula(distr& dist) {
   return(formula);
 }
 
-string dosearch::rule_name(const int& rule_num) const {
+std::string dosearch::rule_name(const int& rule_num) const {
   switch (rule_num) {
     case 1  : return "R1";
     case -1 : return "R1";
@@ -731,7 +731,7 @@ void dosearch_heuristic::add_known(const int& a, const int& b, const int& c, con
   }
   if (md) lhs = (lhs | a) | ((a & md_p) >> 2);
   else lhs = lhs | a;
-  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << endl;
+  if (verbose) Rcpp::Rcout << "Adding known distribution: " << to_string(pp) << std::endl;
 }
 
 // Heuristic for search order

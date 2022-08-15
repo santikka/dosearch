@@ -1,24 +1,26 @@
-## Large-scale Simulation R script for: 
-## Causal Effect Identification from Multiple Incomplete Data Sources:
-## A General Search-based Approach
-## Santtu Tikka, Antti Hyttinen, Juha Karvanen
-## 2021-08-09
+# Large-scale Simulation R script for:
+# Causal Effect Identification from Multiple Incomplete Data Sources:
+# A General Search-based Approach
+# Santtu Tikka, Antti Hyttinen, Juha Karvanen
+# 2021-08-09
 
-## NOTE: Do not call directly! Use via dosearch_job.bash only!
+# NOTE: Do not call directly! Use via dosearch_job.bash only!
 
-## A function for generating a random causal model (the graph)
-# n          number of observed variables (nodes of the graph)
-# pedge      probability of a directed edge
-# pconf      probability of a bidirected edge
-# force      select whether path X -> ... -> Y should be forced
+#' Generate a Random Causal Model (the Graph)
+#'
+#' @param n An `integer`, the number of observed variables (nodes of the graph)
+#' @param pedge A `double`. Probability of a directed edge
+#' @param pconf A `double`. Probability of a bidirected edge
+#' @param force A `logical` value. Selects whether the path
+#'   X -> ... -> Y should be forced or not.
 random_graph <- function(n, pedge = 0.5, pconf = 0.5, force = TRUE) {
   if (force) {
     link <- FALSE
     while (!link) {
       M <- random_graph(n, pedge, pconf, force = FALSE)
       G <- M$G
-      if (any(rowSums(M$G) == 0 & 
-              colSums(M$G) == 0 & 
+      if (any(rowSums(M$G) == 0 &
+              colSums(M$G) == 0 &
               colSums(M$Ge) == 0)) {
         next  # all nodes must be connected by at least an arc
       }
@@ -30,51 +32,66 @@ random_graph <- function(n, pedge = 0.5, pconf = 0.5, force = TRUE) {
   }
   M <- list(G = array(0, c(n, n)), Ge = array(0, c(n, n)))
   M$order <- sample(n, n)  #this is the causal order
-  M$G <- array(sample(c(0, 1), nrow(M$G) * ncol(M$G), 
-                      prob = c(1 - pedge, pedge),
-                      replace = TRUE), 
-               c(n, n))
+  M$G <- array(
+    sample(
+      c(0, 1),
+      nrow(M$G) * ncol(M$G),
+      prob = c(1 - pedge, pedge),
+      replace = TRUE
+    ),
+    c(n, n)
+  )
   M$G[upper.tri(M$G)] <- 0
   diag(M$G) <- 0
   M$G[M$order, M$order] <- M$G
-  M$Ge <- array(sample(c(0, 1), nrow(M$G) * ncol(M$G), 
-                       prob = c(1 - pconf, pconf),
-                       replace = TRUE), 
-                c(n, n))
+  M$Ge <- array(
+    sample(
+      c(0, 1),
+      nrow(M$G) * ncol(M$G),
+      prob = c(1 - pconf, pconf),
+      replace = TRUE
+    ),
+  c(n, n))
   M$Ge[upper.tri(M$Ge)] <- 0
   diag(M$Ge) <- 0
   M$Ge <- M$Ge + t(M$Ge)
   if (n <= 15) {
-    M$names <- c("x", "y", "z", "w", "v", "a", 
-                 "b", "c", "d", "e", "f", "g",
-                 "h", "i", "j")[1:n]
+    M$names <- c(
+      "x", "y", "z", "w", "v", "a",
+      "b", "c", "d", "e", "f", "g",
+      "h", "i", "j"
+    )[1:n]
   } else {
     M$names <- paste("x_", 1:n, sep = "")
   }
-  return(M)
+  M
 }
 
-## A function to convert a causal model M into
-## the string representation used by dosearch
+#' Convert a Cusal Model M into the String Representation Used by `dosearch`
+#'
+#' @param M A random causal model, output of `random_graph`
 G2str <- function(M) {
   di <- "\n "
   bi <- ""
   nr <- nrow(M$G)
   for (x in 1:nr) {
     for (y in 1:nr) {
-      if (M$G[x, y])
+      if (M$G[x, y]) {
         di <- paste(di, M$names[y], "->", M$names[x], "\n", sep = " ")
-      if (y < x & M$Ge[x, y])
+      }
+      if (y < x & M$Ge[x, y]) {
         bi <- paste(bi, M$names[y], "--", M$names[x], "\n", sep = " ")
+      }
     }
   }
-  return(paste(di, bi, sep = " "))
+  paste(di, bi, sep = " ")
 }
 
-## The main simulation function
-# n          : number of observed variables (nodes of the graph)
-# edgedegree : expected directed edge degree
-# confdegree : expected bidirected edge degree
+#' Simulate `dosearch`
+#'
+#' @param n  An `integer`, tumber of observed variables (nodes of the graph)
+#' @param edgedegree An `integer`, the expected directed edge degree
+#' @param confdegree An `integer`, the expected bidirected edge degree
 dosearch_simulation <- function(n, edgedegree = 2, confdegree = 1) {
   total <- (n * n - n) / 2
   pedge <- n * edgedegree / (2 * total)
@@ -85,15 +102,27 @@ dosearch_simulation <- function(n, edgedegree = 2, confdegree = 1) {
   id <- list()
   query <- "p(y|do(x))"
   confs <- list()
-  confs[[1]] <- list(name = "Heuristic & Improvements", 
-                     heuristic = TRUE, improve = TRUE)
-  confs[[2]] <- list(name = "Heuristic only", 
-                     heuristic = TRUE, improve = FALSE)
-  confs[[3]] <- list(name = "Improvements only", 
-                     heuristic = FALSE, improve = TRUE)
-  confs[[4]] <- list(name = "Baseline", 
-                     heuristic = FALSE, improve = FALSE)
-  for (a in 1:length(confs)) {
+  confs[[1]] <- list(
+    name = "Heuristic & Improvements",
+    heuristic = TRUE,
+    improve = TRUE
+  )
+  confs[[2]] <- list(
+    name = "Heuristic only",
+    heuristic = TRUE,
+    improve = FALSE
+  )
+  confs[[3]] <- list(
+    name = "Improvements only",
+    heuristic = FALSE,
+    improve = TRUE
+  )
+  confs[[4]] <- list(
+    name = "Baseline",
+    heuristic = FALSE,
+    improve = FALSE
+  )
+  for (a in seq_along(confs)) {
     results[[a]] <- list()
     M <- random_graph(n, pedge, pconf, force = TRUE)
     M$str <- G2str(M)
@@ -111,33 +140,51 @@ dosearch_simulation <- function(n, edgedegree = 2, confdegree = 1) {
           if (all(status != "obs")) {
             next
           }
-          str <- paste("p(", paste(sort(M$names[status == "obs"]), 
-                                   collapse = ",",
-                                   sep = ""), 
-                       sep = "")
+          str <- paste(
+            "p(",
+            paste(
+              sort(M$names[status == "obs"]),
+              collapse = ",",
+              sep = ""
+            ),
+            sep = ""
+          )
           if (any(status == "cond") || any(status == "do")) {
             str <- paste(str, "|", sep = "")
           }
           if (any(status == "cond")) {
-            str <- paste(str, paste(sort(M$names[status == "cond"]), 
-                                    collapse = ",",
-                                    sep = ""), 
-                         sep = "")
+            str <- paste(
+              str,
+              paste(
+                sort(M$names[status == "cond"]),
+                collapse = ",",
+                sep = ""
+              ),
+              sep = ""
+            )
           }
           if (any(status == "cond") && any(status == "do")) {
             str <- paste(str, ",", sep = "")
           }
           if (any(status == "do")) {
-            str <- paste(str, "do(", 
-                         paste(sort(M$names[status == "do"]),
-                               collapse = ",",
-                               sep = " "), 
-                         ")", sep = "")
+            str <- paste(
+              str,
+              "do(",
+              paste(
+                sort(M$names[status == "do"]),
+                collapse = ",",
+                sep = " "
+              ),
+              ")",
+              sep = ""
+            )
           }
           str <- paste(str, ")", sep = "")
           if (str %in% P) {
             next
-          } else break
+          } else {
+            break
+          }
         }
         P <- c(P, str)
         graph <- M$str
@@ -147,20 +194,27 @@ dosearch_simulation <- function(n, edgedegree = 2, confdegree = 1) {
         R$data <- data
         R$query <- query
         R$graph <- M$str
-        temp <- dosearch(R$data, R$query, R$graph,
-                         control = list(
-                           improve = confs[[a]]$improve,
-                           heuristic = confs[[a]]$heuristic,
-                           verbose = FALSE,
-                           formula = FALSE,
-                           time_limit = -1,
-                           benchmark = TRUE))
+        temp <- dosearch(
+          R$data,
+          R$query,
+          R$graph,
+          control = list(
+            improve = confs[[a]]$improve,
+            heuristic = confs[[a]]$heuristic,
+            verbose = FALSE,
+            formula = FALSE,
+            time_limit = -1,
+            benchmark = TRUE
+          )
+        )
         R$id <- temp$identifiable
         R$t <- temp$time/1000
         if (R$id) {
-          id[[i]] <- list(id_data = R$data, 
-                          nonid_data = Rprev$data, 
-                          graph = R$graph)
+          id[[i]] <- list(
+            id_data = R$data,
+            nonid_data = Rprev$data,
+            graph = R$graph
+          )
           break
         }
       }
@@ -169,71 +223,89 @@ dosearch_simulation <- function(n, edgedegree = 2, confdegree = 1) {
       R$data <- id[[i]]$id_data
       R$query <- query
       R$graph <- id[[i]]$graph
-      temp <- dosearch(R$data, R$query, R$graph,
-                       control = list(improve = confs[[a]]$improve,
-                                      heuristic = confs[[a]]$heuristic,
-                                      verbose = FALSE,
-                                      formula = FALSE,
-                                      time_limit = -1,
-                                      benchmark = TRUE))
+      temp <- dosearch(
+        R$data,
+        R$query,
+        R$graph,
+        control = list(
+          improve = confs[[a]]$improve,
+          heuristic = confs[[a]]$heuristic,
+          verbose = FALSE,
+          formula = FALSE,
+          time_limit = -1,
+          benchmark = TRUE
+        )
+      )
       R$id <- temp$identifiable
       R$t <- temp$time/1000
       Rprev <- list()
       Rprev$data <- id[[i]]$nonid_data
       Rprev$query <- query
       Rprev$graph <- id[[i]]$graph
-      temp <- dosearch(Rprev$data, Rprev$query, Rprev$graph,
-                       control = list(improve = confs[[a]]$improve,
-                                      heuristic = confs[[a]]$heuristic,
-                                      verbose = FALSE,
-                                      formula = FALSE,
-                                      time_limit = -1,
-                                      benchmark = TRUE))
+      temp <- dosearch(
+        Rprev$data,
+        Rprev$query,
+        Rprev$graph,
+        control = list(
+          improve = confs[[a]]$improve,
+          heuristic = confs[[a]]$heuristic,
+          verbose = FALSE,
+          formula = FALSE,
+          time_limit = -1,
+          benchmark = TRUE
+        )
+      )
       Rprev$id <- temp$identifiable
       Rprev$t <- temp$time/1000
     }
     results[[a]] <- list(R = R, Rprev = Rprev)
   }
-  return(list(n = n, confs = confs, results = results))
+  list(n = n, confs = confs, results = results)
 }
 
-## Get the command arguments
+# Get the command arguments
 args <- commandArgs(trailingOnly = TRUE)
 lib_path <- as.character(args[1])
 result_path <- as.character(args[2])
 N <- 4:max(4, as.numeric(args[3]))
 arr_id <- as.numeric(args[4])
 
-## Add the package path to .libPaths
+# Add the package path to .libPaths
 .libPaths(c(lib_path, .libPaths()))
 options(warn = 1)
 
 library(dosearch)
 
-## Initialize the cluster and MPI
+# Initialize the cluster and MPI
 library(doMPI, quietly = TRUE)
 cl <- startMPIcluster()
 registerDoMPI(cl)
 cl_size <- clusterSize(cl)
 
-## Conduct the simulation
+# Conduct the simulation
 sim_result <- list()
 for (n in N) {
-  ## The argument .options.mpi.seed ensures reproducibility
-  ## (up to element order in the resulting list)
-  sim_result[[n - N[1] + 1]] <- 
-    foreach(i = 1:cl_size, 
-            .packages = "dosearch",
-            .options.mpi = list(seed = arr_id)
+  # The argument .options.mpi.seed ensures reproducibility
+  # (up to element order in the resulting list)
+  sim_result[[n - N[1] + 1]] <-
+    foreach(
+      i = 1:cl_size,
+      .packages = "dosearch",
+      .options.mpi = list(seed = arr_id)
     ) %dopar% dosearch_simulation(n = n)
 }
 
-## Save the simulation results
-save(sim_result,
-     file = paste0(result_path,
-                   "/dosearch_simulation_results_", 
-                   arr_id, ".RData"))
+# Save the simulation results
+save(
+  sim_result,
+  file = paste0(
+    result_path,
+    "/dosearch_simulation_results_",
+    arr_id,
+    ".RData"
+  )
+)
 
-## Close the cluster and terminate MPI
+# Close the cluster and terminate MPI
 closeCluster(cl)
 mpi.quit()

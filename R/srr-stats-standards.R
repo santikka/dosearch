@@ -19,6 +19,7 @@ NULL
 #' @noRd
 #' @srrstatsNA {G1.6, G5.4b}
 #'   There are no alternative implementations for comparison.
+#' @srrstatsNA {G2.3a} `match.arg` is never used or needed.
 #' @srrstatsNA {G2.4d, G2.4e, G2.5} Factor input is not supported.
 #' @srrstatsNA {G2.7, G2.10, G2.11, G2.12} Tabular forms are not supported.
 #' @srrstatsNA {G2.9} There is no loss of information.
@@ -28,5 +29,9 @@ NULL
 #'   package is purely symbolic.
 #' @srrstatsNA {G3.1, G3.1a} No covariance calculations are performed.
 #' @srrstatsNA {G4.0} The package does not write to local files.
-#' @srrstatsNA {G5.4c} Stored values are not drawn
+#' @srrstatsNA {G5.4c} Stored values are not drawn.
+#' @srrstatsNA {G5.6b} There is nothing stochastic to set seeds for in the
+#'   tests.
+#' @srrstatsNA {G5.9, G5.9a, G5.9b} Data is in symbolic form without noise.
+#' @srrstatsNA {G5.10, G5.11, G5.11a, G5.12} There are no extended tests.
 NULL

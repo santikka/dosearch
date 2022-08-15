@@ -14,3 +14,15 @@
 \description{
 Print the Summary of a \code{dosearch} Object
 }
+\examples{
+data <- "p(x,y,z)"
+query <- "p(y|do(x))"
+graph <- "
+  x -> y
+  Z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph)
+y <- summary(x)
+print(y)
+}

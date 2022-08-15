@@ -59,11 +59,11 @@ for the syntax of each argument.
 \details{
 Argument \code{data} is used to list the available input distributions.
 When \code{graph} is a DAG the distributions should be of the form
-\ifelse{html}{\out{<p> P(A<sub>i</sub>|do(B<sub>i</sub>),C<sub>i</sub>) </p>}}{\deqn{P(A_i|do(B_i),C_i).}}
+\deqn{P(A_i|do(B_i),C_i)}
 
 Individual variables within sets should be separated by a comma.
 For example, three input distributions:
-\ifelse{html}{\out{<p> P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z) </p>}}{\deqn{P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z), }}
+\deqn{P(Z|do(X)), P(W,Y|do(Z,X)), P(W,Y,X|Z)}
 
 should be given as follows:
 \preformatted{
@@ -79,7 +79,7 @@ conditioning variables and a do-operator are present, every conditioning
 variable must either precede the do-operator or follow it. When \code{graph} is
 an LDAG, the do-operation is represented by an intervention node, i.e.,
 
-\ifelse{html}{\out{<p>P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)</p>}}{\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}}
+\deqn{P(Y|do(X),Z) = P(Y|X,Z,I_X = 1)}
 
 For example, in the case of the previous example in an LDAG,
 the three input distributions become:
@@ -360,7 +360,7 @@ if (requireNamespace("DOT", quietly = TRUE)) {
     graph1,
     control = list(draw_derivation = TRUE)
   )
-   DOT::dot(d$derivation, "derivation.svg")
+  DOT::dot(d$derivation, "derivation.svg")
 }
 }
 }

@@ -10,7 +10,7 @@ void ldag::empty() {
       E[i][j] = false;
     }
   }
-  local_csi = vector<csi>(0);
+  local_csi = std::vector<csi>(0);
 }
 
 ldag::~ldag() {
@@ -114,7 +114,7 @@ void ldag::add_context_set(const int& set) {
   context_sets.push_back(set);
 }
 
-void ldag::add_context(const int& zero, const int& one, const int& equiv, const vector<int>& from, const vector<int>& to) {
+void ldag::add_context(const int& zero, const int& one, const int& equiv, const std::vector<int>& from, const std::vector<int>& to) {
   context con;
   config cfg;
   std::string con_key = context_key(zero, one);
@@ -188,9 +188,9 @@ bool ldag::csi_criterion(const int& x, const int& y, const int& z, const int& ze
     full_con = (zero | one) | w;
     equiv_class = 0;
     std::vector<config>& settings = context_settings[full_con];
-    if (csi_criterion(x, w, z | y, zero, one, intv, new_con) || 
-        csi_criterion(x, w, z, zero, one, intv, new_con) || 
-        csi_criterion(y, w, z | x, zero, one, intv, new_con) || 
+    if (csi_criterion(x, w, z | y, zero, one, intv, new_con) ||
+        csi_criterion(x, w, z, zero, one, intv, new_con) ||
+        csi_criterion(y, w, z | x, zero, one, intv, new_con) ||
         csi_criterion(y, w, z, zero, one, intv, new_con)) {
       valid_context = true;
       for (auto &setting : settings) {
@@ -326,9 +326,9 @@ bool ldag_cache::csi_criterion(const int& x, const int& y, const int& z, const i
     full_con = (zero | one) | w;
     equiv_class = 0;
     std::vector<config>& settings = context_settings[full_con];
-    if (csi_criterion(x, w, z | y, zero, one, intv, new_con) || 
-        csi_criterion(x, w, z, zero, one, intv, new_con) || 
-        csi_criterion(y, w, z | x, zero, one, intv, new_con) || 
+    if (csi_criterion(x, w, z | y, zero, one, intv, new_con) ||
+        csi_criterion(x, w, z, zero, one, intv, new_con) ||
+        csi_criterion(y, w, z | x, zero, one, intv, new_con) ||
         csi_criterion(y, w, z, zero, one, intv, new_con)) {
       valid_context = true;
       for (auto &setting : settings) {

@@ -220,3 +220,25 @@ test_that("verbose search works", {
   expect_match(out[out_len - 2L], "Target found")
   expect_match(out[out_len - 1L], "Index")
 })
+
+test_that("edge vanishes if label is full", {
+  graph <- "
+    X -> Y
+    A -> X
+    L -> X : A = 0; A = 1
+    L -> Y
+  "
+  out <- dosearch("p(X,A,Y)", "p(Y)", graph)
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
+  graph <- "
+    x -> Y
+    A -> X
+    B -> X
+    L -> X : A = 0, B = 0; A = 1, B = 0; A = 0, B = 1; A = 1, B = 1
+    L -> Y
+  "
+  out <- dosearch("p(X,A,Y)", "p(Y)", graph)
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
+})
