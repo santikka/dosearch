@@ -59,7 +59,7 @@ devtools::install_github("santikka/dosearch")
 ## Examples
 
 ``` r
-# backdoor formula
+# back-door formula
 data <- "p(x,y,z)"
 query <- "p(y|do(x))"
 graph <- "
@@ -70,7 +70,7 @@ graph <- "
 dosearch(data, query, graph)
 #> \sum_{z}\left(p(z)p(y|x,z)\right)
 
-# frontdoor formula
+# front-door formula
 graph <- "
   x -> z
   z -> y

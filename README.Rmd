@@ -37,8 +37,8 @@ See the package vignette or the references for further information.
   
 ### Citing the package
 
-If you use the `dosearch` package in a publication, please cite the corresponding
-paper in the Journal of Statistical Software:
+If you use the `dosearch` package in a publication, please cite the 
+corresponding paper in the Journal of Statistical Software:
 
 Tikka S, Hyttinen A, Karvanen J (2021). “Causal Effect Identification from 
 Multiple Incomplete Data Sources: A General Search-Based Approach.” 
@@ -65,7 +65,7 @@ library(dosearch)
 ```
 
 ```{r, eval = TRUE}
-# backdoor formula
+# back-door formula
 data <- "p(x,y,z)"
 query <- "p(y|do(x))"
 graph <- "
@@ -75,7 +75,7 @@ graph <- "
 "
 dosearch(data, query, graph)
 
-# frontdoor formula
+# front-door formula
 graph <- "
   x -> z
   z -> y

@@ -39,6 +39,7 @@ Suggests:
     igraph,
     knitr,
     mockr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Imports: Rcpp (>= 0.12.19)
 LinkingTo: Rcpp
