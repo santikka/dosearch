@@ -5,15 +5,23 @@
 \alias{dosearch-package}
 \title{Causal Effect Identification from Multiple Incomplete Data Sources}
 \description{
-Solves causal effect identifiability problems from arbitrary observational
-and experimental data using a heuristic search.
+Solves causal effect identifiability problems from arbitrary
+observational and experimental distributions using a heuristic search.
 Allows for the presence of advanced data-generating mechanisms.
 See Tikka et al. (2021) \url{doi:10.18637/jss.v099.i05} for further details.
 }
+\section{See also}{
+\itemize{
+\item The package vignette.
+\item \code{\link[=dosearch]{dosearch()}} for instructions and various examples.
+\item \url{https://github.com/santikka/dosearch/issues/} to submit a bug report.
+}
+}
+
 \references{
 S. Tikka, A. Hyttinen and J. Karvanen.
-Causal effect identification from multiple incomplete data sources:
-a general search-based approach. \emph{Journal of Statistical Software},
+"Causal effect identification from multiple incomplete data sources:
+a general search-based approach." \emph{Journal of Statistical Software},
 99(5):1--40, 2021.
 }
 \author{

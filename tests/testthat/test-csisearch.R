@@ -193,7 +193,13 @@ test_that("trivial non-identifiability is checked", {
 })
 
 test_that("trivial identifiability is checked", {
-  out <- dosearch("p(y)", "p(y)", "x -> y\nz -> y : x = 1")
+  data <- "p(y)"
+  query <- "p(y)"
+  graph <- "x -> y\nz -> y : x = 1"
+  out <- dosearch(data, query, graph)
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y)")
+  out <- dosearch(data, query, graph, control = list(heuristic = TRUE))
   expect_true(out$identifiable)
   expect_identical(out$formula, "p(y)")
 })
@@ -241,4 +247,27 @@ test_that("edge vanishes if label is full", {
   out <- dosearch("p(X,A,Y)", "p(Y)", graph)
   expect_true(out$identifiable)
   expect_identical(out$formula, "p(Y)")
+})
+
+test_that("csisearch derivation works", {
+  data <- "P(X,Y,Z,A,W)"
+  query <- "P(Y|X,I_X=1)"
+  graph <- "
+    I_X -> X
+    I_Z -> Z
+    A -> W
+    Z -> Y
+    A -> Z
+    X -> Z : I_Z = 1; A = 1
+    X -> Y : A = 0
+    W -> X : I_X = 1
+    W -> Y : A = 0
+    A -> Y
+    U -> X : I_X = 1
+    U -> Y : A = 1
+  "
+  expect_error(
+    dosearch(data, query, graph, control = list(draw_derivation = TRUE)),
+    NA
+  )
 })

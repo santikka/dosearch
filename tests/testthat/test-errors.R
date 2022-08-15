@@ -224,6 +224,17 @@ test_that("invalid edge labels fail", {
   )
 })
 
+test_that("malformed missing data mechanisms fail", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y", missing_data = ""),
+    "Malformed missing data mechanisms"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y)", "r_x -> y", missing_data = "r_x : x, r_y : y"),
+    "A missing data mechanism cannot be a parent of a true variable"
+  )
+})
+
 test_that("syntactically incorrect data inputs fail", {
   malformed_inputs <- c(NA, "(", "p(", "p(x", "p(x|y", "p(x|do(x", "p(x|do(x)")
   for (m in malformed_inputs) {

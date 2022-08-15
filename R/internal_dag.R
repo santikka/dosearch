@@ -172,7 +172,7 @@ parse_missing_data <- function(args, missing_data) {
   if (!is.null(missing_data)) {
     md_pairs <- gsub("\\s+", "", strsplit(missing_data, ",")[[1L]])
     if (length(md_pairs) == 0L) {
-      stop_("Invalid missing data mechanisms.")
+      stop_("Malformed missing data mechanisms.")
     }
     md_mechanisms <- strsplit(md_pairs, ":")
     md_true <- vapply(md_mechanisms, "[[", character(1L), 2L)
@@ -191,9 +191,6 @@ parse_missing_data <- function(args, missing_data) {
     names(args$nums) <- args$vars
     md_switch_nums <- args$nums[md_switch]
     md_proxy_nums <- args$nums[md_proxy]
-    if (any(is.na(md_switch_nums)) || any(is.na(md_proxy_nums))) {
-      stop_("Invalid missing data mechanisms.")
-    }
     args$md_s <- to_dec(md_switch_nums, args$n)
     args$md_p <- to_dec(md_proxy_nums, args$n)
     args$md_t <- bitwShiftR(args$md_p, 2L)

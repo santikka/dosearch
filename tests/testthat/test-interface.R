@@ -192,3 +192,12 @@ test_that("alternative distribution format works", {
     dosearch(data_alt, query_alt, graph)$formula
   )
 })
+
+test_that("package can be unloaded", {
+  expect_error(
+    unloadNamespace("dosearch"),
+    NA
+  )
+  expect_false(isNamespaceLoaded("dosearch"))
+  library(dosearch)
+})

@@ -1,9 +1,15 @@
 #' Causal Effect Identification from Multiple Incomplete Data Sources
 #'
-#' Solves causal effect identifiability problems from arbitrary observational
-#' and experimental data using a heuristic search.
+#' @description Solves causal effect identifiability problems from arbitrary
+#' observational and experimental distributions using a heuristic search.
 #' Allows for the presence of advanced data-generating mechanisms.
 #' See Tikka et al. (2021) <doi:10.18637/jss.v099.i05> for further details.
+#'
+#' # See also
+#'
+#' * The package vignette.
+#' * [dosearch::dosearch()] for instructions and various examples.
+#' * \url{https://github.com/santikka/dosearch/issues/} to submit a bug report.
 #'
 #' @docType package
 #' @name dosearch-package
@@ -11,14 +17,14 @@
 #' @importFrom Rcpp sourceCpp
 #' @author Santtu Tikka, Antti Hyttinen, Juha Karvanen
 #' @references S. Tikka, A. Hyttinen and J. Karvanen.
-#'   Causal effect identification from multiple incomplete data sources:
-#'   a general search-based approach. \emph{Journal of Statistical Software},
+#'   "Causal effect identification from multiple incomplete data sources:
+#'   a general search-based approach." \emph{Journal of Statistical Software},
 #'   99(5):1--40, 2021.
 #'
 #' @srrstats {G1.0} Primary reference is:
 #'   S. Tikka, A. Hyttinen and J. Karvanen.
-#'   Causal effect identification from multiple incomplete data sources:
-#'   a general search-based approach. \emph{Journal of Statistical Software},
+#'   "Causal effect identification from multiple incomplete data sources:
+#'   a general search-based approach." \emph{Journal of Statistical Software},
 #'   99(5):1--40, 2021.
 #' @srrstats {G1.1} First implementation of an original algorithm.
 #' @srrstats {G1.2} Life Cycle Statement is included in the README.
