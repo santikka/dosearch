@@ -19,12 +19,12 @@ void csisearch::set_options(const std::vector<int>& rule_vec) {
   trivial_id = false;
   index = 0;
   lhs = 0;
-  
+
   if (rule_vec.size() > 0) rules = rule_vec;
   else {
     rules = {0, 1, -3, 3, -4, 4, -5, 5, 6, -7, 7, -8, 8, -2, 2};
   }
-  
+
   rule_times = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 }
 
@@ -86,11 +86,11 @@ void csisearch::derive_distribution(const distr& iquery, const distr& required, 
   nquery.pa1 = iquery.index;
   nquery.pa2 = 0;
   nquery.rule_num = ruleid;
-  
+
   if (info.rp.a > 0) {
     nquery.pa2 = required.index;
   }
-  
+
   if (equal_p(info.to, target)) {
     if (verbose) {
       if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
@@ -124,15 +124,11 @@ void csisearch::enumerate_candidates() {
     candidates.push(exist);
   }
   if (acon > 0) {
-    int zero = 0;
-    int one = 0;
-    int u_inc, v_inc, slice, i_set, z, o;
-    bool valid;
+    int u_inc, v_inc, i_set, zero, one;
     p rq;
     rq.a = info.rp.a;
     rq.b = info.rp.b;
     std::vector<int> elems;
-    std::vector<int> total;
     int e = 0;
     for (int i = 1; i <= n; i++) {
       i_set = unary(i);
@@ -141,27 +137,23 @@ void csisearch::enumerate_candidates() {
         e++;
       }
     }
-    for (int j = 1; j <= e; j++) {
-      z = unary(2 * j - 1);
-      o = unary(2 * j);
-      zero += z;
-      one += o;
-      total.push_back(z | o);
-    }
+    int zo_set = full_set(2*e);
+    int z_set = full_set(e);
+    int o_set = zo_set - z_set;
     for (int i = 1; i < full_set(2*e); i++) {
-      valid = true;
-      u_inc = 0;
-      v_inc = 0;
-      for (int j = 0; j < e; j++) {
-        slice = i & total[j];
-        if (slice == total[j]) {
-          valid = false;
-          break;
+      zero = i & z_set;
+      one = (i & o_set) >> e;
+      if ((zero & one) == 0) {
+        u_inc = 0;
+        v_inc = 0;
+        for (int j = 1; j <= e; j++) {
+          if (in_set(j, zero)) {
+            u_inc += elems[j-1];
+          } 
+          if (in_set(j, one)) {
+            v_inc += elems[j-1];
+          }
         }
-        if ((zero & slice) > 0) u_inc += elems[j];
-        if ((one & slice) > 0) v_inc += elems[j];
-      }
-      if (valid) {
         rq.c = info.rp.c + u_inc;
         rq.d = info.rp.d + v_inc;
         exist = ps[make_key(rq)];
@@ -244,25 +236,25 @@ std::string csisearch::derive_formula(distr& dist) {
 }
 
 std::string csisearch::rule_name(const int& rule_num) const {
+  std::string rn = "";
   switch (rule_num) {
-    case 0  : return "M";
-    case 1  : return "C";
-    case 2  : return "P";
-    case -2 : return "P";
-    case 3  : return "I+";
-    case -3 : return "I-";
-    case 4  : return "I+0";
-    case -4 : return "I+1";
-    case 5  : return "CbC";
-    case -5 : return "CbC";
-    case 6  : return "GbC";
-    case 7  : return "GbC";
-    case -7 : return "GbC";
-    case 8  : return "CbG";
-    case -8 : return "CbG";
+    case 0  : rn = "M";
+    case 1  : rn = "C";
+    case 2  : rn = "P";
+    case -2 : rn = "P";
+    case 3  : rn = "I+";
+    case -3 : rn = "I-";
+    case 4  : rn = "I+0";
+    case -4 : rn = "I+1";
+    case 5  : rn = "CbC";
+    case -5 : rn = "CbC";
+    case 6  : rn = "GbC";
+    case 7  : rn = "GbC";
+    case -7 : rn = "GbC";
+    case 8  : rn = "CbG";
+    case -8 : rn = "CbG";
   }
-
-  return "";
+  return rn;
 }
 
 std::string csisearch::dec_to_text(const int& dec, const int& zero, const int& one) const {
@@ -377,7 +369,7 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
     // Product rule
     case 2 : {
       if ((z & b) != z) return; // z has to be in b
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // Product rule
@@ -385,7 +377,7 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
       // z cannot be in any of the sets
       if ((z & a) != 0) return; // z intersection a = 0
       if ((z & b) != 0) return; // z intersection b = 0
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // Insertion of observations (Unquantified)
@@ -422,21 +414,21 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
     case 5 : {
       if ((z & a) != z) return; // z has to be in a
       if ((z & c) != z) return; // z has to be in c
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // Case-by-case reasoning
     case -5 : {
       if ((z & a) != z) return; // z has to be in a
       if ((z & d) != z) return; // z has to be in d
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // General-by-case reasoning (RHS)
     case 6 : {
       if ((z & a) != z) return; // z has to be in a
       if ((z & c) != z && (z & d) != z) return; // z = 0 or z = 1 has to hold
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // General-by-case reasoning (LHS, Z = 0)
@@ -444,7 +436,7 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
       if ((z & a) != 0) return; // z intersection a = 0
       if ((z & b) != 0) return; // z intersection b = 0
       if ((z & con_vars) != z) return; // z must be a context variable
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // General-by-case reasoning (LHS, Z = 1)
@@ -452,7 +444,7 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
       if ((z & a) != 0) return; // z intersection a = 0
       if ((z & b) != 0) return; // z intersection b = 0
       if ((z & con_vars) != z) return; // z must be a context variable
-      if ((z & lhs) != z) return; // all variables in z must be observed 
+      if ((z & lhs) != z) return; // all variables in z must be observed
       break;
     }
     // Case-by-general resoning (Z = 0)
@@ -613,7 +605,7 @@ csisearch_heuristic::csisearch_heuristic(const int& n_, const double& tl, const 
 }
 
 csisearch_heuristic::~csisearch_heuristic() {
-  
+
 }
 
 distr& csisearch_heuristic::next_distribution(const int& i) {

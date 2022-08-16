@@ -137,8 +137,15 @@ test_that("missing data mechanisms are checked", {
     p(x*,y*,r_x,r_y)
     p(y)
   "
-  out <- dosearch(data, query, graph, missing_data = md)
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    missing_data = md,
+    control = list(heuristic = TRUE, draw_derivation = TRUE)
+  )
   expect_true(out$identifiable)
+  out <- dosearch(data, query, graph, missing_data = md)
   expect_identical(
     out$formula,
     paste0(
@@ -256,4 +263,97 @@ test_that("extra variables do not influence identifiability", {
     dosearch("p(x,y,z,w)", query, graph)$identifiable,
     dosearch("p(x,y,z)", query, graph)$identifiable
   )
+})
+
+test_that("rule 1 works (redundant rule)", {
+  graph <- "x -> z \n y -> z"
+  out <- dosearch(
+    "p(y|x)",
+    "p(y)",
+    graph,
+    control = list(rules = c(-1, 1), draw_derivation = TRUE)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y|x)")
+  out <- dosearch(
+    "p(y)",
+    "p(y|x)",
+    graph,
+    control = list(rules = c(-1, 1), draw_derivation = TRUE)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y)")
+  data <- "p(x*,y*,r_x,r_y)"
+  query <- "p(y|do(x))"
+  data <- "
+    p(x*,y*,r_x,r_y)
+    p(y)
+  "
+  md <- "r_x : x, r_y : y"
+  out <- dosearch(
+    data,
+    query,
+    graph,
+    missing_data = md,
+    control = list(
+      rules = c(seq(-3, 3), 4, 5, -6, 6, -7, 7, -8, 8, 9, 10),
+      heuristic = TRUE
+    )
+  )
+  expect_true(out$identifiable)
+  out <- dosearch(data, query, graph, missing_data = md)
+})
+
+test_that("division rules work", {
+  graph <- "
+    x -> y
+    y -> r_x
+    r_x -> r_y
+  "
+  md <- "r_x : x, r_y : y"
+  out <- dosearch(
+    "p(r_x=1,r_y=1) \n p(r_x=1)",
+    "p(r_y=1|r_x=1)",
+    graph,
+    missing_data = md,
+    control = list(draw_derivation = TRUE, rules = 7)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(r_y = 1|r_x = 1)")
+  out <- dosearch(
+    "p(r_x=1,r_y=1) \n p(r_x=1|r_y=1)",
+    "p(r_y=1)",
+    graph,
+    missing_data = md,
+    control = list(draw_derivation = TRUE, rules = -7)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(r_y = 1)")
+  out <- dosearch(
+    "p(r_x=1) \n p(r_x=1,r_y=1)",
+    "p(r_y = 1|r_x = 1)",
+    graph,
+    missing_data = md,
+    control = list(draw_derivation = TRUE, rules = 8)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(r_y = 1|r_x = 1)")
+  out <- dosearch(
+    "p(r_x=1|r_y=1) \n p(r_x=1,r_y=1)",
+    "p(r_y = 1)",
+    graph,
+    missing_data = md,
+    control = list(draw_derivation = TRUE, rules = -8)
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(r_y = 1)")
+  out <- dosearch(
+    "p(r_x=1|z) \n p(r_x=1,r_y=1)",
+    "p(r_y = 1|r_x = 1)",
+    graph,
+    missing_data = md,
+    control = list(draw_derivation = TRUE, rules = c(-1, 8))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "\\frac{p(r_x = 1,r_y = 1)}{p(r_x = 1|z)}")
 })

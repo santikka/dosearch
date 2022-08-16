@@ -4,8 +4,8 @@
 # Conference on Neural Information Processing Systems, 2019.
 
 test_that("causal effect of X on Y is identified in fig 1(e)", {
-  data <- "P(A,X,Y)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(A,X,Y)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     X -> Y : A = 1
@@ -29,8 +29,8 @@ test_that("causal effect of X on Y is identified in fig 1(e)", {
 })
 
 test_that("causal effect of X on Y is identified in fig 6(a)", {
-  data <- "P(X,Y,W)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,W)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     W -> X : I_X = 1
@@ -48,8 +48,8 @@ test_that("causal effect of X on Y is identified in fig 6(a)", {
 })
 
 test_that("causal effect of X on Y in fig 6(b) is identified", {
-  data <- "P(X,Y,Z)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,Z)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     I_Z -> Z
@@ -69,8 +69,8 @@ test_that("causal effect of X on Y in fig 6(b) is identified", {
 })
 
 test_that("causal effect of X on Y in fig 6(c) is identified", {
-  data <- "P(X,Y,Z)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,Z)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     X -> Y : Z = 1
     Z -> Y
@@ -96,8 +96,8 @@ test_that("causal effect of X on Y in fig 6(c) is identified", {
 })
 
 test_that("causal effect of X on Y in fig 6(d) is identified", {
-  data <- "P(X,Y,Z,A,W)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,Z,A,W)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     I_Z -> Z
@@ -131,8 +131,8 @@ test_that("causal effect of X on Y in fig 6(d) is identified", {
 })
 
 test_that("causal effect of X on Y in fig 6(e) is identified", {
-  data <- "P(X,Y,Z,A)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,Z,A)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     I_W -> W
@@ -161,8 +161,8 @@ test_that("causal effect of X on Y in fig 6(e) is identified", {
 })
 
 test_that("nested csi criterion is applied", {
-  data <- "P(Y)"
-  query <- "P(Y|X)"
+  data <- "p(Y)"
+  query <- "p(Y|X)"
   graph <- "
     X -> Z : A = 0
     A -> Z
@@ -174,7 +174,11 @@ test_that("nested csi criterion is applied", {
     Z -> Y : A = 1
   "
   expect_error(
-    out <- dosearch(data, query, graph, control = list(cache = FALSE)),
+    dosearch(data, query, graph, control = list(cache = FALSE)),
+    NA
+  )
+  expect_error(
+    out <- dosearch(data, query, graph),
     NA
   )
   expect_true(out$identifiable)
@@ -228,30 +232,30 @@ test_that("verbose search works", {
 })
 
 test_that("edge vanishes if label is full", {
-  graph <- "
-    X -> Y
-    A -> X
-    L -> X : A = 0; A = 1
-    L -> Y
-  "
-  out <- dosearch("p(X,A,Y)", "p(Y)", graph)
-  expect_true(out$identifiable)
-  expect_identical(out$formula, "p(Y)")
-  graph <- "
-    x -> Y
-    A -> X
-    B -> X
-    L -> X : A = 0, B = 0; A = 1, B = 0; A = 0, B = 1; A = 1, B = 1
-    L -> Y
-  "
-  out <- dosearch("p(X,A,Y)", "p(Y)", graph)
-  expect_true(out$identifiable)
-  expect_identical(out$formula, "p(Y)")
+ graph <- "
+   X -> Y
+   A -> X
+   L -> X : A = 0; A = 1
+   L -> Y
+ "
+ out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
+ expect_true(out$identifiable)
+ expect_identical(out$formula, "p(Y)")
+ graph <- "
+   x -> Y
+   A -> X
+   B -> X
+   L -> X : A = 0, B = 0; A = 1, B = 0; A = 0, B = 1; A = 1, B = 1
+   L -> Y
+ "
+ out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
+ expect_true(out$identifiable)
+ expect_identical(out$formula, "p(Y)")
 })
 
 test_that("csisearch derivation works", {
-  data <- "P(X,Y,Z,A,W)"
-  query <- "P(Y|X,I_X=1)"
+  data <- "p(X,Y,Z,A,W)"
+  query <- "p(Y|X,I_X=1)"
   graph <- "
     I_X -> X
     I_Z -> Z
@@ -270,4 +274,74 @@ test_that("csisearch derivation works", {
     dosearch(data, query, graph, control = list(draw_derivation = TRUE)),
     NA
   )
+})
+
+test_that("non-primitive conditioning works", {
+  data <- "p(X|W,Z) \n p(Y|X,W)"
+  query <- "p(X|Y,W)"
+  graph <- "X -> Y \n W -> Y : X = 1"
+  out <- dosearch(
+    data,
+    query,
+    graph
+  )
+  expect_true(out$identifiable)
+  expect_identical(
+    out$formula,
+    paste0(
+      "\\frac{\\left(p(X|W,Z)p(Y|X,W)\\right)}",
+      "{\\sum_{X}\\left(p(X|W,Z)p(Y|X,W)\\right)}"
+    )
+  )
+})
+
+test_that("local CSI is derived", {
+  data <- "p(A,Y)"
+  query <- "p(Y|X,A=1)"
+  graph <- "
+    X -> Y : A = 1
+    A -> Y
+  "
+  out <- dosearch(data, query, graph)
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y|A = 1)")
+  out <- dosearch(data, query, graph, control = list(cache = FALSE))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y|A = 1)")
+  data <- "p(X|A=1)"
+  query <- "p(X|Y,A=1)"
+  out <- dosearch(data, query, graph)
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(X|A = 1)")
+  out <- dosearch(data, query, graph, control = list(cache = FALSE))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(X|A = 1)")
+})
+
+test_that("general-by-case reasoning is correct", {
+  out <- dosearch(
+    "p(x|w) \n p(x,z=1)",
+    "p(x,z=0)",
+    "x -> y : z = 0 \n z -> y",
+    control = list(draw_derivation = TRUE, rules = c(-3, 6))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "\\left(p(x|w) - p(x,z = 1)\\right)")
+  out <- dosearch(
+    "p(x|w) \n p(x,z=1)",
+    "p(x,z=0)",
+    "x -> y : z = 0 \n z -> y",
+    control = list(draw_derivation = TRUE, rules = c(-3, -7))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "\\left(p(x|w) - p(x,z = 1)\\right)")
+  expect_identical(out$formula, "\\left(p(x|w) - p(x,z = 1)\\right)")
+  out <- dosearch(
+    "p(x|w) \n p(x,z=0)",
+    "p(x,z=1)",
+    "x -> y : z = 0 \n z -> y",
+    control = list(draw_derivation = TRUE, rules = c(-3, 7))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "\\left(p(x|w) - p(x,z = 0)\\right)")
 })

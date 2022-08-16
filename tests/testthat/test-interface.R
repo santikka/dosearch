@@ -135,13 +135,13 @@ test_that("gets can be got", {
   expect_equal(
     get_benchmark(out),
     get_benchmark(out, run_again = TRUE, include_rules = TRUE),
-    tolerance = 10
+    tolerance = 1000
   )
   out$rule_times <- NULL
   expect_equal(
     get_benchmark(out),
     get_benchmark(out, run_again = TRUE, include_rules = FALSE),
-    tolerance = 10
+    tolerance = 1000
   )
   out$time <- NULL
   out$formula <- NULL

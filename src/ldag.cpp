@@ -252,14 +252,9 @@ std::string ldag_cache::separation_key(const int& x, const int& y, const int& z,
   return std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z) + "," + std::to_string(zero) + "," + std::to_string(one);
 }
 
-void ldag_cache::add_separation(const int& x, const int& y, const int& z, const int& zero, const int& one, const bool& sep) {
-  if (sep) {
-    separations[separation_key(x, y, z, zero, one)] = 2;
-    separations[separation_key(y, x, z, zero, one)] = 2;
-  } else {
-    separations[separation_key(x, y, z, zero, one)] = 1;
-    separations[separation_key(y, x, z, zero, one)] = 1;
-  }
+void ldag_cache::add_separation(const int& x, const int& y, const int& z, const int& zero, const int& one) {
+  separations[separation_key(x, y, z, zero, one)] = true;
+  separations[separation_key(y, x, z, zero, one)] = true;
 }
 
 int ldag_cache::evaluated_separation(const int& x, const int& y, const int& z, const int& zero, const int& one) {
@@ -268,11 +263,9 @@ int ldag_cache::evaluated_separation(const int& x, const int& y, const int& z, c
 
 bool ldag_cache::csi_criterion(const int& x, const int& y, const int& z, const int& zero, const int& one, const int& intv, const int& old_con) {
   int onei = one | intv;
-  int sep = evaluated_separation(x, y, z, zero, onei);
-  if (sep == 2) return true;
-  if (sep == 1) return false;
+  if (evaluated_separation(x, y, z, zero, onei)) return true;
   if (in_label(x, y, z, zero, onei)) { // First check if the CSI is directly encoded in a label
-    add_separation(x, y, z, zero, onei, true);
+    add_separation(x, y, z, zero, onei);
     return true;
   }
   bool valid_context = false;
@@ -280,7 +273,7 @@ bool ldag_cache::csi_criterion(const int& x, const int& y, const int& z, const i
   context& con = C[context_key(zero, one)];
   context& ivar = C[context_key(0, intv)];
   if (csi_sep(x, y, z, con, ivar)) {
-    add_separation(x, y, z, zero, onei, true);
+    add_separation(x, y, z, zero, onei);
     return true;
   }
   int sonei;
@@ -300,19 +293,14 @@ bool ldag_cache::csi_criterion(const int& x, const int& y, const int& z, const i
         if ((setting.equiv & equiv_class) == setting.equiv) continue; // A representative of the same equivalence class has already been evaluated
         equiv_class = equiv_class | setting.equiv;
         sonei = setting.one | intv;
-        sep = evaluated_separation(x, y, z, setting.zero, sonei);
-        if (sep == 2) continue;
-        if (sep == 1) {
-          valid_context = false;
-          break;
-        }
+        if (evaluated_separation(x, y, z, setting.zero, sonei)) continue;
         if (!csi_criterion(x, y, z, setting.zero, setting.one, intv, new_con)) {
           valid_context = false;
           break;
-        } else add_separation(x, y, z, setting.zero, sonei, true);
+        } else add_separation(x, y, z, setting.zero, sonei);
       }
       if (valid_context) {
-        add_separation(x, y, z, zero, onei, true);
+        add_separation(x, y, z, zero, onei);
         return true;
       }
     }
@@ -336,39 +324,17 @@ bool ldag_cache::csi_criterion(const int& x, const int& y, const int& z, const i
         if ((setting.equiv & equiv_class) == setting.equiv) continue; // A representative of the same equivalence class has already been evaluated
         equiv_class = equiv_class | setting.equiv;
         sonei = setting.one | intv;
-        sep = evaluated_separation(x, y, z | w, setting.zero, sonei);
-        if (sep == 2) continue;
-        if (sep == 1) {
-          valid_context = false;
-          break;
-        }
+        if (evaluated_separation(x, y, z | w, setting.zero, sonei)) continue;
         if (!csi_criterion(x, y, z | w, setting.zero, setting.one, intv, new_con)) {
           valid_context = false;
           break;
-        } else add_separation(x, y, z | w, setting.zero, sonei, true);
+        } else add_separation(x, y, z | w, setting.zero, sonei);
       }
     }
     if (valid_context) {
-      add_separation(x, y, z, zero, onei, true);
+      add_separation(x, y, z, zero, onei);
       return true;
     }
   }
-  add_separation(x, y, z, zero, onei, false);
   return false;
 }
-
-/*
- std::string ldag::context_to_string(const int& zero, const int& one, const context& con) const {
- std::string s = "(" + dec_to_text(zero, zero, 0) + "," + dec_to_text(one, 0, one) + ") ";
- if (con.from.size() == 0) return s;
- int f = unary(con.from[0]);
- int t = unary(con.to[0]);
- s += dec_to_text(f, 0, 0) + " -> " + dec_to_text(t, 0, 0);
- for ( unsigned int i = 1; i < con.from.size(); i++) {
- int f = unary(con.from[i]);
- int t = unary(con.to[i]);
- s += ", " + dec_to_text(f, 0, 0) + " -> " + dec_to_text(t, 0, 0);
- }
- return s;
- }
- */

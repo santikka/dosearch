@@ -27,9 +27,9 @@ void dcongraph::add_ivars() {
 bool dcongraph::dsep_set(const int& xset, const int& yset, const int& c, const int& j) const {
   bool dseparated = true;
   for (int x = 1; x <= n; x++) {
-    if (!in_set(x,xset)) continue;
-    for (int y = 1; y <=n; y++) {
-      if (!in_set(y,yset)) continue;
+    if (!in_set(x, xset)) continue;
+    for (int y = 1; y <= n; y++) {
+      if (!in_set(y, yset)) continue;
       dseparated = dseparated && dsep(x, y, c, j);
       if (!dseparated) return dseparated;
     }
@@ -72,12 +72,12 @@ bool dcongraph::dsep(const int& x, const int& y, const int& c, const int& j) con
        current.th[x-1][y-1] || current.th[y-1][x-1] ||
        current.tt[x-1][y-1] || current.tt[y-1][x-1]
   ) return false;
-  
+
   while (current.c != c) {
     // find an element that is in j but not in current.j
     int el = get_element(c & ~current.c);
     condition(current, el);
-    
+
     if (current.hh[x-1][y-1] || current.hh[y-1][x-1] ||
         current.th[x-1][y-1] || current.th[y-1][x-1] ||
         current.tt[x-1][y-1] || current.tt[y-1][x-1]
@@ -88,18 +88,14 @@ bool dcongraph::dsep(const int& x, const int& y, const int& c, const int& j) con
     // find an element that is in j but not in current.j
     int el = get_element(m & ~current.m);
     marginalize(current, el);
-    
+
     if (current.hh[x-1][y-1] || current.hh[y-1][x-1] ||
         current.th[x-1][y-1] || current.th[y-1][x-1] ||
         current.tt[x-1][y-1] || current.tt[y-1][x-1]
     ) return false;
   }
-  if (current.hh[x-1][y-1] || current.hh[y-1][x-1] ||
-      current.th[x-1][y-1] || current.th[y-1][x-1] ||
-      current.tt[x-1][y-1] || current.tt[y-1][x-1]
-  ) return false;
 
-  // no edge was but between x and y, so they are separated! 
+  // no edge was but between x and y, so they are separated!
   return true;
 }
 
@@ -129,21 +125,21 @@ void dcongraph::marginalize(state& current, const int& el) const {
   for (int i = 1; i <= n; i++) {
     for (int j = 1; j <= n; j++) {
       if (el == i || el == j) continue;
-      current.hh[i-1][j-1] = current.hh[i-1][j-1] | 
+      current.hh[i-1][j-1] = current.hh[i-1][j-1] |
         (current.th[el-1][i-1] & current.th[el-1][j-1]) | //i<--el-->j
         (current.hh[i-1][el-1] & current.th[el-1][j-1]) | //i<->el-->j
         (current.th[el-1][i-1] & current.hh[el-1][j-1]) | //i<--el<->j
         (current.hh[el-1][i-1] & current.hh[el-1][j-1] &
          current.tt[el-1][el-1]); // i<->el---el<->j
 
-      current.tt[i-1][j-1] = current.tt[i-1][j-1] | 
+      current.tt[i-1][j-1] = current.tt[i-1][j-1] |
         (current.tt[i-1][el-1] & current.tt[el-1][j-1]) | //i---el---j
         (current.th[i-1][el-1] & current.tt[el-1][j-1]) | //i-->el---j
         (current.tt[i-1][el-1] & current.th[j-1][el-1]) | //i---el<--j
         (current.th[i-1][el-1] & current.th[j-1][el-1] &
          current.tt[el-1][el-1]); // i-->el---el<--j
-      
-      current.th[i-1][j-1] = current.th[i-1][j-1] | 
+
+      current.th[i-1][j-1] = current.th[i-1][j-1] |
         (current.tt[i-1][el-1] & current.th[el-1][j-1]) | //i---el-->j
         (current.th[i-1][el-1] & current.th[el-1][j-1]) | //i-->el-->j
         (current.tt[i-1][el-1] & current.hh[el-1][j-1]) | //i---el<->j
@@ -155,12 +151,13 @@ void dcongraph::marginalize(state& current, const int& el) const {
 }
 
 int dcongraph::get_element(const int& set) const {
-  for (int z = 1; z <= n; z++) {
+  int z = 0;
+  for (z = 1; z <= n; z++) {
     if (in_set(z, set)) {
-      return z;
+      break;
     }
   }
-  return 0;
+  return z;
 }
 
 void dcongraph::add_edge(const int& from, const int& to) {

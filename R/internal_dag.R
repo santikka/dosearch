@@ -330,7 +330,7 @@ parse_distribution_dag <- function(args, d, type, out, i, missing_data) {
             "invalid symbol used for a missing data mechanism."
           )
         }
-        d_split[[i]][equals] <- eq_lhs
+        d_split[[j]][equals] <- eq_lhs
         enabled <- c(enabled, eq_lhs)
       }
     }

@@ -13,7 +13,6 @@ public:
   void empty();
   bool dsep(const int& x, const int& y, const int& c, const int& j) const;
   bool dsep_set(const int& xset, const int& yset, const int& c, const int& j) const;
-  int get_element(const int &set) const;
 
   // set/get transportability nodes
   void set_trnodes(const int& t);
@@ -44,6 +43,7 @@ private:
     int c, j, m;
   };
   int tr, sb, md_s, md_p;
+  int get_element(const int &set) const;
   void intervene(state& current, const int& el) const;
   void condition(state& current, const int& el) const;
   void marginalize(state& current, const int& el) const;

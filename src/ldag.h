@@ -65,8 +65,8 @@ public:
   bool csi_criterion(const int& x, const int& y, const int& z, const int& zero, const int& one, const int& intv, const int& old_con);
   ~ldag_cache();
 private:
-  std::unordered_map<std::string, int> separations;
-  void add_separation(const int& x, const int& y, const int& z, const int& zero, const int& one, const bool& sep);
+  std::unordered_map<std::string, bool> separations;
+  void add_separation(const int& x, const int& y, const int& z, const int& zero, const int& one);
   int evaluated_separation(const int& x, const int& y, const int& z, const int& zero, const int& one);
   std::string separation_key(const int& x, const int& y, const int& z, const int& zero, const int& one);
 };
