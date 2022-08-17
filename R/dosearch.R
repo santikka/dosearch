@@ -5,7 +5,8 @@
 #' labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related
 #' to transportability of causal effects, recoverability from selection bias
 #' and identifiability under missing data can also be included. See 'Details'
-#' for the syntax of each argument.
+#' for the syntax of each argument. Note that all `character` type arguments
+#' are case-sensitive.
 #'
 #' Argument `data` is used to list the available input distributions.
 #' When `graph` is a DAG the distributions should be of the form
@@ -197,6 +198,42 @@
 #'   x <-> y
 #' "
 #' dosearch(data2, query2, graph2)
+#'
+#' # A scenario with combined transportability and selection bias
+#' # in this case using the search heuristic provides a simpler formula
+#' data <- "
+#'   p(x,z,y|s)
+#'   p(y,z|t,do(x))
+#' "
+#' query <- "p(y|do(x))"
+#' graph <- "
+#'   x -> z
+#'   z -> y
+#'   x -> s
+#'   t -> z
+#'   x <-> y
+#' "
+#' dosearch(
+#'   data,
+#'   query,
+#'   graph,
+#'   transportability = "t",
+#'   selection_bias = "s",
+#'   control = list(heuristic = TRUE, improve = FALSE)
+#' )
+#'
+#' # A simple case-control design
+#' data <- "
+#'   p(x*,y*,r_x,r_y)
+#'   p(y)
+#' "
+#' graph <- "
+#'   x -> y
+#'   y -> r_y
+#'   r_y -> r_x
+#' "
+#' md <- "r_x : x, r_y : y"
+#' dosearch(data, query, graph, missing_data = md)
 #'
 #' # Graph input using 'igraph' in the 'causaleffect' syntax
 #' if (requireNamespace("igraph", quietly = TRUE)) {
