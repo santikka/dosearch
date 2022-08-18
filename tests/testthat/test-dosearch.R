@@ -248,11 +248,28 @@ test_that("time limit works", {
 
 test_that("missing response indicators warns", {
   expect_warning(
-    out <- dosearch("p(x*)", "p(x)", "x -> y", missing_data = "r_x : x"),
+    dosearch("p(x*)", "p(x)", "x -> y", missing_data = "r_x : x"),
     paste0(
       "There are response indicators that are not present ",
       "in any input distribution"
     )
+  )
+})
+
+test_that("both lower and upper case warns", {
+  expect_warning(
+    dosearch("p(x,X)", "p(X)", "x -> X"),
+    "Both lower case and upper case inputs detected."
+  )
+})
+
+test_that("no warnings are given if control$warn = FALSE", {
+  co <- list(warn = FALSE)
+  expect_silent(
+    dosearch("p(x*)", "p(x)", "x -> y", missing_data = "r_x : x", control = co)
+  )
+  expect_silent(
+    dosearch("p(x,X)", "p(X)", "x -> X", control = co)
   )
 })
 

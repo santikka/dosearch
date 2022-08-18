@@ -15,7 +15,7 @@ coverage](https://codecov.io/gh/santikka/dosearch/branch/master/graph/badge.svg)
 version](http://www.r-pkg.org/badges/version/dosearch)](https://CRAN.R-project.org/package=dosearch)
 <!-- badges::end -->
 
-The `dosearch` [R](https://www.r-project.org/) package factilitates
+The `dosearch` [R](https://www.r-project.org/) package facilitates
 identification of causal effects from arbitrary observational and
 experimental probability distributions via do-calculus and standard
 probability manipulations using a search-based algorithm (Tikka et al.,
@@ -78,6 +78,18 @@ graph <- "
 "
 dosearch(data, query, graph)
 #> \sum_{z}\left(p(z|x)\sum_{x}\left(p(x)p(y|z,x)\right)\right)
+
+# the 'napkin' graph
+data <- "p(x,y,z,w)"
+graph <- "
+  x -> y
+  z -> x
+  w -> z
+  x <-> w
+  w <-> y
+"
+dosearch(data, query, graph)
+#> \frac{\sum_{w}\left(p(w)p(y,x|z,w)\right)}{\sum_{y}\sum_{w}\left(p(w)p(y,x|z,w)\right)}
 
 # case-control design
 data <- "

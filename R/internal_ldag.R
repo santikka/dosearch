@@ -135,62 +135,60 @@ transform_graph_ldag <- function(args, graph) {
 #' @param args A `list` of arguments for `initialize_csisearch`
 #' @noRd
 parse_labels <- function(args) {
-  if (length(args$labels) > 0L) {
-    input_labels <- matrix(0L, sum(lengths(args$labels)), 5L)
-    index <- 0L
-    args$null_context <- c()
-    args$inferred <- 0L
-    args$inferred_labels <- matrix(0L, 0L, 5L)
-    vanishing <- matrix(0L, 0L, 2L)
-    # Loop labels
-    for (i in seq_along(args$labels)) {
-      from <- args$targets[[i]]["from"]
-      to <- args$targets[[i]]["to"]
-      pa <- setdiff(args$parents[[to]], from)
-      n_pa <- length(pa)
-      vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
-      names(vals) <- pa
-      vals$present <- rep(FALSE, nrow(vals))
-      # Loop individual assignments within label
-      for (j in seq_along(args$labels[[i]])) {
-        index <- index + 1L
-        label_split <- strsplit(args$labels[[i]][[j]], "[=]")
-        label_lhs <- vapply(label_split, "[[", character(1L), 1L)
-        label_rhs <- vapply(label_split, "[[", character(1L), 2L)
-        msg <- ""
-        validate_label(from, to, pa, label_lhs)
-        intv <- substr(label_lhs, 1L, 2L) == "I_"
-        args$con_vars <- c(args$con_vars, label_lhs[!intv])
-        zero <- which(label_rhs == 0L)
-        one <- which(label_rhs == 1L)
-        input_labels[index, 1L] <- to_dec(args$nums[label_lhs[zero]], args$n)
-        input_labels[index, 2L] <- to_dec(args$nums[label_lhs[one]], args$n)
-        input_labels[index, 3L] <- args$nums[from]
-        input_labels[index, 4L] <- args$nums[to]
-        input_labels[index, 5L] <- to_dec(args$nums[pa], args$n)
-        vals <- label_values(vals, zero, one, pa, label_lhs)
-      }
-      if (all(vals$present)) {
-        vanishing <- rbind(vanishing, c(args$nums[from], args$nums[to]))
-      }
-      args <- infer_labels(args, vals, from, to, pa)
+  input_labels <- matrix(0L, sum(lengths(args$labels)), 5L)
+  index <- 0L
+  args$null_context <- c()
+  args$inferred <- 0L
+  args$inferred_labels <- matrix(0L, 0L, 5L)
+  vanishing <- matrix(0L, 0L, 2L)
+  # Loop labels
+  for (i in seq_along(args$labels)) {
+    from <- args$targets[[i]]["from"]
+    to <- args$targets[[i]]["to"]
+    pa <- setdiff(args$parents[[to]], from)
+    n_pa <- length(pa)
+    vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
+    names(vals) <- pa
+    vals$present <- rep(FALSE, nrow(vals))
+    # Loop individual assignments within label
+    for (j in seq_along(args$labels[[i]])) {
+      index <- index + 1L
+      label_split <- strsplit(args$labels[[i]][[j]], "[=]")
+      label_lhs <- vapply(label_split, "[[", character(1L), 1L)
+      label_rhs <- vapply(label_split, "[[", character(1L), 2L)
+      msg <- ""
+      validate_label(from, to, pa, label_lhs)
+      intv <- substr(label_lhs, 1L, 2L) == "I_"
+      args$con_vars <- c(args$con_vars, label_lhs[!intv])
+      zero <- which(label_rhs == 0L)
+      one <- which(label_rhs == 1L)
+      input_labels[index, 1L] <- to_dec(args$nums[label_lhs[zero]], args$n)
+      input_labels[index, 2L] <- to_dec(args$nums[label_lhs[one]], args$n)
+      input_labels[index, 3L] <- args$nums[from]
+      input_labels[index, 4L] <- args$nums[to]
+      input_labels[index, 5L] <- to_dec(args$nums[pa], args$n)
+      vals <- label_values(vals, zero, one, pa, label_lhs)
     }
-    input_labels <- rbind(input_labels, args$inferred_labels)
-    input_labels <- input_labels[!duplicated(input_labels), , drop = FALSE]
-    args$con_vars <- unique(args$con_vars)
-    args$label_map <- list()
-    args <- parse_contexts(args, input_labels, vanishing)
-    args <- parse_interventions(args, input_labels, vanishing)
-    args$label_map[args$null_context] <- NULL
-    if (nrow(vanishing) > 0L) {
-      edge_mat <- cbind(args$nums[args$dir_lhs], args$nums[args$dir_rhs])
-      present <- !duplicated(
-        rbind(edge_mat, vanishing),
-        fromLast = TRUE
-      )[seq_len(nrow(edge_mat))]
-      args$dir_lhs <- args$dir_lhs[present]
-      args$dir_rhs <- args$dir_rhs[present]
+    if (all(vals$present)) {
+      vanishing <- rbind(vanishing, c(args$nums[from], args$nums[to]))
     }
+    args <- infer_labels(args, vals, from, to, pa)
+  }
+  input_labels <- rbind(input_labels, args$inferred_labels)
+  input_labels <- input_labels[!duplicated(input_labels), , drop = FALSE]
+  args$con_vars <- unique(args$con_vars)
+  args$label_map <- list()
+  args <- parse_contexts(args, input_labels, vanishing)
+  args <- parse_interventions(args, input_labels, vanishing)
+  args$label_map[args$null_context] <- NULL
+  if (nrow(vanishing) > 0L) {
+    edge_mat <- cbind(args$nums[args$dir_lhs], args$nums[args$dir_rhs])
+    present <- !duplicated(
+      rbind(edge_mat, vanishing),
+      fromLast = TRUE
+    )[seq_len(nrow(edge_mat))]
+    args$dir_lhs <- args$dir_lhs[present]
+    args$dir_rhs <- args$dir_rhs[present]
   }
   args
 }
@@ -278,39 +276,37 @@ label_values <- function(vals, zero, one, pa, label_lhs) {
 infer_labels <- function(args, vals, from, to, pa) {
   n_pa <- length(pa)
   n_sets <- nrow(vals) - 1L
-  if (n_sets > 1L) {
-    for (j in seq.int(2L, n_sets)) {
-      sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
-      sub_ind <- which(pa %in% sub_pa)
-      sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
-      assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
-      names(assignments) <- sub_pa
-      for (k in seq_len(nrow(assignments))) {
-        zero <- sub_pa[which(assignments[k, ] == 0L)]
-        one <- sub_pa[which(assignments[k, ] == 1L)]
-        assign_ind <- apply(
-          sub_vals[, -ncol(sub_vals), drop = FALSE],
-          1L,
-          function(x) {
-            identical(
-              as.integer(x),
-              as.integer(assignments[k, ])
-            )
-          }
-        )
-        if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
-          args$inferred <- args$inferred + 1L
-          args$inferred_labels <- rbind(
-            args$inferred_labels,
-            c(
-              to_dec(args$nums[zero], args$n),
-              to_dec(args$nums[one], args$n),
-              args$nums[from],
-              args$nums[to],
-              to_dec(args$nums[pa], args$n)
-            )
+  for (j in seq_min2(n_sets)) {
+    sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
+    sub_ind <- which(pa %in% sub_pa)
+    sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
+    assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
+    names(assignments) <- sub_pa
+    for (k in seq_len(nrow(assignments))) {
+      zero <- sub_pa[which(assignments[k, ] == 0L)]
+      one <- sub_pa[which(assignments[k, ] == 1L)]
+      assign_ind <- apply(
+        sub_vals[, -ncol(sub_vals), drop = FALSE],
+        1L,
+        function(x) {
+          identical(
+            as.integer(x),
+            as.integer(assignments[k, ])
           )
         }
+      )
+      if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
+        args$inferred <- args$inferred + 1L
+        args$inferred_labels <- rbind(
+          args$inferred_labels,
+          c(
+            to_dec(args$nums[zero], args$n),
+            to_dec(args$nums[one], args$n),
+            args$nums[from],
+            args$nums[to],
+            to_dec(args$nums[pa], args$n)
+          )
+        )
       }
     }
   }
@@ -334,52 +330,50 @@ parse_contexts <- function(args, input_labels, vanishing) {
   all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
   args$n_con <- nrow(all_contexts)
   args$index_csi <- 0L
-  if (args$n_con > 0L) {
-    for (i in seq.int(2L, args$n_con)) {
-      sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
-      con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
-      args$label_map[[i - 1L]] <- list(
-        vars = to_dec(args$nums[sub_vars], args$n),
-        contexts = vector(mode = "list", length = nrow(con_vals))
+  for (i in seq_min2(args$n_con)) {
+    sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
+    con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
+    args$label_map[[i - 1L]] <- list(
+      vars = to_dec(args$nums[sub_vars], args$n),
+      contexts = vector(mode = "list", length = nrow(con_vals))
+    )
+    equiv_ind <- 0L
+    unique_context <- list()
+    for (j in seq_len(nrow(con_vals))) {
+      zero <- sub_vars[which(con_vals[j, ] == 0L)]
+      one <- sub_vars[which(con_vals[j, ] == 1L)]
+      z_set <- to_dec(args$nums[zero], args$n)
+      o_set <- to_dec(args$nums[one], args$n)
+      args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z_set
+      args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o_set
+      args <- parse_local_csi(args, z_set, o_set, input_labels, vanishing)
+      args$label_map[[i - 1L]][["contexts"]][[j]]$from <- args$endpoints[, 1L]
+      args$label_map[[i - 1L]][["contexts"]][[j]]$to <- args$endpoints[, 2L]
+      pos <- Position(
+        function(x) {
+          identical(args$endpoints[, 1L], x$from) &&
+            identical(args$endpoints[, 2L], x$to)
+        },
+        unique_context
       )
-      equiv_ind <- 0L
-      unique_context <- list()
-      for (j in seq_len(nrow(con_vals))) {
-        zero <- sub_vars[which(con_vals[j, ] == 0L)]
-        one <- sub_vars[which(con_vals[j, ] == 1L)]
-        z_set <- to_dec(args$nums[zero], args$n)
-        o_set <- to_dec(args$nums[one], args$n)
-        args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z_set
-        args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o_set
-        args <- parse_local_csi(args, z_set, o_set, input_labels, vanishing)
-        args$label_map[[i - 1L]][["contexts"]][[j]]$from <- args$endpoints[, 1L]
-        args$label_map[[i - 1L]][["contexts"]][[j]]$to <- args$endpoints[, 2L]
-        pos <- Position(
-          function(x) {
-            identical(args$endpoints[, 1L], x$from) &&
-              identical(args$endpoints[, 2L], x$to)
-          },
-          unique_context
+      if (is.na(pos)) {
+        equiv_ind <- equiv_ind + 1L
+        args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- equiv_ind
+        unique_context[[equiv_ind]] <- list(
+          from = args$endpoints[, 1L],
+          to = args$endpoints[, 2L]
         )
-        if (is.na(pos)) {
-          equiv_ind <- equiv_ind + 1L
-          args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- equiv_ind
-          unique_context[[equiv_ind]] <- list(
-            from = args$endpoints[, 1L],
-            to = args$endpoints[, 2L]
-          )
-        } else {
-          args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- pos
-        }
+      } else {
+        args$label_map[[i - 1L]][["contexts"]][[j]]$equivalence <- pos
       }
-      from_lengths <- vapply(
-        args$label_map[[i - 1L]][["contexts"]],
-        function(x) length(x[["from"]]),
-        integer(1L)
-      )
-      if (all(from_lengths == 0)) {
-        args$null_context <- c(args$null_context, i - 1L)
-      }
+    }
+    from_lengths <- vapply(
+      args$label_map[[i - 1L]][["contexts"]],
+      function(x) length(x[["from"]]),
+      integer(1L)
+    )
+    if (all(from_lengths == 0)) {
+      args$null_context <- c(args$null_context, i - 1L)
     }
   }
   args
@@ -432,33 +426,31 @@ parse_interventions <- function(args, input_labels, vanishing) {
     rep(list(c(0L, 1L)), length(args$intv_vars))
   )
   n_intv <- nrow(all_interventions)
-  if (n_intv > 0L) {
-    for (i in seq.int(2L, n_intv)) {
-      index <- max(args$n_con - 1L, 0L) + i - 1L
-      sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
-      o <- to_dec(args$nums[sub_vars], args$n)
-      args$label_map[[index]] <- list(
-        vars = o,
-        contexts = list(list(zero = 0L, one = o))
-      )
-      endpoints <- matrix(0L, 0L, 2L)
-      for (k in seq_len(nrow(input_labels))) {
-        z_inp <- input_labels[k, 1L]
-        o_inp <- input_labels[k, 2L]
-        if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
-          csi_v <- apply(vanishing, 1L, function(x) {
-            isTRUE(all.equal(x, input_labels[k, 3L:4L]))
-          })
-          if (!any(csi_v)) {
-            endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
-          }
+  for (i in seq_min2(n_intv)) {
+    index <- max(args$n_con - 1L, 0L) + i - 1L
+    sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
+    o <- to_dec(args$nums[sub_vars], args$n)
+    args$label_map[[index]] <- list(
+      vars = o,
+      contexts = list(list(zero = 0L, one = o))
+    )
+    endpoints <- matrix(0L, 0L, 2L)
+    for (k in seq_len(nrow(input_labels))) {
+      z_inp <- input_labels[k, 1L]
+      o_inp <- input_labels[k, 2L]
+      if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
+        csi_v <- apply(vanishing, 1L, function(x) {
+          isTRUE(all.equal(x, input_labels[k, 3L:4L]))
+        })
+        if (!any(csi_v)) {
+          endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
         }
       }
-      endpoints <- unique(endpoints)
-      args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
-      args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
-      args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
     }
+    endpoints <- unique(endpoints)
+    args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
+    args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
+    args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
   }
   args
 }
@@ -466,7 +458,7 @@ parse_interventions <- function(args, input_labels, vanishing) {
 #' Parse a Distribution in the Internal Character Format for LDAGs
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
-#' @param d A `character` string represesnting the distribution.
+#' @param d A `character` string representing the distribution.
 #' @param type A `character` string indicating the distribution type.
 #' @param out A `character` string indicating the a name of `args` to
 #'   in which to assign the results.

@@ -118,11 +118,18 @@ test_that("wrong control argument types fail", {
 })
 
 test_that("gets can't be got for non-dosearch objects", {
-  err <- "Argument `x` must be an object of class `dosearch`\\."
+  err <- "Argument `x` must be an object of class `dosearch`"
   expect_error(is_identifiable(data.frame()), err)
   expect_error(get_formula(data.frame()), err)
   expect_error(get_derivation(data.frame()), err)
   expect_error(get_benchmark(data.frame()), err)
+})
+
+test_that("print and summary fail for non-dosearch objects", {
+  err <- "Argument `.+` must be an object of class `(.*?)dosearch`"
+  expect_error(print.dosearch(data.frame()), err)
+  expect_error(summary.dosearch(data.frame()), err)
+  expect_error(print.summary.dosearch(data.frame()), err)
 })
 
 test_that("transportability and selection bias nodes exist", {

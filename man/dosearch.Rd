@@ -129,7 +129,8 @@ As an example, an LDAG with two labeled edges can be constructed as follows:
 Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when
 \eqn{A} has the value 0 and the edge from \eqn{Z} to \eqn{Y} vanishes when
 \eqn{A} has the value 1. Multiple labels on the same edge should be
-separated by a semi-colon.
+separated by a semi-colon, and individual assignments within each label
+should be separated by a comma.
 
 Argument \code{transportability} enumerates the nodes that should be understood
 as transportability nodes responsible for discrepancies between domains.
@@ -152,7 +153,9 @@ automatically generated based on \code{missing_data}. By default, a warning
 is issued if a proxy variable is present in an input distribution but its
 corresponding mechanism is not present in any input. See e.g.,
 Mohan, Pearl and Tian (2013) for details on missing data as
-a causal inference problem.
+a causal inference problem. Note that \code{dosearch} is not complete for
+missing data problems, meaning that if \code{dosearch} is not able to identify
+the \code{query}, it might still be identifiable via some other means.
 
 The \code{control} argument is a list that can supply any of the following
 components:
@@ -185,6 +188,8 @@ missing data mechanisms. Defaults to \code{"1"}.
 to  the console during the search. Defaults to \code{FALSE}.
 \item \code{warn} A \code{logical} value. If \code{TRUE}, a warning is issued for possibly
 unintentionally misspecified but syntactically correct input distributions.
+A warning is also raised if both lower-case and upper-case node or
+variable names are used simultaneously in the inputs
 }
 }
 \examples{
@@ -233,8 +238,8 @@ dosearch(
 
 # A simple case-control design
 data <- "
-p(x*,y*,r_x,r_y)
-p(y)
+  p(x*,y*,r_x,r_y)
+  p(y)
 "
 graph <- "
   x -> y

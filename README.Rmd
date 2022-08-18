@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 [![CRAN version](http://www.r-pkg.org/badges/version/dosearch)]( https://CRAN.R-project.org/package=dosearch)
 <!-- badges::end -->
 
-The `dosearch` [R](https://www.r-project.org/) package factilitates 
+The `dosearch` [R](https://www.r-project.org/) package facilitates 
 identification of causal effects from arbitrary observational and experimental 
 probability distributions via do-calculus and standard probability 
 manipulations using a search-based algorithm (Tikka et al., 2019, 2021).
@@ -80,6 +80,17 @@ graph <- "
   x -> z
   z -> y
   x <-> y
+"
+dosearch(data, query, graph)
+
+# the 'napkin' graph
+data <- "p(x,y,z,w)"
+graph <- "
+  x -> y
+  z -> x
+  w -> z
+  x <-> w
+  w <-> y
 "
 dosearch(data, query, graph)
 

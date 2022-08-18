@@ -90,76 +90,73 @@ get_derivation_dag <- function(data, query, graph, transportability,
 #' @param graph The graph as a `character` string.
 #' @noRd
 transform_graph_dag <- function(args, graph, missing_data) {
-  if (!nzchar(graph)) {
-    if (is.null(missing_data)) {
-      stop_("Invalid graph, the graph is empty.")
-    }
-  } else {
-    graph <- gsub("<->", "--", graph)
-    graph_lines <- trimws(unique(strsplit(graph, "\r|\n")[[1L]]))
-    graph_split <- strsplit(graph_lines, "\\s+")
-    line_lengths <- lengths(graph_split)
-    malformed_lines <- line_lengths > 0 & line_lengths != 3L
-    if (any(malformed_lines)) {
-      stop_(
-        "Invalid graph, malformed lines found: ",
-        cs(graph_lines[malformed_lines])
-      )
-    }
-    graph_split <- graph_split[line_lengths == 3L]
-    graph_lines <- graph_lines[line_lengths == 3L]
-    edges <- vapply(graph_split, "[[", character(1L), 2L)
-    valid_edges <- grepl("(->)|(--)", edges)
-    if (any(!valid_edges)) {
-      stop_(
-        "Invalid graph, unknown edge types found: ",
-        cs(edges[!valid_edges])
-      )
-    }
-    directed <- grepl("->", edges)
-    bidirected <- grepl("--", edges)
-    if (any(directed)) {
-      di <- graph_split[directed]
-      args$dir_lhs <- vapply(di, "[[", character(1L), 1L)
-      args$dir_rhs <- vapply(di, "[[", character(1L), 3L)
-      loops <- args$dir_lhs == args$dir_rhs
-      if (any(loops)) {
-        stop_(
-          "Invalid graph, the graph contains self-loops: ",
-          cs(graph_lines[directed][loops])
-        )
-      }
-      if (!is_acyclic(args$dir_lhs, args$dir_rhs)) {
-        stop_(
-          "Invalid graph, the graph contains cycles."
-        )
-      }
-    }
-    if (any(bidirected)) {
-      bi <- unique(
-        lapply(graph_split[bidirected], function(x) {
-          sort(x[-2L])
-        })
-      )
-      args$bi_lhs <- vapply(bi, "[[", character(1L), 1L)
-      args$bi_rhs <- vapply(bi, "[[", character(1L), 2L)
-      loops <- args$bi_lhs == args$bi_rhs
-      if (any(loops)) {
-        loop_edges <- gsub("--", "<->", cs(graph_lines[bidirected][loops]))
-        stop_(
-          "Invalid graph, the graph contains self-loops: ",
-          loop_edges
-        )
-      }
-    }
-    args$vars <- unique(
-      c(args$dir_rhs, args$dir_lhs, args$bi_rhs, args$bi_lhs)
-    )
-    args$n <- length(args$vars)
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
+  if (!nzchar(graph) && is.null(missing_data)) {
+    stop_("Invalid graph, the graph is empty.")
   }
+  graph <- gsub("<->", "--", graph)
+  graph_lines <- trimws(unique(strsplit(graph, "\r|\n")[[1L]]))
+  graph_split <- strsplit(graph_lines, "\\s+")
+  line_lengths <- lengths(graph_split)
+  malformed_lines <- line_lengths > 0 & line_lengths != 3L
+  if (any(malformed_lines)) {
+    stop_(
+      "Invalid graph, malformed lines found: ",
+      cs(graph_lines[malformed_lines])
+    )
+  }
+  graph_split <- graph_split[line_lengths == 3L]
+  graph_lines <- graph_lines[line_lengths == 3L]
+  edges <- vapply(graph_split, "[[", character(1L), 2L)
+  valid_edges <- grepl("(->)|(--)", edges)
+  if (any(!valid_edges)) {
+    stop_(
+      "Invalid graph, unknown edge types found: ",
+      cs(edges[!valid_edges])
+    )
+  }
+  directed <- grepl("->", edges)
+  bidirected <- grepl("--", edges)
+  if (any(directed)) {
+    di <- graph_split[directed]
+    args$dir_lhs <- vapply(di, "[[", character(1L), 1L)
+    args$dir_rhs <- vapply(di, "[[", character(1L), 3L)
+    loops <- args$dir_lhs == args$dir_rhs
+    if (any(loops)) {
+      stop_(
+        "Invalid graph, the graph contains self-loops: ",
+        cs(graph_lines[directed][loops])
+      )
+    }
+    if (!is_acyclic(args$dir_lhs, args$dir_rhs)) {
+      stop_(
+        "Invalid graph, the graph contains cycles."
+      )
+    }
+  }
+  if (any(bidirected)) {
+    bi <- unique(
+      lapply(graph_split[bidirected], function(x) {
+        sort(x[-2L])
+      })
+    )
+    args$bi_lhs <- vapply(bi, "[[", character(1L), 1L)
+    args$bi_rhs <- vapply(bi, "[[", character(1L), 2L)
+    loops <- args$bi_lhs == args$bi_rhs
+    if (any(loops)) {
+      loop_edges <- gsub("--", "<->", cs(graph_lines[bidirected][loops]))
+      stop_(
+        "Invalid graph, the graph contains self-loops: ",
+        loop_edges
+      )
+    }
+  }
+  args$vars <- unique(
+    c(args$dir_rhs, args$dir_lhs, args$bi_rhs, args$bi_lhs)
+  )
+  args$n <- length(args$vars)
+  args$nums <- seq_len(args$n)
+  names(args$vars) <- args$nums
+  names(args$nums) <- args$vars
   args
 }
 
@@ -169,32 +166,33 @@ transform_graph_dag <- function(args, graph, missing_data) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 parse_missing_data <- function(args, missing_data) {
-  if (!is.null(missing_data)) {
-    md_pairs <- gsub("\\s+", "", strsplit(missing_data, ",")[[1L]])
-    if (length(md_pairs) == 0L) {
-      stop_("Malformed missing data mechanisms.")
-    }
-    md_mechanisms <- strsplit(md_pairs, ":")
-    md_true <- vapply(md_mechanisms, "[[", character(1L), 2L)
-    md_switch <- vapply(md_mechanisms, "[[", character(1L), 1L)
-    md_proxy <- paste0(md_true, "*")
-    if (any(md_switch %in% args$dir_lhs[args$dir_rhs %in% md_true])) {
-      stop_("A missing data mechanism cannot be a parent of a true variable.")
-    }
-    args$dir_lhs <- c(args$dir_lhs, md_true, md_switch)
-    args$dir_rhs <- c(args$dir_rhs, md_proxy, md_proxy)
-    vars_md <- as.vector(rbind(md_true, md_switch, md_proxy))
-    args$vars <- c(vars_md, args$vars[!(args$vars %in% vars_md)])
-    args$n <- length(args$vars)
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
-    md_switch_nums <- args$nums[md_switch]
-    md_proxy_nums <- args$nums[md_proxy]
-    args$md_s <- to_dec(md_switch_nums, args$n)
-    args$md_p <- to_dec(md_proxy_nums, args$n)
-    args$md_t <- bitwShiftR(args$md_p, 2L)
+  if (is.null(missing_data)) {
+    return(args)
   }
+  md_pairs <- gsub("\\s+", "", strsplit(missing_data, ",")[[1L]])
+  if (length(md_pairs) == 0L) {
+    stop_("Malformed missing data mechanisms.")
+  }
+  md_mechanisms <- strsplit(md_pairs, ":")
+  md_true <- vapply(md_mechanisms, "[[", character(1L), 2L)
+  md_switch <- vapply(md_mechanisms, "[[", character(1L), 1L)
+  md_proxy <- paste0(md_true, "*")
+  if (any(md_switch %in% args$dir_lhs[args$dir_rhs %in% md_true])) {
+    stop_("A missing data mechanism cannot be a parent of a true variable.")
+  }
+  args$dir_lhs <- c(args$dir_lhs, md_true, md_switch)
+  args$dir_rhs <- c(args$dir_rhs, md_proxy, md_proxy)
+  vars_md <- as.vector(rbind(md_true, md_switch, md_proxy))
+  args$vars <- c(vars_md, args$vars[!(args$vars %in% vars_md)])
+  args$n <- length(args$vars)
+  args$nums <- seq_len(args$n)
+  names(args$vars) <- args$nums
+  names(args$nums) <- args$vars
+  md_switch_nums <- args$nums[md_switch]
+  md_proxy_nums <- args$nums[md_proxy]
+  args$md_s <- to_dec(md_switch_nums, args$n)
+  args$md_p <- to_dec(md_proxy_nums, args$n)
+  args$md_t <- bitwShiftR(args$md_p, 2L)
   args
 }
 
@@ -204,23 +202,24 @@ parse_missing_data <- function(args, missing_data) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 parse_transportability <- function(args, transportability) {
-  if (!is.null(transportability)) {
-    tr_vars <- gsub("\\s+", "", strsplit(transportability, ",")[[1L]])
-    if (!all(tr_vars %in% args$vars)) {
-      tr_mis <- tr_vars[!tr_vars %in% args$vars]
-      stop_(
-        "Transportability nodes ", cs(tr_mis), " are not present in the graph."
-      )
-    }
-    args$tr_nums <- args$nums[tr_vars]
-    args$n_tr <- length(args$tr_nums)
-    pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
-    if (any(args$tr_nums %in% pa)) {
-      stop_(
-        "Invalid graph: ",
-        "a transportability node cannot be a child of another node."
-      )
-    }
+  if (is.null(transportability)) {
+    return(args)
+  }
+  tr_vars <- gsub("\\s+", "", strsplit(transportability, ",")[[1L]])
+  if (!all(tr_vars %in% args$vars)) {
+    tr_mis <- tr_vars[!tr_vars %in% args$vars]
+    stop_(
+      "Transportability nodes ", cs(tr_mis), " are not present in the graph."
+    )
+  }
+  args$tr_nums <- args$nums[tr_vars]
+  args$n_tr <- length(args$tr_nums)
+  pa <- args$nums[c(args$dir_rhs, args$bi_rhs, args$bi_lhs)]
+  if (any(args$tr_nums %in% pa)) {
+    stop_(
+      "Invalid graph: ",
+      "a transportability node cannot be a child of another node."
+    )
   }
   args
 }
@@ -231,22 +230,23 @@ parse_transportability <- function(args, transportability) {
 #' @param args A list of arguments for `initialize_dosearch`.
 #' @noRd
 parse_selection_bias <- function(args, selection_bias) {
-  if (!is.null(selection_bias)) {
-    sb_vars <- gsub("\\s+", "", strsplit(selection_bias, ",")[[1]])
-    if (!all(sb_vars %in% args$vars)) {
-      sb_mis <- sb_vars[!sb_vars %in% args$vars]
-      stop_(
-        "Selection bias nodes ", cs(sb_mis), " are not present in the graph."
-      )
-    }
-    args$sb_nums <- args$nums[sb_vars]
-    args$n_sb <- length(args$sb_nums)
-    if (any(args$sb_nums %in% args$nums[args$dir_lhs])) {
-      stop_(
-        "Invalid graph: ",
-        "a selection bias node cannot be a parent of another node."
-      )
-    }
+  if (is.null(selection_bias)) {
+    return(args)
+  }
+  sb_vars <- gsub("\\s+", "", strsplit(selection_bias, ",")[[1]])
+  if (!all(sb_vars %in% args$vars)) {
+    sb_mis <- sb_vars[!sb_vars %in% args$vars]
+    stop_(
+      "Selection bias nodes ", cs(sb_mis), " are not present in the graph."
+    )
+  }
+  args$sb_nums <- args$nums[sb_vars]
+  args$n_sb <- length(args$sb_nums)
+  if (any(args$sb_nums %in% args$nums[args$dir_lhs])) {
+    stop_(
+      "Invalid graph: ",
+      "a selection bias node cannot be a parent of another node."
+    )
   }
   args
 }
@@ -256,28 +256,29 @@ parse_selection_bias <- function(args, selection_bias) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
 reorder_variables <- function(args) {
-  if (args$n_tr > 0L || args$n_sb > 0L) {
-    args$vars <- args$vars[
-      c(
-        setdiff(args$nums, union(args$tr_nums, args$sb_nums)),
-        args$tr_nums,
-        args$sb_nums
-      )
-    ]
-    args$nums <- seq_len(args$n)
-    names(args$vars) <- args$nums
-    names(args$nums) <- args$vars
-    if (args$n_tr > 0L) {
-      args$tr_nums <- seq.int(
-        args$n - args$n_tr - args$n_sb + 1L,
-        args$n - args$n_sb
-      )
-      args$tr <- to_dec(args$tr_nums, args$n)
-    }
-    if (args$n_sb > 0L) {
-      args$sb_nums <- seq.int(args$n - args$n_sb + 1L, args$n)
-      args$sb <- to_dec(args$sb_nums, args$n)
-    }
+  if (args$n_tr == 0 && args$n_sb == 0) {
+    return(args)
+  }
+  args$vars <- args$vars[
+    c(
+      setdiff(args$nums, union(args$tr_nums, args$sb_nums)),
+      args$tr_nums,
+      args$sb_nums
+    )
+  ]
+  args$nums <- seq_len(args$n)
+  names(args$vars) <- args$nums
+  names(args$nums) <- args$vars
+  if (args$n_tr > 0L) {
+    args$tr_nums <- seq.int(
+      args$n - args$n_tr - args$n_sb + 1L,
+      args$n - args$n_sb
+    )
+    args$tr <- to_dec(args$tr_nums, args$n)
+  }
+  if (args$n_sb > 0L) {
+    args$sb_nums <- seq.int(args$n - args$n_sb + 1L, args$n)
+    args$sb <- to_dec(args$sb_nums, args$n)
   }
   args
 }
@@ -530,22 +531,29 @@ validate_query_dag <- function(args) {
 #' @inheritParams dosearch
 #' @noRd
 check_valid_input <- function(args, control, missing_data) {
-  if (control$warn) {
-    var_dec <- to_dec(args$nums[args$var_pool], args$n)
-    if (!is.null(missing_data)) {
-      inc_md <- bitwAnd(args$md_s, var_dec)
-      if (inc_md != args$md_s) {
-        no_ind <- args$vars[
-          which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
-        ]
-        warning(
-          "There are response indicators ",
-          "that are not present in any input distribution: ",
-          paste(no_ind, collapse = ", "),
-          .call = FALSE
-        )
-      }
+  if (!control$warn) {
+    return()
+  }
+  var_dec <- to_dec(args$nums[args$var_pool], args$n)
+  if (!is.null(missing_data)) {
+    inc_md <- bitwAnd(args$md_s, var_dec)
+    if (inc_md != args$md_s) {
+      no_ind <- args$vars[
+        which(to_vec(bitwAnd(args$md_s, bitwNot(inc_md)), args$n) == 1L)
+      ]
+      warning_(
+        "There are response indicators ",
+        "that are not present in any input distribution: ",
+        paste(no_ind, collapse = ", ")
+      )
     }
+  }
+  has_lower <- grepl("^[[:lower:]]+$", args$vars)
+  has_upper <- grepl("^[[:upper:]]+$", args$vars)
+  if (any(has_lower) && any(has_upper)) {
+    warning_(
+      "Both lower case and upper case inputs detected."
+    )
   }
 }
 

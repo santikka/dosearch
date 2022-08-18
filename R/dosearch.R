@@ -79,7 +79,8 @@
 #' Here the labels indicate that the edge from \eqn{X} to \eqn{Z} vanishes when
 #' \eqn{A} has the value 0 and the edge from \eqn{Z} to \eqn{Y} vanishes when
 #' \eqn{A} has the value 1. Multiple labels on the same edge should be
-#' separated by a semi-colon.
+#' separated by a semi-colon, and individual assignments within each label
+#' should be separated by a comma.
 #'
 #' Argument `transportability` enumerates the nodes that should be understood
 #' as transportability nodes responsible for discrepancies between domains.
@@ -102,7 +103,9 @@
 #' is issued if a proxy variable is present in an input distribution but its
 #' corresponding mechanism is not present in any input. See e.g.,
 #' Mohan, Pearl and Tian (2013) for details on missing data as
-#' a causal inference problem.
+#' a causal inference problem. Note that `dosearch` is not complete for
+#' missing data problems, meaning that if `dosearch` is not able to identify
+#' the `query`, it might still be identifiable via some other means.
 #'
 #' The `control` argument is a list that can supply any of the following
 #' components:
@@ -135,6 +138,8 @@
 #'   to  the console during the search. Defaults to `FALSE`.
 #' * `warn` A `logical` value. If `TRUE`, a warning is issued for possibly
 #'   unintentionally misspecified but syntactically correct input distributions.
+#'   A warning is also raised if both lower-case and upper-case node or
+#'   variable names are used simultaneously in the inputs
 #'
 #' @param data A `character` string describing the available distributions in
 #'   the package syntax. Alternatively, a list of character vectors.
@@ -443,6 +448,9 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' x <- dosearch(data, query, graph)
 #' y <- summary(x)
 summary.dosearch <- function(object, ...) {
+  if (!is.dosearch(object)) {
+    stop_("Argument `object` must be an object of class `dosearch`.")
+  }
   took <- NA
   units <- NA
   if (!is.null(object$time)) {
@@ -462,16 +470,20 @@ summary.dosearch <- function(object, ...) {
   g <- gsub(" ", "", g)
   g <- gsub("->", " -> ", g)
   g <- gsub("--", " <-> ", g)
-  out <- list(
-    result = list(identifiable = object$identifiable, formula = object$formula),
-    call = object$call,
-    time = took,
-    units = units,
-    data = d,
-    graph = g
+  structure(
+    list(
+      result = list(
+        identifiable = object$identifiable,
+        formula = object$formula
+      ),
+      call = object$call,
+      time = took,
+      units = units,
+      data = d,
+      graph = g
+    ),
+    class = "summary.dosearch"
   )
-  class(out) <- "summary.dosearch"
-  out
 }
 
 #' Print the Summary of a `dosearch` Object
@@ -491,11 +503,14 @@ summary.dosearch <- function(object, ...) {
 #' y <- summary(x)
 #' print(y)
 print.summary.dosearch <- function(x, ...) {
+  if (!inherits(x, "summary.dosearch")) {
+    stop_("Argument `x` must be an object of class `summary.dosearch`.")
+  }
   res <- x$result
   y <- x$call
   cat(
     "The query", y$query, "is",
-    ifelse(res$identifiable, "identifiable.", "non-identifiable."),
+    ifelse(res$identifiable, "identifiable.", "not identifiable by do-search."),
     "\n"
   )
   if (identical(res$formula, "")) {
@@ -529,15 +544,19 @@ print.summary.dosearch <- function(x, ...) {
 #' x <- dosearch(data, query, graph)
 #' print(x)
 print.dosearch <- function(x, ...) {
+  if (!is.dosearch(x)) {
+    stop_("Argument `x` must be an object of class `dosearch`.")
+  }
   if (is.null(x$formula) || identical(x$formula, "")) {
     cat(
       "The query", x$call$query, "is",
-      ifelse(x$identifiable, "identifiable", "non-identifiable."),
+      ifelse(x$identifiable, "identifiable", "not identifiable by do-search."),
       "\n"
     )
   } else {
     cat(format(x$formula, ...), "\n")
   }
+  invisible(x)
 }
 
 #' Was the Target Distribution Identifiable?
@@ -563,9 +582,8 @@ print.dosearch <- function(x, ...) {
 is_identifiable <- function(x) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
-  } else {
-    x$identifiable
   }
+  x$identifiable
 }
 
 #' Retrieve the Identifying Formula of a Causal Query

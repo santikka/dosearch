@@ -2,8 +2,28 @@
 #'
 #' @inheritParams base::stop
 #' @noRd
-stop_ <- function(..., domain = NULL) {
-  stop(..., call. = FALSE, domain = domain)
+stop_ <- function(...) {
+  stop(..., call. = FALSE)
+}
+
+#' Display a Warning Message Displaying the Call
+#'
+#' @inheritParams base::warning
+#' @noRd
+warning_ <- function(...) {
+  warning(..., call. = FALSE)
+}
+
+#' Create a Sequence from 2 to `n` If `n` Is At Least 2
+#'
+#' @param n An `integer` specifying the last value of the sequence.
+#' @noRd
+seq_min2 <- function(n) {
+  if (n < 2L) {
+    integer(0L)
+  } else {
+    seq.int(2L, n)
+  }
 }
 
 #' Convert a Vector of Unique Integers to a Set
