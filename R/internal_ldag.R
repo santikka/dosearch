@@ -4,6 +4,18 @@
 #' @noRd
 get_derivation_ldag <- function(data, query, graph, control = list()) {
   control <- control_defaults(control)
+  cl <- list(
+    data = data,
+    query = query,
+    graph = graph,
+    transportability = NULL,
+    selection_bias = NULL,
+    missing_data = NULL,
+    control = control
+  )
+  if (control$empty) {
+    return(empty_output(cl))
+  }
   args <- list(
     dir_lhs = integer(0L),
     dir_rhs = integer(0L),
@@ -46,15 +58,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
     control$cache,
     control$verbose
   )
-  res$call <- list(
-    data = data,
-    query = query,
-    graph = graph,
-    transportability = NULL,
-    selection_bias = NULL,
-    missing_data = NULL,
-    control = control
-  )
+  res$call <- cl
   structure(
     res[
       c(

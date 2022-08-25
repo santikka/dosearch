@@ -192,3 +192,19 @@ test_that("alternative distribution format works", {
     dosearch(data_alt, query_alt, graph)$formula
   )
 })
+
+test_that("empty return objects can be got", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y", control = list(empty = TRUE)),
+    NA
+  )
+  expect_error(
+    dosearch(
+      "p(x)",
+      "p(y)",
+      "x -> y \n z -> y : x = 0",
+      control = list(empty = TRUE)
+    ),
+    NA
+  )
+})

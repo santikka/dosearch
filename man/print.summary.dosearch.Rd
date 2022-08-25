@@ -4,12 +4,18 @@
 \alias{print.summary.dosearch}
 \title{Print the Summary of a \code{dosearch} Object}
 \usage{
-\method{print}{summary.dosearch}(x, ...)
+\method{print}{summary.dosearch}(x, max_chars = 300L, ...)
 }
 \arguments{
 \item{x}{An object of class \code{summary.dosearch}.}
 
+\item{max_chars}{Maximum number of characters of the formula to display. The
+default is 300.}
+
 \item{...}{Not used.}
+}
+\value{
+\code{x} (invisibly)
 }
 \description{
 Print the Summary of a \code{dosearch} Object
@@ -25,4 +31,5 @@ graph <- "
 x <- dosearch(data, query, graph)
 y <- summary(x)
 print(y)
+
 }

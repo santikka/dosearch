@@ -5,6 +5,18 @@
 get_derivation_dag <- function(data, query, graph, transportability,
                                selection_bias, missing_data, control) {
   control <- control_defaults(control)
+  cl <- list(
+    data = data,
+    query = query,
+    graph = graph,
+    transportability = transportability,
+    selection_bias = selection_bias,
+    missing_data = missing_data,
+    control = control
+  )
+  if (control$empty) {
+    return(empty_output(cl))
+  }
   args <- list(
     dir_lhs = integer(0L),
     dir_rhs = integer(0L),
@@ -59,15 +71,7 @@ get_derivation_dag <- function(data, query, graph, transportability,
     control$md_sym,
     control$verbose
   )
-  res$call <- list(
-    data = data,
-    query = query,
-    graph = graph,
-    transportability = transportability,
-    selection_bias = selection_bias,
-    missing_data = missing_data,
-    control = control
-  )
+  res$call <- cl
   structure(
     res[
       c(

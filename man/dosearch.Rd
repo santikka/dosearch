@@ -2,6 +2,12 @@
 % Please edit documentation in R/dosearch.R
 \name{dosearch}
 \alias{dosearch}
+\alias{summary.dosearch}
+\alias{print.dosearch}
+\alias{is_identifiable}
+\alias{get_formula}
+\alias{get_derivation}
+\alias{get_benchmark}
 \title{Identify a Causal Effect from Arbitrary Experiments And Observations}
 \usage{
 dosearch(
@@ -13,6 +19,18 @@ dosearch(
   missing_data = NULL,
   control = list()
 )
+
+\method{summary}{dosearch}(object, ...)
+
+\method{print}{dosearch}(x, max_chars = 300L, ...)
+
+is_identifiable(x)
+
+get_formula(x, run_again = FALSE)
+
+get_derivation(x, run_again = FALSE, draw_all = FALSE)
+
+get_benchmark(x, run_again = FALSE, include_rules = FALSE)
 }
 \arguments{
 \item{data}{A \code{character} string describing the available distributions in
@@ -36,17 +54,60 @@ nodes of the model in the package syntax (for DAGs only).}
 mechanisms of the model in the package syntax (for DAGs only).}
 
 \item{control}{A \code{list} of control parameters.}
+
+\item{object}{An object of class \code{dosearch}.}
+
+\item{...}{Additional arguments passed to \code{\link[base:format]{base::format()}}.}
+
+\item{x}{An object of class \code{dosearch}.}
+
+\item{max_chars}{Maximum number of characters of the formula to display. The
+default is 300.}
+
+\item{run_again}{If \code{TRUE}, runs the search again in an attempt to obtain
+the formula, for example if \code{control$formula} was \code{FALSE} in the call to
+\code{\link[=dosearch]{dosearch()}}, but the query itself is identifiable.}
+
+\item{draw_all}{A logical value. If \code{TRUE}, the derivation will contain
+every step taken by the search. If \code{FALSE}, only steps that resulted in
+identification are returned.}
+
+\item{include_rules}{A \code{logical} value. If \code{TRUE}, also benchmarks the time
+taken by each inference rule separately.}
 }
 \value{
-An object of class \code{dosearch} which is a list with the following
-components by default. See the options of \code{control} for how to obtain a
-graphical representation of the derivation or how to benchmark the search.
+\code{dosearch} returns an object of class \code{dosearch} which is a list
+with the following components by default. See the \code{control} options
+on how to obtain a graphical representation of the derivation or
+how to benchmark the search.
 \itemize{
-\item \code{identifiable} A \code{logical} value that is \code{TRUE} if the target quantity is
-identifiable and \code{FALSE} otherwise.
-\item \code{formula} A \code{character} string describing a formula for an identifiable
-query or an empty character vector for an non-identifiable effect.
+\item \code{identifiable}: a \code{logical} value that is \code{TRUE} if the target
+quantity is identifiable and \code{FALSE} otherwise.
+\item \code{formula}: a \code{character} string describing the formula for an
+identifiable query or an empty character vector for
+a non-identifiable effect.
 }
+
+\code{summary} returns a \code{summary.dosearch} object.
+
+\code{print} returns \code{x} invisibly.
+
+\code{is_identifiable} returns a logical value. If \code{TRUE}, the target
+distribution was identifiable from the available inputs.
+
+\code{get_formula} returns a \code{character} string representing the query
+in terms of the input data or \code{NULL} if the query is not identifiable.
+
+\code{get_derivation} returns a graphical representation of the
+derivation steps that resulted in identification. The return object
+is a \code{character} string in \code{DOT} syntax.
+
+\code{get_benchmark} returns a \code{list} with one or two elements or \code{NULL}.
+The first element of the list is always a numeric
+value of the total time taken by the search in milliseconds.
+The second is a numeric vector of the time taken by each inference rule
+(in the internal C++ implementation) of the search in milliseconds
+if \code{include_rules} is \code{TRUE}.
 }
 \description{
 Identify a causal \code{query} from available \code{data} in a causal model described
@@ -56,6 +117,18 @@ to transportability of causal effects, recoverability from selection bias
 and identifiability under missing data can also be included. See 'Details'
 for the syntax of each argument. Note that all \code{character} type arguments
 are case-sensitive.
+
+\code{is_identifiable} returns the a logical value describing the identifiability
+of a causal query of an object of class \code{dosearch}.
+
+\code{get_formula} returns the identifying formula describing a causal query of
+an object of class \code{dosearch}. If no formula is available, returns \code{NULL}.
+
+\code{get_derivation} returns the derivation of a causal query of an object of
+class \code{dosearch}. If no derivation is available, returns \code{NULL}.
+
+\code{get_benchmark} returns the benchmarking information of an object of
+class \code{dosearch}. If no benchmark is available, returns \code{NULL}.
 }
 \details{
 Argument \code{data} is used to list the available input distributions.
@@ -160,33 +233,36 @@ the \code{query}, it might still be identifiable via some other means.
 The \code{control} argument is a list that can supply any of the following
 components:
 \itemize{
-\item \code{benchmark} A \code{logical} value. If \code{TRUE}, the search time is
+\item \code{benchmark}: a \code{logical} value. If \code{TRUE}, the search time is
 recorded and returned (in milliseconds). Defaults to \code{FALSE}.
-\item \code{benchmark_rules} A \code{logical} value. If \code{TRUE}, the time taken by each
+\item \code{benchmark_rules}: a \code{logical} value. If \code{TRUE}, the time taken by each
 individual inference rule is also recorded in the benchmark
 (in milliseconds). Defaults to \code{FALSE}.
-\item \code{draw_derivation} A \code{logical} value. If \code{TRUE}, a string representing the
-derivation steps as a DOT graph is returned. The graph can be exported as
-an image for example by using the \pkg{DOT} package. Defaults to \code{FALSE}.
-\item \code{draw_all} A \code{logical} value. If \code{TRUE} and if \code{draw_derivation = TRUE},
+\item \code{draw_derivation}: a \code{logical} value. If \code{TRUE}, a string representing
+the derivation steps as a DOT graph is returned. The graph can be
+exported as an image for example by using the \pkg{DOT} package.
+Defaults to \code{FALSE}.
+\item \code{draw_all}: a \code{logical} value. If \code{TRUE} and if \code{draw_derivation = TRUE},
 the derivation will contain every step taken by the search. If \code{FALSE},
 only the steps that resulted in an identifiable target are returned.
 Defaults to \code{FALSE}.
-\item \code{formula} A \code{logical} value. If \code{TRUE}, a string representing the
+\code{empty}: a \code{logical} value. If \code{TRUE}, an empty \code{dosearch} object is
+returned without running the search.
+\item \code{formula}: a \code{logical} value. If \code{TRUE}, a string representing the
 identifiable query is returned when the target query is identifiable.
 If \code{FALSE}, only a logical value is returned that takes the value \code{TRUE}
 for an identifiable target and \code{FALSE} otherwise. Defaults to \code{TRUE}.
-\item \code{heuristic} A \code{logical} value. If \code{TRUE}, new distributions are expanded
+\item \code{heuristic}: a \code{logical} value. If \code{TRUE}, new distributions are expanded
 during the search according to a search heuristic
 (see Tikka et al. (2021) for details). Otherwise, distributions are
 expanded in the order in which they were identified. Defaults to \code{FALSE}.
-\item \code{md_sym} A single \code{character} describing the symbol to use for active
+\item \code{md_sym}: a single \code{character} describing the symbol to use for active
 missing data mechanisms. Defaults to \code{"1"}.
-\item \code{time_limit} A \code{numeric} value giving a time limit for the search
+\item \code{time_limit}: a \code{numeric} value giving a time limit for the search
 (in hours). Defaults to a negative value that disables the time limit.
-\item \code{verbose} A \code{logical} value. If \code{TRUE}, diagnostic information is printed
+\item \code{verbose}: a \code{logical} value. If \code{TRUE}, diagnostic information is printed
 to  the console during the search. Defaults to \code{FALSE}.
-\item \code{warn} A \code{logical} value. If \code{TRUE}, a warning is issued for possibly
+\item \code{warn}: a \code{logical} value. If \code{TRUE}, a warning is issued for possibly
 unintentionally misspecified but syntactically correct input distributions.
 A warning is also raised if both lower-case and upper-case node or
 variable names are used simultaneously in the inputs
@@ -405,6 +481,66 @@ if (requireNamespace("DOT", quietly = TRUE)) {
   DOT::dot(d$derivation, "derivation.svg")
 }
 }
+
+data <- "p(x,y,z)"
+query <- "p(y|do(x))"
+graph <- "
+  x -> y
+  Z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph)
+y <- summary(x)
+
+data <- "p(x,y,z)"
+query <- "p(y|do(x))"
+graph <- "
+  x -> z
+  Z -> y
+  x <-> y
+"
+x <- dosearch(data, query, graph)
+print(x)
+data <- "P(x,y,z)"
+query <- "P(y|do(x))"
+graph <- "
+  x -> y
+  z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph)
+is_identifiable(x)
+# TRUE
+
+data <- "P(x,y,z)"
+query <- "P(y|do(x))"
+graph <- "
+  x -> y
+  z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph, control = list(formula = FALSE))
+get_formula(x, run_again = TRUE)
+
+data <- "P(x,y,z)"
+query <- "P(y|do(x))"
+graph <- "
+  x -> y
+  z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph, control = list(draw_derivation = FALSE))
+get_derivation(x, run_again = TRUE)
+data <- "P(x,y,z)"
+query <- "P(y|do(x))"
+graph <- "
+  x -> y
+  z -> x
+  z -> y
+"
+x <- dosearch(data, query, graph, control = list(benchmark = FALSE))
+get_benchmark(x, run_again = TRUE)
+
 }
 \references{
 S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from

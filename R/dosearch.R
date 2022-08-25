@@ -110,33 +110,36 @@
 #' The `control` argument is a list that can supply any of the following
 #' components:
 #'
-#' * `benchmark` A `logical` value. If `TRUE`, the search time is
+#' * `benchmark`: a `logical` value. If `TRUE`, the search time is
 #'   recorded and returned (in milliseconds). Defaults to `FALSE`.
-#' * `benchmark_rules` A `logical` value. If `TRUE`, the time taken by each
+#' * `benchmark_rules`: a `logical` value. If `TRUE`, the time taken by each
 #'   individual inference rule is also recorded in the benchmark
 #'   (in milliseconds). Defaults to `FALSE`.
-#' * `draw_derivation` A `logical` value. If `TRUE`, a string representing the
-#'   derivation steps as a DOT graph is returned. The graph can be exported as
-#'   an image for example by using the \pkg{DOT} package. Defaults to `FALSE`.
-#' * `draw_all` A `logical` value. If `TRUE` and if `draw_derivation = TRUE`,
+#' * `draw_derivation`: a `logical` value. If `TRUE`, a string representing
+#'   the derivation steps as a DOT graph is returned. The graph can be
+#'   exported as an image for example by using the \pkg{DOT} package.
+#'   Defaults to `FALSE`.
+#' * `draw_all`: a `logical` value. If `TRUE` and if `draw_derivation = TRUE`,
 #'   the derivation will contain every step taken by the search. If `FALSE`,
 #'   only the steps that resulted in an identifiable target are returned.
 #'   Defaults to `FALSE`.
-#' * `formula` A `logical` value. If `TRUE`, a string representing the
+#'   `empty`: a `logical` value. If `TRUE`, an empty `dosearch` object is
+#'   returned without running the search.
+#' * `formula`: a `logical` value. If `TRUE`, a string representing the
 #'   identifiable query is returned when the target query is identifiable.
 #'   If `FALSE`, only a logical value is returned that takes the value `TRUE`
 #'   for an identifiable target and `FALSE` otherwise. Defaults to `TRUE`.
-#' * `heuristic` A `logical` value. If `TRUE`, new distributions are expanded
+#' * `heuristic`: a `logical` value. If `TRUE`, new distributions are expanded
 #'   during the search according to a search heuristic
 #'   (see Tikka et al. (2021) for details). Otherwise, distributions are
 #'   expanded in the order in which they were identified. Defaults to `FALSE`.
-#' * `md_sym` A single `character` describing the symbol to use for active
+#' * `md_sym`: a single `character` describing the symbol to use for active
 #'   missing data mechanisms. Defaults to `"1"`.
-#' * `time_limit` A `numeric` value giving a time limit for the search
+#' * `time_limit`: a `numeric` value giving a time limit for the search
 #'   (in hours). Defaults to a negative value that disables the time limit.
-#' * `verbose` A `logical` value. If `TRUE`, diagnostic information is printed
+#' * `verbose`: a `logical` value. If `TRUE`, diagnostic information is printed
 #'   to  the console during the search. Defaults to `FALSE`.
-#' * `warn` A `logical` value. If `TRUE`, a warning is issued for possibly
+#' * `warn`: a `logical` value. If `TRUE`, a warning is issued for possibly
 #'   unintentionally misspecified but syntactically correct input distributions.
 #'   A warning is also raised if both lower-case and upper-case node or
 #'   variable names are used simultaneously in the inputs
@@ -156,14 +159,16 @@
 #' @param missing_data A `character` string describing the missing data
 #'   mechanisms of the model in the package syntax (for DAGs only).
 #' @param control A `list` of control parameters.
-#' @return An object of class `dosearch` which is a list with the following
-#'   components by default. See the options of `control` for how to obtain a
-#'   graphical representation of the derivation or how to benchmark the search.
+#' @return `dosearch` returns an object of class `dosearch` which is a list
+#'   with the following components by default. See the `control` options
+#'   on how to obtain a graphical representation of the derivation or
+#'   how to benchmark the search.
 #'
-#' * `identifiable` A `logical` value that is `TRUE` if the target quantity is
-#'   identifiable and `FALSE` otherwise.
-#' * `formula` A `character` string describing a formula for an identifiable
-#'   query or an empty character vector for an non-identifiable effect.
+#'   * `identifiable`: a `logical` value that is `TRUE` if the target
+#'     quantity is identifiable and `FALSE` otherwise.
+#'   * `formula`: a `character` string describing the formula for an
+#'     identifiable query or an empty character vector for
+#'     a non-identifiable effect.
 #' @references
 #' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from
 #' Multiple Incomplete Data Sources: A General Search-based Approach."
@@ -396,6 +401,7 @@
 #'   DOT::dot(d$derivation, "derivation.svg")
 #' }
 #' }
+#'
 dosearch <- function(data, query, graph, transportability = NULL,
                      selection_bias = NULL, missing_data = NULL,
                      control = list()) {
@@ -434,9 +440,11 @@ dosearch <- function(data, query, graph, transportability = NULL,
 
 #' Summary of a `dosearch` Object
 #'
+#' @export
+#' @rdname dosearch
 #' @param object An object of class `dosearch`.
 #' @param ... Not used.
-#' @export
+#' @return `summary` returns a `summary.dosearch` object.
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -447,6 +455,7 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' "
 #' x <- dosearch(data, query, graph)
 #' y <- summary(x)
+#'
 summary.dosearch <- function(object, ...) {
   if (!is.dosearch(object)) {
     stop_("Argument `object` must be an object of class `dosearch`.")
@@ -488,9 +497,12 @@ summary.dosearch <- function(object, ...) {
 
 #' Print the Summary of a `dosearch` Object
 #'
-#' @param x An object of class `summary.dosearch`.
-#' @param ... Not used.
 #' @export
+#' @param x An object of class `summary.dosearch`.
+#' @param max_chars Maximum number of characters of the formula to display. The
+#'   default is 300.
+#' @param ... Not used.
+#' @returns `x` (invisibly)
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -502,7 +514,8 @@ summary.dosearch <- function(object, ...) {
 #' x <- dosearch(data, query, graph)
 #' y <- summary(x)
 #' print(y)
-print.summary.dosearch <- function(x, ...) {
+#'
+print.summary.dosearch <- function(x, max_chars = 300L, ...) {
   if (!inherits(x, "summary.dosearch")) {
     stop_("Argument `x` must be an object of class `summary.dosearch`.")
   }
@@ -516,7 +529,18 @@ print.summary.dosearch <- function(x, ...) {
   if (identical(res$formula, "")) {
     cat("Formula: NA\n")
   } else {
-    cat("Formula:\n\t", res$formula, "\n", sep = "")
+    trunc_str <- ifelse(
+      nchar(x$formula) > max_chars,
+      "... [formula truncated]",
+      ""
+    )
+    cat(
+      "Formula:\n\t",
+      substr(res$formula, 1L, max_chars),
+      trunc_str,
+      "\n",
+      sep = ""
+    )
   }
   if (!is.na(x$time)) {
     cat("Search took", x$time, x$units, "\n")
@@ -530,9 +554,13 @@ print.summary.dosearch <- function(x, ...) {
 
 #' Print a `dosearch` Object
 #'
-#' @param x An object of class `dosearch`.
-#' @param ... Additional arguments passed to [base::format()].
 #' @export
+#' @rdname dosearch
+#' @param x An object of class `dosearch`.
+#' @param max_chars Maximum number of characters of the formula to display. The
+#'   default is 300.
+#' @param ... Additional arguments passed to [base::format()].
+#' @return `print` returns `x` invisibly.
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -543,7 +571,7 @@ print.summary.dosearch <- function(x, ...) {
 #' "
 #' x <- dosearch(data, query, graph)
 #' print(x)
-print.dosearch <- function(x, ...) {
+print.dosearch <- function(x, max_chars = 300L, ...) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
@@ -554,20 +582,26 @@ print.dosearch <- function(x, ...) {
       "\n"
     )
   } else {
-    cat(format(x$formula, ...), "\n")
+    trunc_str <- ifelse(
+      nchar(x$formula) > max_chars,
+      "... [formula truncated]",
+      ""
+    )
+    cat(format(substr(x$formula, 1L, max_chars), ...), trunc_str, "\n")
   }
   invisible(x)
 }
 
 #' Was the Target Distribution Identifiable?
 #'
-#' Returns the a logical value describing the identifiability of a causal query
-#' of an object of class `dosearch` returned by [dosearch::dosearch()].
+#' `is_identifiable` returns the a logical value describing the identifiability
+#' of a causal query of an object of class `dosearch`.
 #'
-#' @param x An object of class `dosearch`.
-#' @return A logical value. If `TRUE`, the target distribution was identifiable
-#'   from the available inputs.
 #' @export
+#' @rdname dosearch
+#' @param x An object of class `dosearch`.
+#' @return `is_identifiable` returns a logical value. If `TRUE`, the target
+#'   distribution was identifiable from the available inputs.
 #' @examples
 #' data <- "P(x,y,z)"
 #' query <- "P(y|do(x))"
@@ -579,6 +613,7 @@ print.dosearch <- function(x, ...) {
 #' x <- dosearch(data, query, graph)
 #' is_identifiable(x)
 #' # TRUE
+#'
 is_identifiable <- function(x) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
@@ -588,17 +623,17 @@ is_identifiable <- function(x) {
 
 #' Retrieve the Identifying Formula of a Causal Query
 #'
-#' Returns the identifying formula describing a causal query of an object of
-#' class `dosearch` returned by [dosearch::dosearch()]. If no formula is
-#' available, returns `NULL`.
+#' `get_formula` returns the identifying formula describing a causal query of
+#' an object of class `dosearch`. If no formula is available, returns `NULL`.
 #'
+#' @export
+#' @rdname dosearch
 #' @param x An object of class `dosearch`.
 #' @param run_again If `TRUE`, runs the search again in an attempt to obtain
 #'   the formula, for example if `control$formula` was `FALSE` in the call to
 #'   [dosearch::dosearch()], but the query itself is identifiable.
-#' @return A `character` string representing the query in terms of the input
-#'   data or `NULL`.
-#' @export
+#' @return `get_formula` returns a `character` string representing the query
+#'   in terms of the input data or `NULL` if the query is not identifiable.
 #' @examples
 #' data <- "P(x,y,z)"
 #' query <- "P(y|do(x))"
@@ -609,6 +644,7 @@ is_identifiable <- function(x) {
 #' "
 #' x <- dosearch(data, query, graph, control = list(formula = FALSE))
 #' get_formula(x, run_again = TRUE)
+#'
 get_formula <- function(x, run_again = FALSE) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
@@ -635,14 +671,16 @@ get_formula <- function(x, run_again = FALSE) {
 
 #' Retrieve the Derivation of a Causal Query
 #'
-#' Returns the derivation of a causal query of an object of class `dosearch`
-#' returned by [dosearch::dosearch()]. If no derivation is available, returns
-#' `NULL`.
+#' `get_derivation` returns the derivation of a causal query of an object of
+#' class `dosearch`. If no derivation is available, returns `NULL`.
 #'
-#' @inheritParams get_formula
+#' @rdname dosearch
 #' @param draw_all A logical value. If `TRUE`, the derivation will contain
 #'   every step taken by the search. If `FALSE`, only steps that resulted in
 #'   identification are returned.
+#' @return `get_derivation` returns a graphical representation of the
+#'   derivation steps that resulted in identification. The return object
+#'   is a `character` string in `DOT` syntax.
 #' @export
 #' @examples
 #' data <- "P(x,y,z)"
@@ -681,20 +719,19 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 
 #' Benchmark a Specific Run of the Search
 #'
-#' Returns the benchmarking information of an object of class `dosearch`
-#' returned by [dosearch::dosearch()]. If no benchmark is available, returns
-#' `NULL`.
+#' `get_benchmark` returns the benchmarking information of an object of
+#' class `dosearch`. If no benchmark is available, returns `NULL`.
 #'
-#' @inheritParams get_formula
+#' @export
+#' @rdname dosearch
 #' @param include_rules A `logical` value. If `TRUE`, also benchmarks the time
 #'   taken by each inference rule separately.
-#' @return A `list` with one or two elements or `NULL`.
+#' @return `get_benchmark` returns a `list` with one or two elements or `NULL`.
 #'   The first element of the list is always a numeric
 #'   value of the total time taken by the search in milliseconds.
 #'   The second is a numeric vector of the time taken by each inference rule
 #'   (in the internal C++ implementation) of the search in milliseconds
-#'   if `include_rules` is `TRUE`
-#' @export
+#'   if `include_rules` is `TRUE`.
 #' @examples
 #' data <- "P(x,y,z)"
 #' query <- "P(y|do(x))"
@@ -705,6 +742,7 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 #' "
 #' x <- dosearch(data, query, graph, control = list(benchmark = FALSE))
 #' get_benchmark(x, run_again = TRUE)
+#'
 get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")

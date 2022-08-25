@@ -305,6 +305,7 @@ control_defaults <- function(control) {
     cache = TRUE,
     draw_all = FALSE,
     draw_derivation = FALSE,
+    empty = FALSE,
     formula = TRUE,
     heuristic = FALSE,
     improve = TRUE,
@@ -341,6 +342,21 @@ control_defaults <- function(control) {
     )
   }
   control
+}
+
+#' Construct an Empty `dosearch` Object
+#'
+#' @param cl A `list` containing the original `dosearch` call arguments.
+#' @noRd
+empty_output <- function(cl) {
+  structure(
+    list(
+      identifiable = FALSE,
+      formula = "",
+      call = cl
+    ),
+    class = "dosearch"
+  )
 }
 
 #' Is the Argument a `dosearch` Object?
