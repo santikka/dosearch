@@ -1,9 +1,11 @@
 # dosearch 1.0.9
 
 * Added several sanity checks for the input distributions and the graph.
-* Updated documentation in various aspects. Importantly, it is now noted that `dosearch` is not complete for missing data problems
+* Updated documentation in various aspects. Importantly, it is now noted that `dosearch` is not complete for missing data problems.
 * A non-identifiable query is now reported as follows: "The query is non-identifiable by do-search" to further clarify that the search was not able to identify the query.
 * Added a new Vignette for the package.
+* Added a `plot` method via the `DiagrammeR` package to produce derivation plots more easily.
+* An error is now issued when the input graph is too large.
 
 # dosearch 1.0.8
 

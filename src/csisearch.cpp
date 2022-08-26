@@ -149,7 +149,7 @@ void csisearch::enumerate_candidates() {
         for (int j = 1; j <= e; j++) {
           if (in_set(j, zero)) {
             u_inc += elems[j-1];
-          } 
+          }
           if (in_set(j, one)) {
             v_inc += elems[j-1];
           }
@@ -238,21 +238,66 @@ std::string csisearch::derive_formula(distr& dist) {
 std::string csisearch::rule_name(const int& rule_num) const {
   std::string rn = "";
   switch (rule_num) {
-    case 0  : rn = "M";
-    case 1  : rn = "C";
-    case 2  : rn = "P";
-    case -2 : rn = "P";
-    case 3  : rn = "I+";
-    case -3 : rn = "I-";
-    case 4  : rn = "I+0";
-    case -4 : rn = "I+1";
-    case 5  : rn = "CbC";
-    case -5 : rn = "CbC";
-    case 6  : rn = "GbC";
-    case 7  : rn = "GbC";
-    case -7 : rn = "GbC";
-    case 8  : rn = "CbG";
-    case -8 : rn = "CbG";
+    case 0 : {
+      rn = "M";
+      break;
+    }
+    case 1 : {
+      rn = "C";
+      break;
+    }
+    case 2 : {
+      rn = "P";
+      break;
+    }
+    case -2 : {
+      rn = "P";
+      break;
+    }
+    case 3 : {
+      rn = "I+";
+      break;
+    };
+    case -3 : {
+      rn = "I-";
+      break;
+    };
+    case 4 : {
+      rn = "I+0";
+      break;
+    };
+    case -4 : {
+      rn = "I+1";
+      break;
+    };
+    case 5 : {
+      rn = "CbC";
+      break;
+    }
+    case -5 : {
+      rn = "CbC";
+      break;
+    }
+    case 6 : {
+      rn = "GbC";
+      break;
+    }
+    case 7 : {
+      rn = "GbC";
+      break;
+    }
+    case -7 : {
+      rn = "GbC";
+      break;
+    }
+    case 8 : {
+      rn = "CbG";
+      break;
+    }
+    case -8 : {
+      rn = "CbG";
+      break;
+    }
   }
   return rn;
 }

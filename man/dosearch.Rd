@@ -3,6 +3,7 @@
 \name{dosearch}
 \alias{dosearch}
 \alias{summary.dosearch}
+\alias{plot.dosearch}
 \alias{print.dosearch}
 \alias{is_identifiable}
 \alias{get_formula}
@@ -21,6 +22,8 @@ dosearch(
 )
 
 \method{summary}{dosearch}(object, ...)
+
+\method{plot}{dosearch}(x, ...)
 
 \method{print}{dosearch}(x, max_chars = 300L, ...)
 
@@ -90,6 +93,8 @@ a non-identifiable effect.
 
 \code{summary} returns a \code{summary.dosearch} object.
 
+\code{plot} returns a \code{htmlwidget} object or \code{NULL} (invisibly)
+
 \code{print} returns \code{x} invisibly.
 
 \code{is_identifiable} returns a logical value. If \code{TRUE}, the target
@@ -110,13 +115,15 @@ The second is a numeric vector of the time taken by each inference rule
 if \code{include_rules} is \code{TRUE}.
 }
 \description{
-Identify a causal \code{query} from available \code{data} in a causal model described
-by a \code{graph} that is a semi-Markovian directed acyclic graph (DAG) or a
-labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related
-to transportability of causal effects, recoverability from selection bias
-and identifiability under missing data can also be included. See 'Details'
-for the syntax of each argument. Note that all \code{character} type arguments
-are case-sensitive.
+Identify a causal \code{query} from available \code{data} in a semi-Markovian
+causal model described by a \code{graph} that is a directed acyclic graph
+(DAG) or a labeled directed acyclic graph (LDAG). In a semi-Markovian causal
+model, each unobserved variable has exactly two children and they are denoted
+by bidirected edges. For DAGs, special mechanisms related to
+transportability of causal effects, recoverability from selection bias and
+identifiability under missing data can also be included.
+See 'Details' for the syntax of each argument. Note that all \code{character}
+type arguments are case-sensitive.
 
 \code{is_identifiable} returns the a logical value describing the identifiability
 of a causal query of an object of class \code{dosearch}.
@@ -186,7 +193,9 @@ directed edges and one bidirected edge is constructed as follows:
 Some alternative formats for DAGs are supported as well. Graphs created
 using the \pkg{igraph} package in the \pkg{causal.effect} package syntax can
 be used for \pkg{dosearch} as well. DAGs created using the \pkg{dagitty}
-package are also supported.
+package are also supported. Note that both time and space complexity of the
+underlying search algorithm are exponential in the number of vertices,
+but instances with up to ten nodes are routinely solved in under a second.
 
 LDAGs are constructed similarly with the addition of labels and with the
 omission bidirected edges (latent variables must be explicitly defined).
@@ -239,9 +248,10 @@ recorded and returned (in milliseconds). Defaults to \code{FALSE}.
 individual inference rule is also recorded in the benchmark
 (in milliseconds). Defaults to \code{FALSE}.
 \item \code{draw_derivation}: a \code{logical} value. If \code{TRUE}, a string representing
-the derivation steps as a DOT graph is returned. The graph can be
-exported as an image for example by using the \pkg{DOT} package.
-Defaults to \code{FALSE}.
+the derivation steps as a DOT graph is returned. If the \code{DiagrammeR}
+package is installed, the DOT graph can be plotted by calling \code{plot} on
+the return object. The DOT graph can also be exported as an .svg file
+by using the \code{DOT} package. Defaults to \code{FALSE}.
 \item \code{draw_all}: a \code{logical} value. If \code{TRUE} and if \code{draw_derivation = TRUE},
 the derivation will contain every step taken by the search. If \code{FALSE},
 only the steps that resulted in an identifiable target are returned.
@@ -492,6 +502,16 @@ graph <- "
 x <- dosearch(data, query, graph)
 y <- summary(x)
 
+out <- dosearch(
+  "p(x,y,z, w)",
+  "p(y|do(x))",
+  "x -> y \n z -> x \n w -> z \n x <-> w \n w <-> y",
+  control = list(draw_derivation = TRUE)
+)
+if (requireNamespace("DiagrammeR", quietly = TRUE)) {
+  plot(out)
+}
+
 data <- "p(x,y,z)"
 query <- "p(y|do(x))"
 graph <- "
@@ -501,6 +521,7 @@ graph <- "
 "
 x <- dosearch(data, query, graph)
 print(x)
+
 data <- "P(x,y,z)"
 query <- "P(y|do(x))"
 graph <- "

@@ -61,7 +61,7 @@ test_that("causal effect of X on Y in fig 6(b) is identified", {
     Z -> Y : A = 1
   "
   expect_error(
-    out <- dosearch(data, query, graph),
+    out <- dosearch(data, query, graph, control = list(draw_derivation = TRUE)),
     NA
   )
   expect_true(out$identifiable)
@@ -255,19 +255,19 @@ test_that("edge vanishes if label is full", {
 
 test_that("csisearch derivation works", {
   data <- "p(X,Y,Z,A,W)"
-  query <- "p(Y|X,I_X=1)"
+  query <- "p(Y|X,V=0)"
   graph <- "
-    I_X -> X
+    V -> X
     I_Z -> Z
     A -> W
     Z -> Y
     A -> Z
     X -> Z : I_Z = 1; A = 1
     X -> Y : A = 0
-    W -> X : I_X = 1
+    W -> X : V = 0
     W -> Y : A = 0
     A -> Y
-    U -> X : I_X = 1
+    U -> X : V = 0
     U -> Y : A = 1
   "
   expect_error(
@@ -316,6 +316,25 @@ test_that("local CSI is derived", {
   out <- dosearch(data, query, graph, control = list(cache = FALSE))
   expect_true(out$identifiable)
   expect_identical(out$formula, "p(X|A = 1)")
+})
+
+test_that("case-by-case reasoning is correct", {
+  out <- dosearch(
+    "p(x,z=0) \n p(x,z=1)",
+    "p(x,z)",
+    "x -> y : w = 0 \n w -> y",
+    control = list(draw_derivation = TRUE, rules = c(5))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(x,z)")
+  out <- dosearch(
+    "p(x,z=1) \n p(x,z=0)",
+    "p(x,z)",
+    "x -> y : w = 0 \n w -> y",
+    control = list(draw_derivation = TRUE, rules = c(-5))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(x,z)")
 })
 
 test_that("general-by-case reasoning is correct", {

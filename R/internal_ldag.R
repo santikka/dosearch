@@ -1,6 +1,7 @@
 #' Call the `csisearch` Algorithm from R for LDAGs
 #'
 #' @inheritParams dosearch
+#' @srrstats {NW2.9, NW2.10} Pre-processing routine for LDAG inputs.
 #' @noRd
 get_derivation_ldag <- function(data, query, graph, control = list()) {
   control <- control_defaults(control)
@@ -35,6 +36,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   args <- parse_input_distributions_ldag(args, data)
   args <- validate_input_distributions_ldag(args)
   args <- validate_query_ldag(args)
+  check_graph_size(args$n)
   res <- initialize_csisearch(
     as.numeric(args$nums[args$dir_lhs]),
     as.numeric(args$nums[args$dir_rhs]),
@@ -79,6 +81,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
 #' @inheritParams dosearch
 #' @param args A `list` of arguments for `initialize_csisearch`
 #' @param graph The graph as a `character` string.
+#' @srrstats {NW2.6} Validates the input LDAG.
 #' @noRd
 transform_graph_ldag <- function(args, graph) {
   graph_lines <- trimws(strsplit(graph, "\r|\n")[[1L]])
@@ -204,6 +207,7 @@ parse_labels <- function(args) {
 #' @param pa A `character` vector, vertex names of the parents of `to`.
 #' @param label_lhs A `character` vector, variable names bound by the edge
 #'   label value assignments.
+#' @srrstats {NW2.6} Validates edge labels.
 #' @noRd
 validate_label <- function(from, to, pa, label_lhs) {
   if (from %in% label_lhs) {
@@ -562,6 +566,7 @@ parse_input_distributions_ldag <- function(args, data) {
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @param d An `integer` vector of length 4 denoting the distribution.
+#' @srrstats {NW2.6} Validates distributions for LDAGs.
 #' @noRd
 validate_distribution_ldag <- function(args, msg, d, d_str) {
   if (bitwAnd(d[1L], d[2L]) > 0L) {
@@ -575,6 +580,7 @@ validate_distribution_ldag <- function(args, msg, d, d_str) {
 #' Check the Validity of Input Distributions
 #'
 #' @param args A `list` of arguments for `initialize_csisearch`.
+#' @srrstats {NW2.6} Validates input distributions for LDAGs.
 #' @noRd
 validate_input_distributions_ldag <- function(args) {
   for (i in seq_along(args$p_process)) {
@@ -598,6 +604,7 @@ validate_input_distributions_ldag <- function(args) {
 #' Check the Validity of a Target Distribution
 #'
 #' @param args A `list` of arguments for `initialize_csisearch`.
+#' @srrstats {NW2.6} Validates the target distributions for LDAGs.
 #' @noRd
 validate_query_ldag <- function(args) {
   q <- args$q_process

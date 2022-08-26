@@ -34,4 +34,14 @@ NULL
 #'   tests.
 #' @srrstatsNA {G5.9, G5.9a, G5.9b} Data is in symbolic form without noise.
 #' @srrstatsNA {G5.10, G5.11, G5.11a, G5.12} There are no extended tests.
+#' @srrstatsNA {NW2.8} Matrix inputs are not supported.
+#' @srrstatsNA {NW3.0} Sparse matrices are not used.
+#' @srrstatsNA {NW3.1} Adjacency matrices are not used in R code.
+#' @srrstatsNA {NW4.1a} No claims of improvement are made.
+#' @srrstatsNA {NW4.4a} There is no default maximum number of iterations or
+#'   a default time limit.
+#' @srrstatsNA {NW4.6, NW4.7} No grouping or dimensionality reduction is
+#'   carried out.
+#' @srrstatsNA {NW5.6} No grouping is carried out.
+#' @srrstatsNA {NW6.1, NW6.2} Data is not labeled.
 NULL

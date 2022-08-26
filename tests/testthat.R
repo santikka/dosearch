@@ -1,4 +1,4 @@
-#' @srrstats {G5.2} Error and warning behaviour is tested.
+#' @srrstats {G5.2} Error and warning behavior is tested.
 #' @srrstats {G5.2a} Messages are unique.
 #' @srrstats {G5.2b} Conditions are demonstrated.
 #' @srrstats {G5.4, G5.4a, G5.6} Output of dosearch is compared against known
@@ -16,6 +16,7 @@
 #'   and it has been hypothesized that the general identifiability problem
 #'   itself is NP-hard.
 #' @srrstats {G5.8, G5.8a G5.8b, G5.8c, G5.8d} Edge conditions are tested.
+#' @srrstats {NW6.0} Inputs types are tested.
 #' @noRd
 library(testthat)
 library(dosearch)

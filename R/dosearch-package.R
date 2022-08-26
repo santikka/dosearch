@@ -21,13 +21,6 @@
 #'   a general search-based approach." \emph{Journal of Statistical Software},
 #'   99(5):1--40, 2021.
 #'
-#' @srrstats {G1.0} Primary reference is:
-#'   S. Tikka, A. Hyttinen and J. Karvanen.
-#'   "Causal effect identification from multiple incomplete data sources:
-#'   a general search-based approach." \emph{Journal of Statistical Software},
-#'   99(5):1--40, 2021.
-#' @srrstats {G1.1} First implementation of an original algorithm.
-#' @srrstats {G1.2} Life Cycle Statement is included in the README.
 #' @srrstats {G1.3} All terminology is clarified and unambiguously defined.
 #' @srrstats {G1.4} `roxygen2` is used for the package documentation.
 #' @srrstats {G1.4a} All internal (non-exported) functions are documented.
@@ -47,6 +40,25 @@
 #'   graphs are used as examples and testing.
 #' @srrstats {G5.1} Data set is exported and documented
 #'   (`bivariate_missingness`).
+#'
+#' @srrstats {NW4.0} Only STL is used, with C++11.
+#' @srrstats {Nw4.1} It is likely that algorithms for d-separation or
+#'   m-separation exist in other C++ libraries, but d-separation is
+#'   very simple, and does not warrant the additional dependency.
+#' @srrstats {NW4.2} Number of iterations is not well-defined or a meaningful
+#'   metric for `dosearch`, but the iteration can be controlled
+#'   with a time limit.
+#' @srrstats {NW4.3, NW4.3a} Convergence, if loosely understood here as
+#'   the search either reaching the target or fails to find it, is guaranteed
+#'   because the set of to be applied is finite, and the same distribution is
+#'   not derived again. A formal proof for soundness can be found in the
+#'   primary reference.
+#' @srrstats {NW4.3b} Related to the previous, the are also special criteria to
+#'   immediately detect non-convergence from the inputs and terminate early.
+#' @srrstats {NW4.4} Related to NW4.2, the time taken by the search can
+#'   be returned and even time taken by each individual derivation rule.
+#' @srrstats {NW4.5} Loops over matrix dimensions are carried out in C++
+#'
 NULL
 
 #' Systematic Analysis of Bivariate Missing Data Problems

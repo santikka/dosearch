@@ -21,6 +21,20 @@ test_that("igraph graph format works", {
   )
 })
 
+test_that("igraph graph without names gets named", {
+  skip_if_not_installed("igraph")
+  g_igraph <- igraph::delete_vertex_attr(
+    igraph::graph.formula(
+      1 -+ 2, 2 -+ 3
+    ),
+    "name"
+  )
+  expect_message(
+    parse_graph(g_igraph),
+    "Argument `graph` is not named, node names have been assigned"
+  )
+})
+
 test_that("dagitty graph format works", {
   skip_if_not_installed("dagitty")
   data <- "p(x,y,z)"
@@ -206,5 +220,48 @@ test_that("empty return objects can be got", {
       control = list(empty = TRUE)
     ),
     NA
+  )
+})
+
+test_that("plot method works with Diagrammer", {
+  skip_if_not_installed("DiagrammeR")
+  out <- dosearch(
+    "p(x,y,z, w)",
+    "p(y|do(x))",
+    "x -> y \n z -> x \n w -> z \n x <-> w \n w <-> y",
+    control = list(
+      draw_derivation = TRUE,
+      draw_all = TRUE
+    )
+  )
+  expect_error(plot(out), NA)
+})
+
+test_that("plot method informs if Diagrammer is not installed", {
+  skip_if_not_installed("mockr")
+  out <- dosearch(
+    "p(x,y)",
+    "p(y|do(x))",
+    "x -> y",
+    control = list(
+      draw_derivation = TRUE,
+      draw_all = TRUE
+    )
+  )
+  mockr::with_mock(
+    require_namespace = function(...) FALSE,
+    {
+      expect_message(
+        plot(out),
+        "Please install the `DiagrammeR` package to plot derivations"
+      )
+    }
+  )
+})
+
+test_that("plot method informs if no derivation is available", {
+  expect_message(
+    plot(dosearch("p(x,y)", "p(y|do(x))", "x -> y")),
+    "No derivation is available to plot"
   )
 })

@@ -1,12 +1,14 @@
 #' Identify a Causal Effect from Arbitrary Experiments And Observations
 #'
-#' Identify a causal `query` from available `data` in a causal model described
-#' by a `graph` that is a semi-Markovian directed acyclic graph (DAG) or a
-#' labeled directed acyclic graph (LDAG). For DAGs, special mechanisms related
-#' to transportability of causal effects, recoverability from selection bias
-#' and identifiability under missing data can also be included. See 'Details'
-#' for the syntax of each argument. Note that all `character` type arguments
-#' are case-sensitive.
+#' Identify a causal `query` from available `data` in a semi-Markovian
+#' causal model described by a `graph` that is a directed acyclic graph
+#' (DAG) or a labeled directed acyclic graph (LDAG). In a semi-Markovian causal
+#' model, each unobserved variable has exactly two children and they are denoted
+#' by bidirected edges. For DAGs, special mechanisms related to
+#' transportability of causal effects, recoverability from selection bias and
+#' identifiability under missing data can also be included.
+#' See 'Details' for the syntax of each argument. Note that all `character`
+#' type arguments are case-sensitive.
 #'
 #' Argument `data` is used to list the available input distributions.
 #' When `graph` is a DAG the distributions should be of the form
@@ -63,7 +65,9 @@
 #' Some alternative formats for DAGs are supported as well. Graphs created
 #' using the \pkg{igraph} package in the \pkg{causal.effect} package syntax can
 #' be used for \pkg{dosearch} as well. DAGs created using the \pkg{dagitty}
-#' package are also supported.
+#' package are also supported. Note that both time and space complexity of the
+#' underlying search algorithm are exponential in the number of vertices,
+#' but instances with up to ten nodes are routinely solved in under a second.
 #'
 #' LDAGs are constructed similarly with the addition of labels and with the
 #' omission bidirected edges (latent variables must be explicitly defined).
@@ -116,9 +120,10 @@
 #'   individual inference rule is also recorded in the benchmark
 #'   (in milliseconds). Defaults to `FALSE`.
 #' * `draw_derivation`: a `logical` value. If `TRUE`, a string representing
-#'   the derivation steps as a DOT graph is returned. The graph can be
-#'   exported as an image for example by using the \pkg{DOT} package.
-#'   Defaults to `FALSE`.
+#'   the derivation steps as a DOT graph is returned. If the `DiagrammeR`
+#'   package is installed, the DOT graph can be plotted by calling `plot` on
+#'   the return object. The DOT graph can also be exported as an .svg file
+#'   by using the `DOT` package. Defaults to `FALSE`.
 #' * `draw_all`: a `logical` value. If `TRUE` and if `draw_derivation = TRUE`,
 #'   the derivation will contain every step taken by the search. If `FALSE`,
 #'   only the steps that resulted in an identifiable target are returned.
@@ -144,6 +149,7 @@
 #'   A warning is also raised if both lower-case and upper-case node or
 #'   variable names are used simultaneously in the inputs
 #'
+#' @export
 #' @param data A `character` string describing the available distributions in
 #'   the package syntax. Alternatively, a list of character vectors.
 #' @param query A `character` string describing the target distribution in the
@@ -187,7 +193,31 @@
 #' Data." In \emph{Proceedings of the 26th International Conference on
 #' Neural Information Processing Systems}, 1277--1285, 2013.
 #'
-#' @export
+#' @srrstats {NW1.0} Domain of applicability is explained: semi-Markovian
+#'   causal models that are described by directed acyclic graphs (DAGs) or
+#'   labeled DAGs (LDAGs).
+#' @srrstats {NW1.1} Exponential scaling is documented.
+#' @srrstats {NW2.0} In addition to the primary `character` interface, both
+#'   `igraph` and `dagitty` formats are supported and documented.
+#' @srrstats {NW2.1} Expected forms of inputs are explained.
+#' @srrstats {NW2.2} Expected forms are asserted and informative errors are
+#'   issued.
+#' @srrstats {NW2.4} Labels for edges can be included via the package syntax
+#'   and their presence is automatically detected without a need for an
+#'   additional parameter.
+#' @srrstats {NW2.5, NW2.5a} The return object of `dosearch` includes the
+#'   original call arguments thus preserving information.
+#' @srrstats {NW2.6} All inputs are parsed and validated against expectations.
+#' @srrstats {NW2.7} Non-finite or NA values are not allowed and appropriate
+#'   errors are issued.
+#' @srrstats {NW5.0} Return object includes the input network, preserving
+#'   metadata.
+#' @srrstats {NW5.1} An empty (in terms of search output) return object
+#'   can be obtained via `control = list(empty = TRUE)`.
+#' @srrstats {NW5.7} All control arguments are included in the return object.
+#' @srrstats {NW6.3} The scalability simulations described in the `dosearch`
+#'   paper can be replicated in both small scale and large scale variants and
+#'   the code is included in the `rep` directory of the GitHub repo.
 #' @examples
 #' # A simple back-door formula
 #' data1 <- "P(x,y,z)"
@@ -445,6 +475,8 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' @param object An object of class `dosearch`.
 #' @param ... Not used.
 #' @return `summary` returns a `summary.dosearch` object.
+#' @srrstats {NW5.4} The summary method for `dosearch` objects- Provides
+#'   more details than the print method via `print.summary.dosearch`
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -493,6 +525,38 @@ summary.dosearch <- function(object, ...) {
     ),
     class = "summary.dosearch"
   )
+}
+
+#' Plot of a `dosearch` Derivation
+#'
+#' @export
+#' @rdname dosearch
+#' @param x An object of class `dosearch`.
+#' @param ... Additional arguments passed to [DiagrammeR::grViz()].
+#' @return `plot` returns a `htmlwidget` object or `NULL` (invisibly)
+#' @srrstats {NW5.5} The plot method for `dosearch` objects.
+#' @srrstats {NW5.8} Can be used in HTML via e.g., R Markdown and Shiny.
+#' @examples
+#' out <- dosearch(
+#'   "p(x,y,z, w)",
+#'   "p(y|do(x))",
+#'   "x -> y \n z -> x \n w -> z \n x <-> w \n w <-> y",
+#'   control = list(draw_derivation = TRUE)
+#' )
+#' if (requireNamespace("DiagrammeR", quietly = TRUE)) {
+#'   plot(out)
+#' }
+#'
+plot.dosearch <- function(x, ...) {
+  out <- NULL
+  if (is.null(x$derivation)) {
+    message("No derivation is available to plot.")
+  } else if (require_namespace("DiagrammeR", quietly = TRUE)) {
+    out <- print(DiagrammeR::grViz(diagram = x$derivation, ...))
+  } else {
+    message("Please install the `DiagrammeR` package to plot derivations.")
+  }
+  invisible(out)
 }
 
 #' Print the Summary of a `dosearch` Object
@@ -561,6 +625,9 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
 #'   default is 300.
 #' @param ... Additional arguments passed to [base::format()].
 #' @return `print` returns `x` invisibly.
+#' @srrstats {NW5.2} The default print method for `dosearch` objects.
+#' @srrstats {NW5.3} Only output the identifiability status and the formula,
+#'   with an additional argument limiting the output length.
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -571,6 +638,7 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
 #' "
 #' x <- dosearch(data, query, graph)
 #' print(x)
+#'
 print.dosearch <- function(x, max_chars = 300L, ...) {
   if (!is.dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")

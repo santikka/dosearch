@@ -157,6 +157,24 @@ test_that("multiple graphs fail", {
   )
 })
 
+test_that("too large a graph fails", {
+  data <- "p(x)"
+  query <- "p(y)"
+  graph <- paste0(
+    apply(
+      cbind(letters[seq_len(16L)], " -> ", letters[1L + seq_len(16L)]),
+      1L,
+      paste0,
+      collapse = ""
+    ),
+    collapse = "\n"
+  )
+  expect_error(
+    dosearch(data, query, graph),
+    "The inputs imply a graph with more than 30 nodes"
+  )
+})
+
 test_that("malformed graph lines fail", {
   graph <- "
     x - > y

@@ -90,10 +90,10 @@ is_acyclic <- function(lhs, rhs) {
 
 #' Wrapper for `requireNamespace` for Mocking
 #'
-#' @inheritParams reuireNamespace
+#' @inheritParams requireNamespace
 #' @noRd
 require_namespace <- function(package, ..., quietly = FALSE) {
-  requireNamespace(package, ..., quietly)
+  requireNamespace(package, ..., quietly = quietly)
 }
 
 #' Add New Variables to a `dosearch` Call
@@ -163,6 +163,7 @@ parse_query <- function(query) {
 #' Parse A Single Distribution for Internal Processing
 #'
 #' @param d A `numeric` or a `character` vector.
+#' @srrstats {NW2.7} Checks for NAs and non-finite values.
 #' @noRd
 parse_distribution <- function(d) {
   if (is.character(d)) {
@@ -225,12 +226,29 @@ parse_distribution <- function(d) {
 #' Parse the Graph for Internal Processing
 #'
 #' @inheritParams dosearch
+#' @srrstats {NW2.3} Checks existence of vertex names attributes for `igraph`
+#'   and graphs and assigns defaults if the graph is not named with a message.
 #' @noRd
 parse_graph <- function(graph) {
   if (inherits(graph, "igraph")) {
     if (require_namespace("igraph", quietly = TRUE)) {
       e <- igraph::E(graph)
       v <- igraph::vertex_attr(graph, "name")
+      if (is.null(v)) {
+        n <- length(igraph::V(graph))
+        pow <- ceiling(log(n) / log(26))
+        d <- apply(
+          expand.grid(rep(list(letters), pow)),
+          1,
+          paste0,
+          collapse = ""
+        )
+        v <- d[seq_len(n)]
+        message(
+          "Argument `graph` is not named, node names have been assigned: ",
+          cs(v)
+        )
+      }
       g_obs <- ""
       g_unobs <- ""
       description <- NULL
@@ -279,6 +297,16 @@ parse_graph <- function(graph) {
     graph
   } else {
     stop_("Argument `graph` is of an unsupported type.")
+  }
+}
+
+#' Check True Graph Size
+#'
+#' @param args n The number of nodes.
+#' @noRd
+check_graph_size <- function(n) {
+  if (n > 30) {
+    stop_("The inputs imply a graph with more than 30 nodes.")
   }
 }
 

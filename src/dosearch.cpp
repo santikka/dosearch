@@ -227,22 +227,70 @@ std::string dosearch::derive_formula(distr& dist) {
 std::string dosearch::rule_name(const int& rule_num) const {
   std::string rn = "";
   switch (rule_num) {
-    case 1  : rn = "R1";
-    case -1 : rn = "R1";
-    case 2  : rn = "R2";
-    case -2 : rn = "R2";
-    case 3  : rn = "R3";
-    case -3 : rn = "R3";
-    case 4  : rn = "M";
-    case 5  : rn = "C";
-    case 6  : rn = "P";
-    case -6 : rn = "P";
-    case 7  : rn = "D";
-    case -7 : rn = "D";
-    case 8  : rn = "D";
-    case -8 : rn = "D";
-    case 9  : rn = "A";
-    case 10 : rn = "EX";
+    case 1 : {
+      rn = "R1";
+      break;
+    }
+    case -1 : {
+      rn = "R1";
+      break;
+    }
+    case 2 : {
+      rn = "R2";
+      break;
+    }
+    case -2 : {
+      rn = "R2";
+      break;
+    }
+    case 3 : {
+      rn = "R3";
+      break;
+    }
+    case -3 : {
+      rn = "R3";
+      break;
+    }
+    case 4 : {
+      rn = "M";
+      break;
+    }
+    case 5 : {
+      rn = "C";
+      break;
+    }
+    case 6 : {
+      rn = "P";
+      break;
+    }
+    case -6 : {
+      rn = "P";
+      break;
+    }
+    case 7 : {
+      rn = "D";
+      break;
+    }
+    case -7 : {
+      rn = "D";
+      break;
+    }
+    case 8 : {
+      rn = "D";
+      break;
+    }
+    case -8 : {
+      rn = "D";
+      break;
+    }
+    case 9 : {
+      rn = "A";
+      break;
+    }
+    case 10 : {
+      rn = "EX";
+      break;
+    }
   }
   return rn;
 }
