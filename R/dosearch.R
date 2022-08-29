@@ -537,6 +537,7 @@ summary.dosearch <- function(object, ...) {
 #' @srrstats {NW5.5} The plot method for `dosearch` objects.
 #' @srrstats {NW5.8} Can be used in HTML via e.g., R Markdown and Shiny.
 #' @examples
+#' \dontrun{
 #' out <- dosearch(
 #'   "p(x,y,z, w)",
 #'   "p(y|do(x))",
@@ -545,6 +546,7 @@ summary.dosearch <- function(object, ...) {
 #' )
 #' if (requireNamespace("DiagrammeR", quietly = TRUE)) {
 #'   plot(out)
+#' }
 #' }
 #'
 plot.dosearch <- function(x, ...) {

@@ -124,7 +124,7 @@ void csisearch::enumerate_candidates() {
     candidates.push(exist);
   }
   if (acon > 0) {
-    int u_inc, v_inc, i_set, zero, one;
+    int u_inc, v_inc, i_set;
     p rq;
     rq.a = info.rp.a;
     rq.b = info.rp.b;
@@ -137,28 +137,25 @@ void csisearch::enumerate_candidates() {
         e++;
       }
     }
-    int zo_set = full_set(2*e);
-    int z_set = full_set(e);
-    int o_set = zo_set - z_set;
-    for (int i = 1; i < full_set(2*e); i++) {
-      zero = i & z_set;
-      one = (i & o_set) >> e;
-      if ((zero & one) == 0) {
-        u_inc = 0;
-        v_inc = 0;
-        for (int j = 1; j <= e; j++) {
-          if (in_set(j, zero)) {
-            u_inc += elems[j-1];
+    int f = full_set(e);
+    for (int i = 1; i < f; i++) { // loop assignments to zero
+      for (int j = 1; j < f; j++) { // loop assignments to one
+        if ((i & j) == 0) { // check that assignments don't intersect
+          u_inc = 0;
+          v_inc = 0;
+          for (int k = 1; k <= e; k++) {
+            if (in_set(k, i)) {
+              u_inc += elems[k-1];
+            } else if (in_set(k, j)) {
+              v_inc += elems[k-1];
+            }
           }
-          if (in_set(j, one)) {
-            v_inc += elems[j-1];
+          rq.c = info.rp.c + u_inc;
+          rq.d = info.rp.d + v_inc;
+          exist = ps[make_key(rq)];
+          if (exist > 0) {
+            candidates.push(exist);
           }
-        }
-        rq.c = info.rp.c + u_inc;
-        rq.d = info.rp.d + v_inc;
-        exist = ps[make_key(rq)];
-        if (exist > 0) {
-          candidates.push(exist);
         }
       }
     }

@@ -502,6 +502,7 @@ graph <- "
 x <- dosearch(data, query, graph)
 y <- summary(x)
 
+\dontrun{
 out <- dosearch(
   "p(x,y,z, w)",
   "p(y|do(x))",
@@ -510,6 +511,7 @@ out <- dosearch(
 )
 if (requireNamespace("DiagrammeR", quietly = TRUE)) {
   plot(out)
+}
 }
 
 data <- "p(x,y,z)"
