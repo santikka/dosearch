@@ -83,10 +83,10 @@ Rcpp::List initialize_dosearch(
 
   if (draw_derivation) s->set_derivation(d);
 
-  s->set_labels(lab); // Can't print anything before setting labels
-  s->set_graph(g); // Assing graph object
-  s->set_options(rules); // Set global parameters & compute necessary sets
-  s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]); // Set the target distribution of the search
+  s->set_labels(lab);
+  s->set_graph(g);
+  s->set_options(rules);
+  s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]);
   s->set_md_symbol(md_sym);
 
   // Add known distributions

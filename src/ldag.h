@@ -23,7 +23,6 @@ public:
   struct csi {
     int x, y, z, zero, one;
   };
-
   bool E[MAX_SIZE][MAX_SIZE];
   int n;
   int con_vars, intv_vars;
@@ -31,16 +30,12 @@ public:
   std::vector<csi> local_csi;
   std::unordered_map<std::string, context> C;
   std::unordered_map<int, std::vector<config>> context_settings;
-
   ldag(const int& n);
-
   void empty();
   bool edge(const int& from, const int& to) const;
   void add_edge(const int& from, const int& to);
   void remove_edge(const int& from, const int& to);
-
   virtual bool csi_criterion(const int& x, const int& y, const int& z, const int& zero, const int& one, const int& intv, const int& old_con);
-
   void add_context(const int& zero, const int& one, const int& equiv, const std::vector<int>& from, const std::vector<int>& to);
   void add_context_set(const int& set);
   void add_local_csi(const int& x, const int& y, const int& z, const int& zero, const int& one);
@@ -54,7 +49,6 @@ public:
   bool d_sep(const int& x, const int& y, const int& z) const;
   bool csi_sep(const int& x, const int& y, const int& z, const context& con, const context& ivar);
   std::string context_key(const int& zero, const int& one) const;
-
   virtual ~ldag();
 
 };

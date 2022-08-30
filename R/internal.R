@@ -195,26 +195,26 @@ parse_distribution <- function(d) {
       )
     }
     d <- as.integer(d)
-    A_set <- v[which(d == 0L)]
-    B_set <- v[which(d == 1L)]
-    C_set <- v[which(d == 2L)]
-    A_val_set <- rep("", length(A_set))
-    B_val_set <- rep("", length(B_set))
-    C_val_set <- rep("", length(C_set))
-    A <- paste(A_set, A_val_set, sep = "", collapse = ",")
-    B <- paste(B_set, B_val_set, sep = "", collapse = ",")
-    C <- paste(C_set, C_val_set, sep = "", collapse = ",")
-    nb <- nchar(B)
-    nc <- nchar(C)
+    a_set <- v[which(d == 0L)]
+    b_set <- v[which(d == 1L)]
+    c_set <- v[which(d == 2L)]
+    a_val_set <- rep("", length(a_set))
+    b_val_set <- rep("", length(b_set))
+    c_val_set <- rep("", length(c_set))
+    a_str <- paste(a_set, a_val_set, sep = "", collapse = ",")
+    b_str <- paste(b_set, b_val_set, sep = "", collapse = ",")
+    c_str <- paste(c_set, c_val_set, sep = "", collapse = ",")
+    n_b <- nchar(b_str)
+    n_c <- nchar(c_str)
     paste(
       "p(",
-      A,
-      ifelse(nb > 0 | nc > 0, "|", ""),
-      ifelse(nb > 0, "do(", ""),
-      B,
-      ifelse(nb > 0, ")", ""),
-      ifelse(nb > 0 & nc > 0, ",", ""),
-      C,
+      a_str,
+      ifelse(n_b > 0 | n_c > 0, "|", ""),
+      ifelse(n_b > 0, "do(", ""),
+      b_str,
+      ifelse(n_b > 0, ")", ""),
+      ifelse(n_b > 0 & n_c > 0, ",", ""),
+      c_str,
       ")",
       sep = ""
     )

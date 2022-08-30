@@ -33,8 +33,8 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   args <- transform_graph_ldag(args, graph)
   args <- parse_labels(args)
   args <- parse_query_ldag(args, query)
-  args <- parse_input_distributions_ldag(args, data)
-  args <- validate_input_distributions_ldag(args)
+  args <- parse_data_ldag(args, data)
+  args <- validate_data_ldag(args)
   args <- validate_query_ldag(args)
   check_graph_size(args$n)
   res <- initialize_csisearch(
@@ -163,7 +163,6 @@ parse_labels <- function(args) {
       label_split <- strsplit(args$labels[[i]][[j]], "[=]")
       label_lhs <- vapply(label_split, "[[", character(1L), 1L)
       label_rhs <- vapply(label_split, "[[", character(1L), 2L)
-      msg <- ""
       validate_label(from, to, pa, label_lhs)
       intv <- substr(label_lhs, 1L, 2L) == "I_"
       args$con_vars <- c(args$con_vars, label_lhs[!intv])
@@ -506,8 +505,6 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
         )
       }
       d_split[[j]][equals] <- eq_lhs
-      z <- which(eq_rhs == 1L)
-      o <- which(eq_rhs == 0L)
       zero <- c(zero, eq_lhs[eq_rhs == 0L])
       one <- c(one, eq_lhs[eq_rhs == 1L])
     }
@@ -545,7 +542,7 @@ parse_query_ldag <- function(args, query) {
 #' @inheritParams dosearch
 #' @param args A `list` of arguments for `initialize_csisearch`.
 #' @noRd
-parse_input_distributions_ldag <- function(args, data) {
+parse_data_ldag <- function(args, data) {
   data_split <- strsplit(data, "\r|\n")[[1]]
   data_split <- gsub("\\s+", "", data_split)
   data_split <- data_split[which(nzchar(data_split))]
@@ -582,7 +579,7 @@ validate_distribution_ldag <- function(args, msg, d, d_str) {
 #' @param args A `list` of arguments for `initialize_csisearch`.
 #' @srrstats {NW2.6} Validates input distributions for LDAGs.
 #' @noRd
-validate_input_distributions_ldag <- function(args) {
+validate_data_ldag <- function(args) {
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]
     args$p_list[[i]] <- c(

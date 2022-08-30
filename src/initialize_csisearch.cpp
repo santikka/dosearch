@@ -71,10 +71,10 @@ Rcpp::List initialize_csisearch(
 
   if (draw_derivation) s->set_derivation(d);
 
-  s->set_labels(lab); // Can't print anything before setting labels
-  s->set_graph(g); // Assign graph object
-  s->set_options(rules); // Apply settings
-  s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]); // Set the target distribution of the search
+  s->set_labels(lab);
+  s->set_graph(g);
+  s->set_options(rules);
+  s->set_target(q_vec[0], q_vec[1], q_vec[2], q_vec[3]);
   s->set_contexts(con_vars);
   s->set_interventions(intv_vars);
 

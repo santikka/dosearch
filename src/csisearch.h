@@ -27,7 +27,6 @@ public:
   std::string derive_formula(distr& dist);
   std::string dec_to_text(const int& dec, const int& zero, const int& one) const;
   std::string to_string(const p& pp) const;
-  std::string rule_name(const int& rule_num) const;
   bool valid_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const bool& primi) const;
   void apply_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z);
   void derive_distribution(const distr& iquery, const distr& required, const int& ruleid, int& remaining, bool& found);

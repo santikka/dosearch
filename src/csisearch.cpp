@@ -19,13 +19,25 @@ void csisearch::set_options(const std::vector<int>& rule_vec) {
   trivial_id = false;
   index = 0;
   lhs = 0;
-
   if (rule_vec.size() > 0) rules = rule_vec;
-  else {
-    rules = {0, 1, -3, 3, -4, 4, -5, 5, 6, -7, 7, -8, 8, -2, 2};
-  }
-
+  else rules = {0, 1, -3, 3, -4, 4, -5, 5, 6, -7, 7, -8, 8, -2, 2};
   rule_times = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  rule_names[0] = "M";
+  rule_names[1] = "C";
+  rule_names[2] = "P";
+  rule_names[-2] = "P";
+  rule_names[3] = "I+";
+  rule_names[-3] = "I-";
+  rule_names[4] = "I+0";
+  rule_names[-4] = "I+1";
+  rule_names[5] = "CbC";
+  rule_names[-5] = "CbC";
+  rule_names[6] = "GbC";
+  rule_names[-6] = "GbC";
+  rule_names[7] = "GbC";
+  rule_names[-7] = "GbC";
+  rule_names[8] = "CbG";
+  rule_names[-8] = "CbG";
 }
 
 void csisearch::set_labels(const Rcpp::StringVector& lab) {
@@ -86,11 +98,7 @@ void csisearch::derive_distribution(const distr& iquery, const distr& required, 
   nquery.pa1 = iquery.index;
   nquery.pa2 = 0;
   nquery.rule_num = ruleid;
-
-  if (info.rp.a > 0) {
-    nquery.pa2 = required.index;
-  }
-
+  if (info.rp.a > 0) nquery.pa2 = required.index;
   if (equal_p(info.to, target)) {
     if (verbose) {
       if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
@@ -120,9 +128,7 @@ void csisearch::add_distribution(distr& nquery) {
 void csisearch::enumerate_candidates() {
   int acon = info.rp.a & con_vars;
   int exist = ps[make_key(info.rp)];
-  if (exist > 0) {
-    candidates.push(exist);
-  }
+  if (exist > 0) candidates.push(exist);
   if (acon > 0) {
     int u_inc, v_inc, i_set;
     p rq;
@@ -153,9 +159,7 @@ void csisearch::enumerate_candidates() {
           rq.c = info.rp.c + u_inc;
           rq.d = info.rp.d + v_inc;
           exist = ps[make_key(rq)];
-          if (exist > 0) {
-            candidates.push(exist);
-          }
+          if (exist > 0) candidates.push(exist);
         }
       }
     }
@@ -232,73 +236,6 @@ std::string csisearch::derive_formula(distr& dist) {
   return formula;
 }
 
-std::string csisearch::rule_name(const int& rule_num) const {
-  std::string rn = "";
-  switch (rule_num) {
-    case 0 : {
-      rn = "M";
-      break;
-    }
-    case 1 : {
-      rn = "C";
-      break;
-    }
-    case 2 : {
-      rn = "P";
-      break;
-    }
-    case -2 : {
-      rn = "P";
-      break;
-    }
-    case 3 : {
-      rn = "I+";
-      break;
-    };
-    case -3 : {
-      rn = "I-";
-      break;
-    };
-    case 4 : {
-      rn = "I+0";
-      break;
-    };
-    case -4 : {
-      rn = "I+1";
-      break;
-    };
-    case 5 : {
-      rn = "CbC";
-      break;
-    }
-    case -5 : {
-      rn = "CbC";
-      break;
-    }
-    case 6 : {
-      rn = "GbC";
-      break;
-    }
-    case 7 : {
-      rn = "GbC";
-      break;
-    }
-    case -7 : {
-      rn = "GbC";
-      break;
-    }
-    case 8 : {
-      rn = "CbG";
-      break;
-    }
-    case -8 : {
-      rn = "CbG";
-      break;
-    }
-  }
-  return rn;
-}
-
 std::string csisearch::dec_to_text(const int& dec, const int& zero, const int& one) const {
   if (dec == 0) return("");
   std::string s = "";
@@ -331,13 +268,11 @@ std::string csisearch::to_string(const p& pp) const {
   int c = pp.c;
   int d = pp.d;
   std::string s = "";
-
   s += "p(" + dec_to_text(a, a & c, a & d);
   if (b != 0) {
     s += "|" + dec_to_text(b, b & c, b & d);
   }
   s += ")";
-
   return s;
 }
 
@@ -512,7 +447,6 @@ void csisearch::apply_rule(const int &ruleid, const int &a, const int &b, const 
 
 void csisearch::get_ruleinfo(const int& ruleid, const int& y, const int& x, const int& u, const int& v, const int& z) {
   info.from.a = y; info.from.b = x; info.from.c = u; info.from.d = v;
-
   switch (ruleid) {
     // Marginalisation
     case 0 : {
@@ -693,12 +627,10 @@ int csisearch_heuristic::compute_score(const p& pp) const {
   int common_b = pp.b & target.b;
   int common_c = pp.c & target.c;
   int common_d = pp.d & target.d;
-
   score += 10 * set_size(common_a);
   score += 5 * set_size(common_b);
   score += 3 * set_size(common_c);
   score += 3 * set_size(common_d);
-
   score -= 2 * set_size(target.a - common_a);
   score -= 2 * set_size(pp.a - common_a);
   score -= 2 * set_size(pp.b - common_b);
@@ -707,6 +639,5 @@ int csisearch_heuristic::compute_score(const p& pp) const {
   score -= 1 * set_size(pp.c - common_c);
   score -= 1 * set_size(target.d - common_d);
   score -= 1 * set_size(pp.d - common_d);
-
   return(score);
 }

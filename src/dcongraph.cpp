@@ -17,7 +17,7 @@ dcongraph::~dcongraph() {
 }
 
 void dcongraph::add_ivars() {
-  //this expands the graph by two
+  // this expands the graph by two
   for (int x = 1; x <= n; x++) {
     add_edge(n+x,x);
   }
@@ -41,7 +41,6 @@ bool dcongraph::dsep(const int& x, const int& y, const int& c, const int& j) con
 
   // note that for encoded indeps an deps we can just check the solution!
   // test this quickly always!
-
   state current;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
@@ -51,7 +50,6 @@ bool dcongraph::dsep(const int& x, const int& y, const int& c, const int& j) con
     }
   }
   current.j = 0; current.c = 0; current.m = 0;
-
   // if an edge is added, then the vars will always dependent
 
   // calculates the m set
@@ -153,9 +151,7 @@ void dcongraph::marginalize(state& current, const int& el) const {
 int dcongraph::get_element(const int& set) const {
   int z = 0;
   for (z = 1; z <= n; z++) {
-    if (in_set(z, set)) {
-      break;
-    }
+    if (in_set(z, set)) break;
   }
   return z;
 }

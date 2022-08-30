@@ -19,16 +19,13 @@ void dosearch::set_options(const std::vector<int>& rule_vec) {
   trivial_id = false;
   index = 0;
   lhs = 0;
-
   md_s = g->get_md_switches();
   md_p = g->get_md_proxies();
   md_t = md_s >> 1;
   md = md_s > 0;
-
   tr = g->get_trnodes();
   sb = g->get_sbnodes();
   trsb = tr | sb;
-
   if (rule_vec.size() > 0) rules = rule_vec;
   else {
     // Additional rules for missing data problems
@@ -40,8 +37,23 @@ void dosearch::set_options(const std::vector<int>& rule_vec) {
       else rules = {4, 5, -1, -2, -3, 1, 2, 3, 6, -6};
     }
   }
-
   rule_times = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  rule_names[1] = "R1";
+  rule_names[-1] = "R1";
+  rule_names[2] = "R2";
+  rule_names[-2] = "R2";
+  rule_names[3] = "R3";
+  rule_names[-3] = "R3";
+  rule_names[4] = "M";
+  rule_names[5] = "C";
+  rule_names[6] = "P";
+  rule_names[-6] = "P";
+  rule_names[7] = "D";
+  rule_names[-7] = "D";
+  rule_names[8] = "D";
+  rule_names[-8] = "D";
+  rule_names[9] = "A";
+  rule_names[10] = "EX";
 }
 
 void dosearch::set_labels(const Rcpp::StringVector& lab) {
@@ -101,10 +113,7 @@ void dosearch::derive_distribution(const distr& iquery, const distr& required, c
   nquery.pa1 = iquery.index;
   nquery.pa2 = 0;
   nquery.rule_num = ruleid;
-
-  if (info.rp.a > 0) {
-    nquery.pa2 = required.index;
-  }
+  if (info.rp.a > 0) nquery.pa2 = required.index;
   if (equal_p(info.to, target)) {
     if (verbose) {
       if (info.rp.a > 0) Rcpp::Rcout << "Derived: " << to_string(info.to) << " from " << to_string(info.from) << " and " << to_string(info.rp) << " using rule: " << std::to_string(ruleid) << std::endl;
@@ -132,9 +141,7 @@ void dosearch::add_distribution(distr& nquery) {
 void dosearch::enumerate_candidates() {
   int asw = (info.rp.a - (info.rp.a & info.from.a)) & md_s;
   int exist = ps[make_key(info.rp)];
-  if (exist > 0) {
-    candidates.push(exist);
-  }
+  if (exist > 0) candidates.push(exist);
   if (asw > 0) {
     int d_inc, i_set;
     p rq;
@@ -154,13 +161,11 @@ void dosearch::enumerate_candidates() {
     for (int i = 0; i <= full_set(e); i++) {
       d_inc = 0;
       for (int j = 1; j <= e; j++) {
-        if ((unary(j) & i) > 0) d_inc += elems[j-1];
+        if (in_set(j, i)) d_inc += elems[j-1];
       }
       rq.d = info.rp.d + d_inc;
       exist = ps[make_key(rq)];
-      if (exist > 0) {
-        candidates.push(exist);
-      }
+      if (exist > 0) candidates.push(exist);
     }
   }
 }
@@ -218,81 +223,8 @@ std::string dosearch::derive_formula(distr& dist) {
         }
       }
     }
-  } else {
-    formula = to_string(dist.pp);
-  }
+  } else formula = to_string(dist.pp);
   return(formula);
-}
-
-std::string dosearch::rule_name(const int& rule_num) const {
-  std::string rn = "";
-  switch (rule_num) {
-    case 1 : {
-      rn = "R1";
-      break;
-    }
-    case -1 : {
-      rn = "R1";
-      break;
-    }
-    case 2 : {
-      rn = "R2";
-      break;
-    }
-    case -2 : {
-      rn = "R2";
-      break;
-    }
-    case 3 : {
-      rn = "R3";
-      break;
-    }
-    case -3 : {
-      rn = "R3";
-      break;
-    }
-    case 4 : {
-      rn = "M";
-      break;
-    }
-    case 5 : {
-      rn = "C";
-      break;
-    }
-    case 6 : {
-      rn = "P";
-      break;
-    }
-    case -6 : {
-      rn = "P";
-      break;
-    }
-    case 7 : {
-      rn = "D";
-      break;
-    }
-    case -7 : {
-      rn = "D";
-      break;
-    }
-    case 8 : {
-      rn = "D";
-      break;
-    }
-    case -8 : {
-      rn = "D";
-      break;
-    }
-    case 9 : {
-      rn = "A";
-      break;
-    }
-    case 10 : {
-      rn = "EX";
-      break;
-    }
-  }
-  return rn;
 }
 
 std::string dosearch::dec_to_text(const int& dec, const int& enabled) const {
@@ -790,7 +722,6 @@ int dosearch_heuristic::compute_score(const p& pp) const {
   int pp_w = pp.b - pp.c;
   int target_w = target.b - target.c;
   int common_z = pp_w & target_w;
-
   score += 10 * set_size(common_y);
   score -= 2 * set_size(target.a - common_y);
   score += 5 * set_size(common_x);
@@ -807,15 +738,12 @@ int dosearch_heuristic::compute_score(const p& pp) const {
 int dosearch_heuristic::compute_score_md(const p& pp) const {
   int score = 0;
   int pp_w = pp.b - pp.c;
-
   int proxy_u = pp.a & md_p;
   int proxy_w = pp_w & md_p;
-
   int proxy_total = proxy_u | proxy_w;
   int switch_total = (pp.a | pp_w) & md_s;
   int proxy_needed = switch_total << 1;
   int switch_needed = proxy_total >> 1;
-
   int proxy_match = proxy_total & proxy_needed;
   int proxy_mismatch = proxy_total - proxy_needed;
   int switch_match = switch_total & switch_needed;
@@ -824,7 +752,6 @@ int dosearch_heuristic::compute_score_md(const p& pp) const {
   int common_x = pp.c & target.c;
   int target_w = target.b - target.c;
   int common_z = ((pp_w - proxy_w) | (proxy_w >> 2)) & target_w;
-
   score += 10 * set_size(common_y);
   score += 6 * set_size(proxy_match);
   score += 6 * set_size(switch_match);
@@ -838,6 +765,5 @@ int dosearch_heuristic::compute_score_md(const p& pp) const {
   score -= 2 * set_size(pp_w - common_z);
   score -= 2 * set_size(target_w - common_z);
   score += 10 * set_size(pp.d);
-
   return(score);
 }

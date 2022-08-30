@@ -43,8 +43,8 @@ get_derivation_dag <- function(data, query, graph, transportability,
   args <- parse_selection_bias(args, selection_bias)
   args <- reorder_variables(args)
   args <- parse_query_dag(args, query, missing_data)
-  args <- parse_input_distributions_dag(args, data, missing_data)
-  args <- validate_input_distributions_dag(args)
+  args <- parse_data_dag(args, data, missing_data)
+  args <- validate_data_dag(args)
   args <- validate_query_dag(args)
   check_graph_size(2L * args$n) # times 2 due to intervention nodes
   check_valid_input(args, control, missing_data)
@@ -385,7 +385,7 @@ parse_query_dag <- function(args, query, missing_data) {
 #' @inheritParams dosearch
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @noRd
-parse_input_distributions_dag <- function(args, data, missing_data) {
+parse_data_dag <- function(args, data, missing_data) {
   data_split <- strsplit(data, "\r|\n")[[1]]
   data_split <- gsub("\\s+", "", data_split)
   data_split <- data_split[which(nzchar(data_split))]
@@ -493,7 +493,7 @@ validate_distribution_dag <- function(args, msg, d, d_str) {
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @srrstats {NW2.6} Validates input distributions for DAGs.
 #' @noRd
-validate_input_distributions_dag <- function(args) {
+validate_data_dag <- function(args) {
   args$p_list <- vector(mode = "list", length = length(args$p_process))
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]

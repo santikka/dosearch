@@ -8,16 +8,13 @@ search::~search() {
 }
 
 Rcpp::List search::initialize() {
-
   info.to.a   = 0; info.to.b   = 0; info.to.c   = 0; info.to.d   = 0;
   info.from.a = 0; info.from.b = 0; info.from.c = 0; info.from.d = 0;
   info.rp.a   = 0; info.rp.b   = 0; info.rp.c   = 0; info.rp.d   = 0;
   info.ri.x   = 0; info.ri.y   = 0; info.ri.z   = 0; info.ri.u   = 0; info.ri.v = 0;
   info.valid = false; info.enumerate = false;
-
   std::string formula_str = "";
   std::string derivation = "";
-
   bool trivial_nonid = check_trivial();
   if (improve && trivial_nonid) {
     return Rcpp::List::create(
@@ -28,22 +25,17 @@ Rcpp::List search::initialize() {
       Rcpp::Named("rule_times") = rule_times
     );
   }
-
   z_sets = get_subsets(n);
   std::chrono::duration<double, std::milli> total_time;
-
   auto t1 = std::chrono::high_resolution_clock::now();
   auto t2 = std::chrono::high_resolution_clock::now();
-
   if (!trivial_id) {
     t1 = std::chrono::high_resolution_clock::now();
     find();
     t2 = std::chrono::high_resolution_clock::now();
   }
   total_time = t2 - t1;
-
   bool identifiable = target_dist.size() > 0;
-
   if (identifiable && formula) {
     formula_str = derive_formula(target_dist[0]);
   }
@@ -64,7 +56,6 @@ Rcpp::List search::initialize() {
     deriv->finish();
     derivation = deriv->get();
   }
-
   return Rcpp::List::create(
     Rcpp::Named("identifiable") = identifiable,
     Rcpp::Named("formula") = formula_str,
@@ -72,7 +63,6 @@ Rcpp::List search::initialize() {
     Rcpp::Named("time") = total_time.count(),
     Rcpp::Named("rule_times") = rule_times
   );
-
 }
 
 void search::find() {
@@ -204,11 +194,8 @@ void search::find() {
 }
 
 void search::enumerate_distribution(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z, int& cd, int& exist, int& req, bool& found, distr& iquery, distr& required, int& remaining) {
-
   apply_rule(ruleid, a, b, c, d, z);
-
   if (!info.valid) return;
-
   if (info.enumerate) {
     enumerate_candidates();
     cd = candidates.size();
@@ -223,22 +210,16 @@ void search::enumerate_distribution(const int& ruleid, const int& a, const int& 
   } else {
     exist = ps[make_key(info.to)];
     if (exist > 0) return;
-    if (info.ri.x > 0) {
-      if (!separation_criterion()) return;
-    }
+    if (info.ri.x > 0 && !separation_criterion()) return;
     if (info.rp.a > 0) {
       req = ps[make_key(info.rp)];
       if (req > 0) {
         get_candidate(required, req);
         derive_distribution(iquery, required, ruleid, remaining, found);
       }
-    } else {
-      derive_distribution(iquery, required, ruleid, remaining, found);
-    }
+    } else derive_distribution(iquery, required, ruleid, remaining, found);
   }
-
   return;
-
 }
 
 void search::set_derivation(derivation* d_) {
@@ -267,11 +248,11 @@ bool search::equal_p(const p& pp1, const p& pp2) const {
 void search::draw(const distr& dist, const bool& recursive, derivation& d) {
   if (dist.pa1 > 0) {
     distr& pa1 = L[dist.pa1];
-    d.add_edge(to_string(pa1.pp), to_string(dist.pp), rule_name(dist.rule_num));
+    d.add_edge(to_string(pa1.pp), to_string(dist.pp), rule_names[dist.rule_num]);
     if (recursive) draw(pa1, recursive, d);
     if (dist.pa2 > 0) {
       distr& pa2 = L[dist.pa2];
-      d.add_edge(to_string(pa2.pp), to_string(dist.pp), rule_name(dist.rule_num));
+      d.add_edge(to_string(pa2.pp), to_string(dist.pp), rule_names[dist.rule_num]);
       if (recursive) draw(pa2, recursive, d);
     }
   }

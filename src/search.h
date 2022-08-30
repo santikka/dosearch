@@ -55,14 +55,12 @@ public:
   virtual bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid) = 0;
   virtual std::string derive_formula(distr& dist) = 0;
   virtual std::string to_string(const p& pp) const = 0;
-  virtual std::string rule_name(const int& rule_num) const = 0;
   virtual bool valid_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const bool& primi) const = 0;
   virtual void apply_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z) = 0;
   virtual void derive_distribution(const distr& iquery, const distr& required, const int& ruleid, int& remaining, bool& found) = 0;
   virtual void get_ruleinfo(const int& ruleid, const int& y, const int& x, const int& u, const int& v, const int& z) = 0;
   virtual void enumerate_candidates() = 0;
   virtual ~search();
-
   const int n;
   const double time_limit;
   const bool benchmark;
@@ -72,7 +70,6 @@ public:
   const bool formula;
   const bool improve;
   const bool verbose;
-
   p target;
   int index, lhs;
   derivation *deriv;
@@ -84,6 +81,7 @@ public:
   bool trivial_id;
   std::unordered_map<int, distr> L;
   std::unordered_map<std::string, int> ps;
+  std::unordered_map<int, std::string> rule_names;
   std::stack<int> candidates;
   output info;
 };
