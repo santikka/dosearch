@@ -144,8 +144,8 @@ void csisearch::enumerate_candidates() {
       }
     }
     int f = full_set(e);
-    for (int i = 1; i < f; i++) { // loop assignments to zero
-      for (int j = 1; j < f; j++) { // loop assignments to one
+    for (int i = 0; i <= f; i++) { // loop assignments to zero
+      for (int j = 0; j <= f; j++) { // loop assignments to one
         if ((i & j) == 0) { // check that assignments don't intersect
           u_inc = 0;
           v_inc = 0;

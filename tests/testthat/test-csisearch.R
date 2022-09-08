@@ -364,3 +364,16 @@ test_that("general-by-case reasoning is correct", {
   expect_true(out$identifiable)
   expect_identical(out$formula, "\\left(p(x|w) - p(x,z = 0)\\right)")
 })
+
+test_that("reverse product rule enumeration is correct", {
+  data <- "p(a|b) \n p(b)"
+  query <- "p(a,b)"
+  graph <- "
+    a -> x : b = 0
+    c -> x : a = 0
+    b -> x : c = 0
+  "
+  out <- dosearch(data, query, graph, control = list(rules = -2))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(a,b)")
+})
