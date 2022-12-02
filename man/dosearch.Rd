@@ -408,8 +408,8 @@ dosearch(data4, query4, graph4, selection_bias = "s")
 # Transportability
 data5 <- "
   p(x,y,z_1,z_2)
-  p(x,y,z_1|s_1,s_2,do(z_2))
-  p(x,y,z_2|s_3,do(z_1))
+  p(x,y,z_1|t_1,t_2,do(z_2))
+  p(x,y,z_2|t_3,do(z_1))
 "
 query5 <- "p(y|do(x))"
 graph5 <- "
