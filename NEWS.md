@@ -1,3 +1,7 @@
+# dosearch 1.0.10
+
+  * Added support for user-defined context-specific variables for LDAGs via `con_vars` in `control`.
+
 # dosearch 1.0.9
 
   * Added several sanity checks for the input distributions and the graph.
@@ -31,7 +35,7 @@
   * The function `get_derivation` is now repurposed as an accessor function, and `dosearch` is now the only function for query identification.
   * The `graph` argument of `dosearch` now supports the `igraph` format used by the `causaleffect` package (see `dosearch` documentation for examples).
   * The `graph` argument of `dosearch` now supports DAGs created using the `dagitty` package (see `dosearch` documentation for examples).
-  * Fixed an issue when using `control(benchmark = TRUE)`.
+  * Fixed an issue when using `benchmark = TRUE` in `control`.
 
 # dosearch 1.0.4
 

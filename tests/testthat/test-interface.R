@@ -6,7 +6,7 @@ test_that("igraph graph format works", {
     x -+ z, z -+ y, x -+ y, y -+ x,
     simplify = FALSE
   )
-  g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
+  g_igraph <- igraph::set_edge_attr(g_igraph, "description", 3:4, "U")
   expect_error(
     out <- dosearch(data, query, g_igraph),
     NA

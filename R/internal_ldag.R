@@ -36,6 +36,7 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   args <- parse_data_ldag(args, data)
   args <- validate_data_ldag(args)
   args <- validate_query_ldag(args)
+  args$con_vars <- union(control$con_vars, args$con_vars)
   check_graph_size(args$n)
   res <- initialize_csisearch(
     as.numeric(args$nums[args$dir_lhs]),

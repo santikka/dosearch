@@ -53,7 +53,7 @@ Encoding: UTF-8
 NeedsCompilation: yes
 Roxygen: list(markdown = TRUE,
     roclets = c("namespace", "rd", "srr::srr_stats_roclet"))
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.1
 Config/testthat/edition: 3
 LazyData: true
 Maintainer: Santtu Tikka <santtuth@gmail.com>

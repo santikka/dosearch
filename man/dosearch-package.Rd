@@ -24,6 +24,14 @@ S. Tikka, A. Hyttinen and J. Karvanen.
 a general search-based approach." \emph{Journal of Statistical Software},
 99(5):1--40, 2021.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/santikka/dosearch}
+  \item Report bugs at \url{https://github.com/santikka/dosearch/issues}
+}
+
+}
 \author{
 Santtu Tikka, Antti Hyttinen, Juha Karvanen
 }

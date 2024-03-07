@@ -377,3 +377,25 @@ test_that("reverse product rule enumeration is correct", {
   expect_true(out$identifiable)
   expect_identical(out$formula, "p(a,b)")
 })
+
+test_that("custom context variables is supported", {
+  data <- "
+    p(rx, ry)
+    p(x, y, rx = 1, ry = 1)
+    p(x, rx = 1, ry = 0)
+    p(y, rx = 0, ry = 1)
+  "
+  query <- "p(y | x, rx = 1, ry = 0)"
+  graph <- "
+    x -> ry
+    x -> y
+    rx -> ry
+  "
+  out <- get_derivation_ldag(
+    data, query, graph, control = list(con_vars = c("ry", "rx"))
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(y|ry = 1,x,rx = 1)")
+  out <- get_derivation_ldag(data, query, graph)
+  expect_false(out$identifiable)
+})

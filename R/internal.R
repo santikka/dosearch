@@ -316,17 +316,20 @@ check_graph_size <- function(n) {
 #' @noRd
 control_defaults <- function(control) {
   rules <- as.integer(control$rules)
+  con_vars <- as.character(control$con_vars)
   control$rules <- integer(0L)
+  control$con_vars <- character(0L)
   control_lengths <- lengths(control)
   if (any(control_lengths > 1L)) {
     stop(
       "All elements of argument `control` ",
-      "must be of length 1 (except `rules`).\n",
+      "must be of length 1 (except `rules` and `con_vars`).\n",
       "The following elements have length > 1: ",
       cs(names(control)[control_lengths > 1L])
     )
   }
   control$rules <- rules
+  control$con_vars <- con_vars
   default <- list(
     benchmark = FALSE,
     benchmark_rules = FALSE,
@@ -341,7 +344,8 @@ control_defaults <- function(control) {
     rules = integer(0L),
     time_limit = -1.0,
     verbose = FALSE,
-    warn = TRUE
+    warn = TRUE,
+    con_vars = character(0L)
   )
   default_names <- names(default)
   control_names <- names(control)

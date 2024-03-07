@@ -92,7 +92,7 @@ test_that("control arguments of wrong length fail", {
     dosearch("p(x)", "p(y)", "x -> y", control = list(formula = c(TRUE, TRUE))),
     paste0(
       "All elements of argument `control` ",
-      "must be of length 1 \\(except `rules`\\)\\.\n",
+      "must be of length 1 \\(except `rules` and `con_vars`\\)\\.\n",
       "The following elements have length > 1: formula"
     )
   )
@@ -363,7 +363,7 @@ test_that("igraph input fails when the package is not available", {
     x -+ z, z -+ y, x -+ y, y -+ x,
     simplify = FALSE
   )
-  g_igraph <- igraph::set.edge.attribute(g_igraph, "description", 3:4, "U")
+  g_igraph <- igraph::set_edge_attr(g_igraph, "description", 3:4, "U")
   mockr::with_mock(
     require_namespace = function(...) FALSE,
     {

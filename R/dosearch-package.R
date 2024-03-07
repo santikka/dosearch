@@ -11,8 +11,6 @@
 #' * [dosearch::dosearch()] for instructions and various examples.
 #' * \url{https://github.com/santikka/dosearch/issues/} to submit a bug report.
 #'
-#' @docType package
-#' @name dosearch-package
 #' @useDynLib dosearch, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 #' @author Santtu Tikka, Antti Hyttinen, Juha Karvanen
@@ -59,7 +57,7 @@
 #'   be returned and even time taken by each individual derivation rule.
 #' @srrstats {NW4.5} Loops over matrix dimensions are carried out in C++
 #'
-NULL
+"_PACKAGE"
 
 #' Systematic Analysis of Bivariate Missing Data Problems
 #'
