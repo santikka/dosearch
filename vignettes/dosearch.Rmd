@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+library("igraph")
+library("dagitty")
 ```
 
 \newcommand{\NA}{\textrm{NA}}
@@ -33,11 +35,11 @@ In the most basic setting we are identifying causal effects from a single observ
 
 Since then many extensions of the basic identifiability problem have appeared. 
 In identifiability using surrogate experiments [@Bareinboim:zidentifiability], or $z$-identifiability, an experimental distribution is available in addition to the observed probability distribution.
-For data observed in the presence of selection bias, both algorithmic and graphical identifiability results have been derived [@bareinboim2015recovering; Correa2018]. More generally, the presence of missing data necessitates the representation of the missingness mechanism, which poses additional challenges [@Mohan2013; @Shpitser2015]. Another dimension of complexity is the number of available data sources. Identification from a mixture of observational and interventional distributions that originate from multiple conceptual domains is known as transportability for which complete solutions exist in a specific setting [@bareinboim2014transportability].
+For data observed in the presence of selection bias, both algorithmic and graphical identifiability results have been derived [@bareinboim2015recovering; @Correa2018]. More generally, the presence of missing data necessitates the representation of the missingness mechanism, which poses additional challenges [@Mohan2013; @Shpitser2015]. Another dimension of complexity is the number of available data sources. Identification from a mixture of observational and interventional distributions that originate from multiple conceptual domains is known as transportability for which complete solutions exist in a specific setting [@bareinboim2014transportability].
 
 While completeness has been accomplished for a number of basic identifiability problems, there are still many challenging but important extensions to the identifiability problem that have not been studied so far. To find solutions to the more complicated identifiability problems, we present a unified approach to the identification of observational and interventional causal queries by constructing a search algorithm that directly applies the rules of do-calculus.  We impose no restrictions to the number or type of known input distributions: we thus provide a solution to problems for which no other algorithmic solutions exist. We also extend to identifiability under missing data together with mechanisms related to selection bias and transportability.
 
-To combat the inherent computational complexity of the search-based approach, we derive rules and techniques that avoid unnecessary computational steps. We are able to detect trivial queries where non-identifiability can be determined directly from the inputs. We also present a search heuristic that considerably speeds up the search in the cases where the effect is indeed identifiable. The approach, called **do-search**, is provably sound and it retains the completeness in the cases previously proven to be solved by do-calculus rules. We can easily scale up to the problems sizes commonly reported in the literature. The R package `dosearch` [@rsoft,@dosearch] provides an implementation of the search algorithm and is available on [CRAN](https://CRAN.R-project.org/package=dosearch). The complete details of **do-search** can be found in [@tikka21].
+To combat the inherent computational complexity of the search-based approach, we derive rules and techniques that avoid unnecessary computational steps. We are able to detect trivial queries where non-identifiability can be determined directly from the inputs. We also present a search heuristic that considerably speeds up the search in the cases where the effect is indeed identifiable. The approach, called **do-search**, is provably sound and it retains the completeness in the cases previously proven to be solved by do-calculus rules. We can easily scale up to the problems sizes commonly reported in the literature. The R package `dosearch` [@rsoft; @dosearch] provides an implementation of the search algorithm and is available on [CRAN](https://CRAN.R-project.org/package=dosearch). The complete details of **do-search** can be found in [@tikka21].
 
 # The General Causal Effect Identification Problem
 
@@ -127,7 +129,7 @@ Alternatively, one may use `igraph` graphs [@igraph] in the syntax of the `causa
 ```{r}
 library("igraph")
 graph <- graph.formula(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
-graph <- set.edge.attribute(graph, "description", 4:5, "U")
+graph <- set_edge_attr(graph, "description", 4:5, "U")
 ```
 ```{r}
 library("dagitty")
