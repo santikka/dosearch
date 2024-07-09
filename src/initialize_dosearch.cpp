@@ -1,8 +1,6 @@
 #include <Rcpp.h>
 #include "dosearch.h"
 
-// [[Rcpp::plugins(cpp11)]]
-
 //' Process `dosearch` Calls from R
 //'
 //' @param dir_lhs A vector of vertices with outgoing directed edges

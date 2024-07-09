@@ -1,25 +1,26 @@
 # dosearch 1.0.10
 
   * Added support for user-defined context-specific variables for LDAGs via `con_vars` in `control`.
+  * Removed C++11 from system requirements (for CRAN).
 
 # dosearch 1.0.9
 
   * Added several sanity checks for the input distributions and the graph.
-  * Updated documentation in various aspects. Importantly, it is now noted that `dosearch` is not complete for missing data problems.
+  * Updated the documentation in various aspects. Importantly, it is now noted that `dosearch` is not complete for missing data problems.
   * A non-identifiable query is now reported as follows: "The query is non-identifiable by do-search" to further clarify that the search was not able to identify the query.
   * Added a new Vignette for the package.
   * Added a `plot` method via the `DiagrammeR` package to produce derivation plots more easily.
   * An error is now issued when the input graph is too large.
-  * Fixed an example on transportability in `dosearch` function documentation.
+  * Fixed an example on transportability in the `dosearch` function documentation.
 
 # dosearch 1.0.8
 
-  * Added citation for the related article that appears in the Journal of Statistical Software.
+  * Added citation for the related article in the Journal of Statistical Software.
 
 # dosearch 1.0.7
 
-  * Changed the default option of the search heuristic to FALSE for all instances.
-  * Implemented minor performance tweaks to the search.
+  * Changed the default option of the search heuristic to `FALSE` for all instances.
+  * Implemented minor performance tweaks to the search algorithm.
   * Added more options for benchmarking.
   * Restored a legacy control parameter for internal use.
   * Moved `igraph` and `dagitty` packages to 'Suggests'.

@@ -1,8 +1,6 @@
 #include <Rcpp.h>
 #include "csisearch.h"
 
-// [[Rcpp::plugins(cpp11)]]
-
 //' Process `csisearch` Calls from R
 //'
 //' @param dir_lhs A vector of vertices with outgoing directed edges

@@ -89,12 +89,12 @@
 #' Argument `transportability` enumerates the nodes that should be understood
 #' as transportability nodes responsible for discrepancies between domains.
 #' Individual variables should be separated by a comma.
-#' See e.g., Bareinboim and Pearl (2014) for details on transportability.
+#' See e.g., (Bareinboim and Pearl, 2014) for details on transportability.
 #'
 #' Argument `selection_bias` enumerates the nodes that should be understood as
 #' selection bias nodes responsible for bias in the input data sets.
 #' Individual variables should be separated by a comma. See e.g.,
-#' Bareinboim and Tian (2015) for details on selection bias recoverability.
+#' (Bareinboim and Tian, 2015) for details on selection bias recoverability.
 #'
 #' Argument `missing_data` enumerates the missingness mechanisms of the model.
 #' The syntax for a single mechanism is `M_X : X` where
@@ -106,7 +106,7 @@
 #' automatically generated based on \code{missing_data}. By default, a warning
 #' is issued if a proxy variable is present in an input distribution but its
 #' corresponding mechanism is not present in any input. See e.g.,
-#' Mohan, Pearl and Tian (2013) for details on missing data as
+#' (Mohan, Pearl and Tian, 2013) for details on missing data as
 #' a causal inference problem. Note that `dosearch` is not complete for
 #' missing data problems, meaning that if `dosearch` is not able to identify
 #' the `query`, it might still be identifiable via some other means.
@@ -136,7 +136,7 @@
 #'   for an identifiable target and `FALSE` otherwise. Defaults to `TRUE`.
 #' * `heuristic`: a `logical` value. If `TRUE`, new distributions are expanded
 #'   during the search according to a search heuristic
-#'   (see Tikka et al. (2021) for details). Otherwise, distributions are
+#'   (see Tikka et al., 2021, for details). Otherwise, distributions are
 #'   expanded in the order in which they were identified. Defaults to `FALSE`.
 #' * `md_sym`: a single `character` describing the symbol to use for active
 #'   missing data mechanisms. Defaults to `"1"`.
@@ -175,6 +175,7 @@
 #'   * `formula`: a `character` string describing the formula for an
 #'     identifiable query or an empty character vector for
 #'     a non-identifiable effect.
+#'
 #' @references
 #' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from
 #' Multiple Incomplete Data Sources: A General Search-based Approach."
