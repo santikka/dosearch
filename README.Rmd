@@ -25,10 +25,11 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![R-CMD-check](https://github.com/santikka/dosearch/workflows/R-CMD-check/badge.svg)](https://github.com/santikka/dosearch/actions)
+[![R-CMD-check](https://github.com/santikka/dosearch/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/santikka/dosearch/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/santikka/dosearch/branch/master/graph/badge.svg)](https://app.codecov.io/gh/santikka/dosearch?branch=master)
 [![CRAN version](http://www.r-pkg.org/badges/version/dosearch)]( https://CRAN.R-project.org/package=dosearch)
-<!-- badges::end -->
+
+<!-- badges: end -->
 
 The `dosearch` [R](https://www.r-project.org/) package facilitates 
 identification of causal effects from arbitrary observational and experimental 
