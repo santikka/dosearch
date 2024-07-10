@@ -1,3 +1,7 @@
+# dosearch 1.0.11
+
+  * Minor bugfixes.
+
 # dosearch 1.0.10
 
   * Added support for user-defined context-specific variables for LDAGs via `con_vars` in `control`.

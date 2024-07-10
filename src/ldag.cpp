@@ -24,8 +24,8 @@ bool ldag::d_sep(const int& x, const int& y, const int& z) const {
   for (int i = 1; i <= n; i++) {
     if (in_set(i, x)) {
       dirvar x_el;
-      x_el.v = i;
       x_el.dir = true;
+      x_el.v = i;
       l.push(x_el);
     }
   }
@@ -34,9 +34,9 @@ bool ldag::d_sep(const int& x, const int& y, const int& z) const {
   while (!l.empty()) {
     is_visited = false;
     dirvar& l_el = l.top();
-    l.pop();
     d = l_el.dir;
     v = l_el.v;
+    l.pop();
     for (auto &vis : visited) {
       if (d == vis.dir && v == vis.v) {
         is_visited = true;
@@ -80,8 +80,8 @@ void ldag::visitable_parents(const int& el, const int& xyz, std::stack<dirvar>& 
   for (int i = 1; i <= n; i++) {
     if (edge(i, el) && in_set(i, xyz)) {
       dirvar pa_el;
-      pa_el.v = i;
       pa_el.dir = true;
+      pa_el.v = i;
       l.push(pa_el);
     }
   }
@@ -91,8 +91,8 @@ void ldag::visitable_children(const int& el, const int& xyz, std::stack<dirvar>&
   for (int i = 1; i <= n; i++) {
     if (edge(el, i) && in_set(i, xyz)) {
       dirvar ch_el;
-      ch_el.v = i;
       ch_el.dir = false;
+      ch_el.v = i;
       l.push(ch_el);
     }
   }
