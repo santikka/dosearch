@@ -12,7 +12,7 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![Codecov test
 coverage](https://codecov.io/gh/santikka/dosearch/branch/master/graph/badge.svg)](https://app.codecov.io/gh/santikka/dosearch?branch=master)
 [![CRAN
-version](http://www.r-pkg.org/badges/version/dosearch)](https://CRAN.R-project.org/package=dosearch)
+version](https://www.r-pkg.org/badges/version/dosearch)](https://CRAN.R-project.org/package=dosearch)
 
 <!-- badges: end -->
 
@@ -59,8 +59,6 @@ devtools::install_github("santikka/dosearch")
 
 ## Examples
 
-    #> Warning: package 'dosearch' was built under R version 4.4.1
-
 ``` r
 # back-door formula
 data <- "p(x,y,z)"
@@ -92,7 +90,7 @@ graph <- "
   w <-> y
 "
 dosearch(data, query, graph)
-#> \frac{\sum_{w}\left(p(w)p(y,x|z,w)\right)}{\sum_{y} \sum_{w}\left(p(w)p(y,x|z,w)\right)}
+#> \frac{\sum_{w}\left(p(w)p(y,x|z,w)\right)}{\sum_{y}\sum_{w}\left(p(w)p(y,x|z,w)\right)}
 
 # case-control design
 data <- "
@@ -106,7 +104,7 @@ graph <- "
 "
 md <- "r_x : x, r_y : y"
 dosearch(data, query, graph, missing_data = md)
-#> \frac{\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}{\sum_{y} \left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}
+#> \frac{\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}{\sum_{y}\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}
 ```
 
 ## References

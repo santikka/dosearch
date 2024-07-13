@@ -1,6 +1,6 @@
 # dosearch 1.0.11
 
-  * Minor bugfixes.
+  * Fixed a memory allocation issue with LDAGs.
 
 # dosearch 1.0.10
 
