@@ -9,7 +9,7 @@
 #'
 #' * The package vignette.
 #' * [dosearch::dosearch()] for instructions and various examples.
-#' * \url{https://github.com/santikka/dosearch/issues/} to submit a bug report.
+#' * <https://github.com/santikka/dosearch/issues/> to submit a bug report.
 #'
 #' @useDynLib dosearch, .registration = TRUE
 #' @importFrom Rcpp sourceCpp

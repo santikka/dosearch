@@ -232,25 +232,25 @@ test_that("verbose search works", {
 })
 
 test_that("edge vanishes if label is full", {
- graph <- "
-   X -> Y
-   A -> X
-   L -> X : A = 0; A = 1
-   L -> Y
- "
- out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
- expect_true(out$identifiable)
- expect_identical(out$formula, "p(Y)")
- graph <- "
-   x -> Y
-   A -> X
-   B -> X
-   L -> X : A = 0, B = 0; A = 1, B = 0; A = 0, B = 1; A = 1, B = 1
-   L -> Y
- "
- out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
- expect_true(out$identifiable)
- expect_identical(out$formula, "p(Y)")
+  graph <- "
+    X -> Y
+    A -> X
+    L -> X : A = 0; A = 1
+    L -> Y
+  "
+  out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
+  graph <- "
+    x -> Y
+    A -> X
+    B -> X
+    L -> X : A = 0, B = 0; A = 1, B = 0; A = 0, B = 1; A = 1, B = 1
+    L -> Y
+  "
+  out <- dosearch("p(X,A,Y)", "p(Y)", graph, control = list(cache = FALSE))
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(Y)")
 })
 
 test_that("csisearch derivation works", {

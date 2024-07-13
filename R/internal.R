@@ -395,7 +395,7 @@ empty_output <- function(cl) {
 #'
 #' @param x An \R object.
 #' @noRd
-is.dosearch <- function(x) {
+is_dosearch <- function(x) {
   inherits(x, "dosearch")
 }
 

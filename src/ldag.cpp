@@ -45,7 +45,10 @@ bool ldag::d_sep(const int& x, const int& y, const int& z) const {
     }
     if (!is_visited) {
       if (in_set(v, y)) return false;
-      visited.push_back(l_el);
+      dirvar vis_el;
+      vis_el.dir = d;
+      vis_el.v = v;
+      visited.push_back(vis_el);
       if (d && !in_set(v, z)) {
         visitable_parents(v, xyz, l);
         visitable_children(v, xyz, l);

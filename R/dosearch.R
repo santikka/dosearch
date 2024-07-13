@@ -490,7 +490,7 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' y <- summary(x)
 #'
 summary.dosearch <- function(object, ...) {
-  if (!is.dosearch(object)) {
+  if (!is_dosearch(object)) {
     stop_("Argument `object` must be an object of class `dosearch`.")
   }
   took <- NA
@@ -643,7 +643,7 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
 #' print(x)
 #'
 print.dosearch <- function(x, max_chars = 300L, ...) {
-  if (!is.dosearch(x)) {
+  if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   if (is.null(x$formula) || identical(x$formula, "")) {
@@ -686,7 +686,7 @@ print.dosearch <- function(x, max_chars = 300L, ...) {
 #' # TRUE
 #'
 is_identifiable <- function(x) {
-  if (!is.dosearch(x)) {
+  if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   x$identifiable
@@ -717,7 +717,7 @@ is_identifiable <- function(x) {
 #' get_formula(x, run_again = TRUE)
 #'
 get_formula <- function(x, run_again = FALSE) {
-  if (!is.dosearch(x)) {
+  if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
@@ -764,7 +764,7 @@ get_formula <- function(x, run_again = FALSE) {
 #' x <- dosearch(data, query, graph, control = list(draw_derivation = FALSE))
 #' get_derivation(x, run_again = TRUE)
 get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
-  if (!is.dosearch(x)) {
+  if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
@@ -815,7 +815,7 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
 #' get_benchmark(x, run_again = TRUE)
 #'
 get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
-  if (!is.dosearch(x)) {
+  if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {

@@ -1,12 +1,12 @@
 ---
-title: "dosearch"
+title: "Identifying Causal Effects using dosearch"
 link-citations: yes
 output:
-  html_document: default
-  pdf_document: default
+  bookdown::html_document2:
+    base_format: rmarkdown::html_vignette
 bibliography: dosearch.bib
 vignette: >
-  %\VignetteIndexEntry{dosearch} 
+  %\VignetteIndexEntry{Identifying Causal Effects using dosearch} 
   %\VignetteEngine{knitr::rmarkdown} 
   %\VignetteEncoding{UTF-8}
 ---
@@ -61,7 +61,7 @@ The SCM framework can be extended to describe missing data mechanisms. For each 
 \begin{equation}
 V_i^* = \begin{cases}
   V_i, & \mathrm{if}\; R_{V_i} = 1, \\
-  \NA,  & \mathrm{if}\; R_{V_i} = 0,
+  \NA, & \mathrm{if}\; R_{V_i} = 0,
   \end{cases}
 \end{equation}
 where $\NA$ denotes a missing value and $R_{V_i}$ is called the response indicator (of $V_i$). In other words, the variable $V_i^*$ that is actually observed matches the true value $V_i$ if it is not missing ($R_{V_i} = 1$). We note that in this formulation, each true variable has its own response indicator, meaning that we do not consider shared indicators between variables or multiple indicators for a single variable. Furthermore, if there is no missingness associated with a given variable $V_i$ meaning that it is fully observed, the corresponding response indicator $R_{V_i}$ always has the value $1$. The omission of a proxy variable and a response indicators of a specific variable from a graph encodes the assumption that the variable in question if fully observed. Note that intervention nodes are added for true variables and response indicators but not for proxy variables. On a symbolic level one could intervene on proxy variables, however we are only interested in interventions that keep equation 1 intact.
@@ -71,12 +71,12 @@ where $\NA$ denotes a missing value and $R_{V_i}$ is called the response indicat
 We implemented **do-search** in C++ and constructed an R interface using the `Rcpp` package [@Rcpp]. This interface is provided by the R package `dosearch`.
 
 ```{r setup}
-library(dosearch)
+library("dosearch")
 ```
 Calling the search from R is straightforward via the primary function that carries the name of package.
 ```{r, eval = FALSE}
 dosearch(
-  data, query, graph, 
+  data, query, graph,
   transportability = NULL, selection_bias = NULL, missing_data = NULL,
   control = list()
 )
