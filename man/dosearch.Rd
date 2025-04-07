@@ -337,7 +337,7 @@ dosearch(data, query, graph, missing_data = md)
 
 # Graph input using 'igraph' in the 'causaleffect' syntax
 if (requireNamespace("igraph", quietly = TRUE)) {
-  g_igraph <- igraph::graph.formula(
+  g_igraph <- igraph::graph_from_literal(
     x -+ z, z -+ y, x -+ y, y -+ x,
     simplify = FALSE
   )

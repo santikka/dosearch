@@ -46,7 +46,7 @@ graph <- "
 "
 
 library("igraph")
-graph <- graph.formula(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
+graph <- graph_from_literal(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
 graph <- set.edge.attribute(graph, "description", 4:5, "U")
 
 library("dagitty")

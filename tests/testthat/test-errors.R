@@ -359,7 +359,7 @@ test_that("syntactically correct but semantically incorrect inputs fail", {
 test_that("igraph input fails when the package is not available", {
   skip_if_not_installed("mockr")
   skip_if_not_installed("igraph")
-  g_igraph <- igraph::graph.formula(
+  g_igraph <- igraph::graph_from_literal(
     x -+ z, z -+ y, x -+ y, y -+ x,
     simplify = FALSE
   )

@@ -127,7 +127,7 @@ graph <- "
 Alternatively, one may use `igraph` graphs [@igraph] in the syntax of the `causaleffect` package [@Tikka:identifying] or DAGs created using the `dagitty` package.
 ```{r}
 library("igraph")
-graph <- graph.formula(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
+graph <- graph_from_literal(X -+ Y, Z -+ X, Z -+ Y, X -+ Y, Y -+ X)
 graph <- set_edge_attr(graph, "description", 4:5, "U")
 ```
 ```{r}

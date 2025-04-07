@@ -1,18 +1,25 @@
-bibentry(bibtype = "Article",
+citHeader("To cite dosearch in publications use:")
+
+bibentry(
+  key          = "dosearchpaper",
+  bibtype      = "article",
   title        = "Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-Based Approach",
-  author       = c(person(given = "Santtu",
-                          family = "Tikka",
-                          email = "santtu.tikka@jyu.fi"),
-                   person(given = "Antti",
-                          family = "Hyttinen"),
-                   person(given = "Juha",
-                          family = "Karvanen")),
+  author       = c(person("Santtu", "Tikka"), person("Antti", "Hyttinen"), person("Juha", "Karvanen")),
   journal      = "Journal of Statistical Software",
   year         = "2021",
   volume       = "99",
   number       = "5",
   pages        = "1--40",
-  doi          = "10.18637/jss.v099.i05",
-  header       = "To cite dosearch in publications use:"
+  doi          = "10.18637/jss.v099.i05"
 )
-
+bibentry(
+  key          = "dosearchpackage",
+  bibtype      = "misc",
+  title        = "{dosearch}: Causal Effect Identification from Multiple Incomplete Data Sources",
+  author       = c(person("Santtu", "Tikka"), person("Antti", "Hyttinen"), person("Juha", "Karvanen")),
+  journal      = "CRAN: Contributed Packages",
+  publisher    = "The R Foundation",
+  year         = "2024",
+  note         = "{R} package version 1.0.11",
+  doi          = "10.32614/CRAN.package.dosearch"
+)

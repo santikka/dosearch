@@ -2,7 +2,7 @@ test_that("igraph graph format works", {
   skip_if_not_installed("igraph")
   data <- "p(x,y,z)"
   query <- "p(y|do(x))"
-  g_igraph <- igraph::graph.formula(
+  g_igraph <- igraph::graph_from_literal(
     x -+ z, z -+ y, x -+ y, y -+ x,
     simplify = FALSE
   )
@@ -24,7 +24,7 @@ test_that("igraph graph format works", {
 test_that("igraph graph without names gets named", {
   skip_if_not_installed("igraph")
   g_igraph <- igraph::delete_vertex_attr(
-    igraph::graph.formula(
+    igraph::graph_from_literal(
       1 -+ 2, 2 -+ 3
     ),
     "name"
