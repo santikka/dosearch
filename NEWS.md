@@ -1,3 +1,7 @@
+# dosearch 1.0.12
+
+  * Fixed an issue related to an upcoming `igraph` update.
+
 # dosearch 1.0.11
 
   * Fixed a memory allocation issue with LDAGs.

@@ -1,6 +1,6 @@
 Package: dosearch
 Title: Causal Effect Identification from Multiple Incomplete Data Sources
-Version: 1.0.11
+Version: 1.0.12
 Authors@R: c(
     person(given = "Santtu",
            family = "Tikka",

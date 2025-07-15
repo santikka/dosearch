@@ -251,9 +251,13 @@ parse_graph <- function(graph) {
       }
       g_obs <- ""
       g_unobs <- ""
-      description <- NULL
-      obs_edges <- e[(is.na(description) | description != "U")]
-      unobs_edges <- e[description == "U" & !is.na(description)]
+      e_attr <- igraph::edge_attr(graph, "description", index = e)
+      obs_edges <- e
+      unobs_edges <- NULL
+      if (!is.null(e_attr)) {
+        obs_edges <- e[is.na(e_attr) | e_attr != "U"]
+        unobs_edges <- e[!is.na(e_attr) & e_attr == "U"]
+      }
       if (length(obs_edges) > 0L) {
         obs_ind <- igraph::get.edges(graph, obs_edges)
         g_obs <- paste(
