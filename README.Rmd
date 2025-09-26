@@ -11,16 +11,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r srr-tags, eval = FALSE, echo = FALSE}
-#' @srrstats {G1.0} Primary reference is:
-#'   S. Tikka, A. Hyttinen and J. Karvanen.
-#'   "Causal effect identification from multiple incomplete data sources:
-#'   a general search-based approach." \emph{Journal of Statistical Software},
-#'   99(5):1--40, 2021.
-#' @srrstats {G1.1} First implementation of an original algorithm.
-#' @srrstats {G1.2} Life Cycle Statement is included in the README.
-```
-
 # dosearch
 
 <!-- badges: start -->

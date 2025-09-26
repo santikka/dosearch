@@ -2,18 +2,18 @@
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "identifier": "dosearch",
-  "description": "Identification of causal effects from arbitrary observational and experimental probability distributions via do-calculus and standard probability manipulations using a search-based algorithm by Tikka et al. (2021) <doi:10.18637/jss.v099.i05>. Allows for the presence of mechanisms related to selection bias (Bareinboim, E. and Tian, J. (2015) <http://ftp.cs.ucla.edu/pub/stat_ser/r445.pdf>), transportability (Bareinboim, E. and Pearl, J. (2014) <http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>), missing data (Mohan, K. and Pearl, J. and Tian., J. (2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and arbitrary combinations of these. Also supports identification in the presence of context-specific independence (CSI) relations through labeled directed acyclic graphs (LDAG). For details on CSIs see Corander et al. (2019) <doi:10.1016/j.apal.2019.04.004>.",
+  "description": "Identification of causal effects from arbitrary observational and experimental probability distributions via do-calculus and standard probability manipulations using a search-based algorithm by Tikka, Hyttinen and Karvanen (2021) <doi:10.18637/jss.v099.i05>. Allows for the presence of mechanisms related to selection bias (Bareinboim and Tian, 2015) <doi:10.1609/aaai.v29i1.9679>, transportability (Bareinboim and Pearl, 2014) <http://ftp.cs.ucla.edu/pub/stat_ser/r443.pdf>, missing data (Mohan, Pearl, and Tian, 2013) <http://ftp.cs.ucla.edu/pub/stat_ser/r410.pdf>) and arbitrary combinations of these. Also supports identification in the presence of context-specific independence (CSI) relations through labeled directed acyclic graphs (LDAG). For details on CSIs see (Corander et al., 2019) <doi:10.1016/j.apal.2019.04.004>.",
   "name": "dosearch: Causal Effect Identification from Multiple Incomplete Data Sources",
   "codeRepository": "https://github.com/santikka/dosearch",
   "issueTracker": "https://github.com/santikka/dosearch/issues",
   "license": "https://spdx.org/licenses/GPL-3.0",
-  "version": "1.0.9",
+  "version": "1.0.12",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
     "url": "https://r-project.org"
   },
-  "runtimePlatform": "R version 4.1.2 (2021-11-01)",
+  "runtimePlatform": "R version 4.5.1 (2025-06-13 ucrt)",
   "provider": {
     "@id": "https://cran.r-project.org",
     "@type": "Organization",
@@ -79,6 +79,18 @@
     },
     {
       "@type": "SoftwareApplication",
+      "identifier": "DiagrammeR",
+      "name": "DiagrammeR",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=DiagrammeR"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "DOT",
       "name": "DOT",
       "provider": {
@@ -103,6 +115,18 @@
     },
     {
       "@type": "SoftwareApplication",
+      "identifier": "knitr",
+      "name": "knitr",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=knitr"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "mockr",
       "name": "mockr",
       "provider": {
@@ -112,6 +136,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=mockr"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "rmarkdown",
+      "name": "rmarkdown",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=rmarkdown"
     },
     {
       "@type": "SoftwareApplication",
@@ -130,9 +166,14 @@
   "softwareRequirements": {
     "1": {
       "@type": "SoftwareApplication",
+      "identifier": "R",
+      "name": "R",
+      "version": ">= 4.0"
+    },
+    "2": {
+      "@type": "SoftwareApplication",
       "identifier": "Rcpp",
       "name": "Rcpp",
-      "version": ">= 0.12.19",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
@@ -141,15 +182,9 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=Rcpp"
     },
-    "2": {
-      "@type": "SoftwareApplication",
-      "identifier": "R",
-      "name": "R",
-      "version": ">= 2.10"
-    },
-    "SystemRequirements": "C++11"
+    "SystemRequirements": null
   },
-  "fileSize": "254.261KB",
+  "fileSize": "9451.444KB",
   "citation": [
     {
       "@type": "ScholarlyArticle",
@@ -158,8 +193,7 @@
         {
           "@type": "Person",
           "givenName": "Santtu",
-          "familyName": "Tikka",
-          "email": "santtu.tikka@jyu.fi"
+          "familyName": "Tikka"
         },
         {
           "@type": "Person",
@@ -187,11 +221,46 @@
           "name": "Journal of Statistical Software"
         }
       }
+    },
+    {
+      "@type": "CreativeWork",
+      "datePublished": "2024",
+      "author": [
+        {
+          "@type": "Person",
+          "givenName": "Santtu",
+          "familyName": "Tikka"
+        },
+        {
+          "@type": "Person",
+          "givenName": "Antti",
+          "familyName": "Hyttinen"
+        },
+        {
+          "@type": "Person",
+          "givenName": "Juha",
+          "familyName": "Karvanen"
+        }
+      ],
+      "name": "{dosearch}: Causal Effect Identification from Multiple Incomplete Data Sources",
+      "identifier": "10.32614/CRAN.package.dosearch",
+      "description": "{R} package version 1.0.11",
+      "@id": "https://doi.org/10.32614/CRAN.package.dosearch",
+      "sameAs": "https://doi.org/10.32614/CRAN.package.dosearch",
+      "isPartOf": {
+        "@type": "PublicationIssue",
+        "datePublished": "2024",
+        "isPartOf": {
+          "@type": ["PublicationVolume", "Periodical"],
+          "name": "CRAN: Contributed Packages"
+        }
+      }
     }
   ],
-  "releaseNotes": "https://github.com/santikka/dosearch/blob/master/NEWS",
+  "releaseNotes": "https://github.com/santikka/dosearch/blob/main/NEWS.md",
   "readme": "https://github.com/santikka/dosearch/blob/master/README.md",
-  "contIntegration": ["https://github.com/santikka/dosearch/actions", "https://app.codecov.io/gh/santikka/dosearch?branch=master"],
+  "contIntegration": ["https://github.com/santikka/dosearch/actions/workflows/R-CMD-check.yaml", "https://app.codecov.io/gh/santikka/dosearch?branch=master"],
   "developmentStatus": "https://www.repostatus.org/#active",
-  "keywords": ["causal-models", "causal-inference", "causality-algorithms", "causality", "directed-acyclic-graph", "labeled-graphs", "graphs", "r", "c-plus-plus"]
+  "keywords": ["causal-models", "causal-inference", "causality-algorithms", "causality", "directed-acyclic-graph", "labeled-graphs", "graphs", "r", "c-plus-plus"],
+  "relatedLink": "https://CRAN.R-project.org/package=dosearch"
 }

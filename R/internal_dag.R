@@ -1,7 +1,6 @@
 #' Call the `dosearch` Algorithm from R for DAGs
 #'
 #' @inheritParams dosearch
-#' @srrstats {NW2.9, NW2.10} Pre-processing routine for DAG inputs.
 #' @noRd
 get_derivation_dag <- function(data, query, graph, transportability,
                                selection_bias, missing_data, control) {
@@ -94,7 +93,6 @@ get_derivation_dag <- function(data, query, graph, transportability,
 #' @inheritParams dosearch
 #' @param args A `list` of arguments for `initialize_dosearch`
 #' @param graph The graph as a `character` string.
-#' @srrstats {NW2.6} Validates the input DAG.
 #' @noRd
 transform_graph_dag <- function(args, graph, missing_data) {
   if (!nzchar(graph) && is.null(missing_data)) {
@@ -407,7 +405,6 @@ parse_data_dag <- function(args, data, missing_data) {
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @param d An `integer` vector of length 4 denoting the distribution.
-#' @srrstats {NW2.6} Validates distributions for DAGs.
 #' @noRd
 validate_distribution_dag <- function(args, msg, d, d_str) {
   left_proxy <- bitwAnd(
@@ -491,7 +488,6 @@ validate_distribution_dag <- function(args, msg, d, d_str) {
 #' Check the Validity of Input Distributions
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
-#' @srrstats {NW2.6} Validates input distributions for DAGs.
 #' @noRd
 validate_data_dag <- function(args) {
   args$p_list <- vector(mode = "list", length = length(args$p_process))
@@ -516,7 +512,6 @@ validate_data_dag <- function(args) {
 #' Check the Validity of a Target Distribution
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
-#' @srrstats {NW2.6} Validates the target distribution for DAGs.
 #' @noRd
 validate_query_dag <- function(args) {
   q <- args$q_process
@@ -539,7 +534,6 @@ validate_query_dag <- function(args) {
 #'
 #' @param args A `list` of arguments for `initialize_dosearch`.
 #' @inheritParams dosearch
-#' @srrstats {NW2.6} Additional checks for potentially mistaken input.
 #' @noRd
 check_valid_input <- function(args, control, missing_data) {
   if (!control$warn) {

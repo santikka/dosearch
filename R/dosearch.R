@@ -194,31 +194,6 @@
 #' Data." In \emph{Proceedings of the 26th International Conference on
 #' Neural Information Processing Systems}, 1277--1285, 2013.
 #'
-#' @srrstats {NW1.0} Domain of applicability is explained: semi-Markovian
-#'   causal models that are described by directed acyclic graphs (DAGs) or
-#'   labeled DAGs (LDAGs).
-#' @srrstats {NW1.1} Exponential scaling is documented.
-#' @srrstats {NW2.0} In addition to the primary `character` interface, both
-#'   `igraph` and `dagitty` formats are supported and documented.
-#' @srrstats {NW2.1} Expected forms of inputs are explained.
-#' @srrstats {NW2.2} Expected forms are asserted and informative errors are
-#'   issued.
-#' @srrstats {NW2.4} Labels for edges can be included via the package syntax
-#'   and their presence is automatically detected without a need for an
-#'   additional parameter.
-#' @srrstats {NW2.5, NW2.5a} The return object of `dosearch` includes the
-#'   original call arguments thus preserving information.
-#' @srrstats {NW2.6} All inputs are parsed and validated against expectations.
-#' @srrstats {NW2.7} Non-finite or NA values are not allowed and appropriate
-#'   errors are issued.
-#' @srrstats {NW5.0} Return object includes the input network, preserving
-#'   metadata.
-#' @srrstats {NW5.1} An empty (in terms of search output) return object
-#'   can be obtained via `control = list(empty = TRUE)`.
-#' @srrstats {NW5.7} All control arguments are included in the return object.
-#' @srrstats {NW6.3} The scalability simulations described in the `dosearch`
-#'   paper can be replicated in both small scale and large scale variants and
-#'   the code is included in the `rep` directory of the GitHub repo.
 #' @examples
 #' # A simple back-door formula
 #' data1 <- "P(x,y,z)"
@@ -476,8 +451,6 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' @param object An object of class `dosearch`.
 #' @param ... Not used.
 #' @return `summary` returns a `summary.dosearch` object.
-#' @srrstats {NW5.4} The summary method for `dosearch` objects- Provides
-#'   more details than the print method via `print.summary.dosearch`
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
@@ -535,8 +508,6 @@ summary.dosearch <- function(object, ...) {
 #' @param x An object of class `dosearch`.
 #' @param ... Additional arguments passed to [DiagrammeR::grViz()].
 #' @return `plot` returns a `htmlwidget` object or `NULL` (invisibly)
-#' @srrstats {NW5.5} The plot method for `dosearch` objects.
-#' @srrstats {NW5.8} Can be used in HTML via e.g., R Markdown and Shiny.
 #' @examples
 #' \dontrun{
 #' out <- dosearch(
@@ -628,8 +599,6 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
 #'   default is 300.
 #' @param ... Additional arguments passed to [base::format()].
 #' @return `print` returns `x` invisibly.
-#' @srrstats {NW5.2} The default print method for `dosearch` objects.
-#' @srrstats {NW5.3} Only output the identifiability status and the formula,
 #'   with an additional argument limiting the output length.
 #' @examples
 #' data <- "p(x,y,z)"

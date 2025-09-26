@@ -49,8 +49,7 @@ BugReports: https://github.com/santikka/dosearch/issues
 URL: https://github.com/santikka/dosearch
 Encoding: UTF-8
 NeedsCompilation: yes
-Roxygen: list(markdown = TRUE,
-    roclets = c("namespace", "rd", "srr::srr_stats_roclet"))
-RoxygenNote: 7.3.2
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 LazyData: true

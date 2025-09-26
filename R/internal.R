@@ -163,7 +163,6 @@ parse_query <- function(query) {
 #' Parse A Single Distribution for Internal Processing
 #'
 #' @param d A `numeric` or a `character` vector.
-#' @srrstats {NW2.7} Checks for NAs and non-finite values.
 #' @noRd
 parse_distribution <- function(d) {
   if (is.character(d)) {
@@ -226,8 +225,6 @@ parse_distribution <- function(d) {
 #' Parse the Graph for Internal Processing
 #'
 #' @inheritParams dosearch
-#' @srrstats {NW2.3} Checks existence of vertex names attributes for `igraph`
-#'   and graphs and assigns defaults if the graph is not named with a message.
 #' @noRd
 parse_graph <- function(graph) {
   if (inherits(graph, "igraph")) {
