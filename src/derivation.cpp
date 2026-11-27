@@ -16,7 +16,11 @@ void derivation::finish() {
 }
 
 void derivation::add_edge(const std::string& from, const std::string& to, const std::string& st) {
-  deriv += get_label(from) + " -> " + get_label(to) + "[label=\"" + st + "\"]\n";
+  // The nodes are numbered in this order, because the order of evaluation of
+  // the operands of + is unspecified and differs between compilers
+  std::string to_node = get_label(to);
+  std::string from_node = get_label(from);
+  deriv += from_node + " -> " + to_node + "[label=\"" + st + "\"]\n";
 }
 
 std::string derivation::get_label(const std::string& label) {

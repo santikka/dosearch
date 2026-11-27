@@ -56,9 +56,13 @@ public:
 
 class csisearch_heuristic: public csisearch {
 public:
+  // Distributions with higher scores are expanded first, and distributions
+  // with equal scores in the order in which they were derived, so that the
+  // order does not depend on the heap of the standard library
   struct comp_distr {
     bool operator()(distr const * d1, distr const * d2) {
-      return d1->score < d2->score;
+      if (d1->score != d2->score) return d1->score < d2->score;
+      return d1->index > d2->index;
     }
   };
   csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);

@@ -938,34 +938,28 @@ test_that("up to three primes are used", {
 })
 
 test_that("a superscript is used instead of more than three primes", {
-  data <- "p(y,w,x,t,u,z,v)"
-  query <- "p(v|do(w))"
+  data <- "p(t,w,u,y,x,v)"
+  query <- "p(v|do(y))"
   graph <- "
     w -> y
-    y -> t
+    y -> x
+    w -> t
     y <-> t
-    x -> z
-    w -> z
-    t -> z
-    x <-> u
-    w <-> u
-    y -> u
+    x -> t
+    y -> v
+    t -> v
     t <-> u
-    w -> v
-    u -> v
   "
   out <- dosearch(data, query, graph, control = list(heuristic = TRUE))
   expect_true(out$identifiable)
   expect_identical(
     out$formula,
     paste0(
-      "\\sum_{y,u,x}p(v|u,w)\\sum_{v',w'}p(w')p(u,v',x|y,w')\\sum_{z,x'}",
-      "\\sum_{t,v''}\\frac{p(x')p(v''|u,w)p(z|t,u,v'',w,x')}{\\sum_{z',x''}",
-      "p(x'')p(v''|u,w)p(z'|t,u,v'',w,x'')}\\frac{\\sum_{z',x''}p(y,t,z',w)",
-      "\\frac{p(x'')p(v''|u,w)p(z'|t,u,v'',w,x'')}{\\sum_{v''',x'''}p(x''')",
-      "p(v'''|u,w)p(z'|t,u,v''',w,x''')}}{\\sum_{y',t',v'''}\\sum_{z',x''}",
-      "p(y',t',z',w)\\frac{p(x'')p(v'''|u,w)p(z'|t',u,v''',w,x'')}{",
-      "\\sum_{v^{(4)},x'''}p(x''')p(v^{(4)}|u,w)p(z'|t',u,v^{(4)},w,x''')}}"
+      "\\sum_{x,t,w,u}p(v|y,t)\\sum_{y',v'}p(y',w,u)p(t,v'|y',x,w,u)\\sum_{u'}",
+      "\\sum_{v''}\\frac{\\sum_{w'}p(y,x,w')\\frac{p(w',u')p(v''|y,t)}{",
+      "\\sum_{v''',u''}p(w',u'')p(v'''|y,t)}}{\\sum_{x',v''',u''}\\sum_{w'}",
+      "p(y,x',w')\\frac{p(w',u'')p(v'''|y,t)}{\\sum_{v^{(4)},u'''}",
+      "p(w',u''')p(v^{(4)}|y,t)}}"
     )
   )
   expect_false(grepl("''''", out$formula, fixed = TRUE))

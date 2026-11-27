@@ -371,7 +371,6 @@
 #' dosearch(data2, query2, graph2)
 #'
 #' # A scenario with combined transportability and selection bias
-#' # in this case using the search heuristic provides a simpler formula
 #' data <- "
 #'   p(x,z,y|s)
 #'   p(y,z|t,do(x))

@@ -29,6 +29,7 @@
   * Fixed an issue where case-by-case reasoning for LDAGs was skipped for distributions in which the first variable of the graph was the only variable assigned to 1, which could cause identifiable queries to be reported as non-identifiable.
   * The search heuristic (`heuristic = TRUE`) now uses the score designed for missing data problems when missing data mechanisms are present. Previously this score was always overwritten by the default score.
   * The search heuristic now also scores the input distributions of DAGs, as it already did for LDAGs. Previously, every input distribution of a DAG had a score of zero, so the order in which they were expanded did not depend on the target. Formulas obtained with `heuristic = TRUE` may differ from previous versions.
+  * The search heuristic now expands distributions with equal scores in the order in which they were derived. Previously, their order was left to the heap of the C++ standard library, so the derivations and formulas obtained with `heuristic = TRUE` could differ between platforms, e.g., between Linux and macOS. The nodes of derivations (`draw_derivation = TRUE`) are now also numbered in the same order on all platforms.
   * Variable names that contain "do" (e.g., `dose` or `random`) are now parsed correctly in input and target distributions.
   * The print method of `summary.dosearch` objects now truncates long formulas correctly and prints `NA` when the formula was not requested.
   * `summary` no longer garbles bidirected edges given as `<->` when displaying the graph.
