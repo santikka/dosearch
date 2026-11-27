@@ -164,8 +164,7 @@
 #' * `draw_derivation`: a `logical` value. If `TRUE`, a string representing
 #'   the derivation steps as a DOT graph is returned. If the `DiagrammeR`
 #'   package is installed, the DOT graph can be plotted by calling `plot` on
-#'   the return object. The DOT graph can also be exported as an .svg file
-#'   by using the `DOT` package. Defaults to `FALSE`.
+#'   the return object. Defaults to `FALSE`.
 #' * `draw_all`: a `logical` value. If `TRUE` and if `draw_derivation = TRUE`,
 #'   the derivation will contain every step taken by the search. If `FALSE`,
 #'   only the steps that resulted in an identifiable target are returned.
@@ -573,19 +572,6 @@
 #' "
 #' dosearch(data8, query8, graph8)
 #'
-#' # Export the DOT diagram of the derivation as an SVG file
-#' # to the working directory via the DOT package.
-#' # By default, only the identifying part is plotted.
-#' # PostScript format is also supported.
-#' if (requireNamespace("DOT", quietly = TRUE)) {
-#'   d <- get_derivation(
-#'     data1,
-#'     query1,
-#'     graph1,
-#'     control = list(draw_derivation = TRUE)
-#'   )
-#'   DOT::dot(d$derivation, "derivation.svg")
-#' }
 #' }
 #'
 dosearch <- function(data, query, graph, transportability = NULL,

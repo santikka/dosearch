@@ -35,7 +35,6 @@ Suggests:
     covr,
     dagitty,
     DiagrammeR,
-    DOT,
     igraph,
     knitr,
     mockr,

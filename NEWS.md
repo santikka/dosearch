@@ -54,6 +54,7 @@
   * A warning is now issued (unless `warn = FALSE` in `control`) when an input distribution contains a variable that is not present in the graph, in any other input distribution or in the target distribution, which typically indicates a typo.
   * Fixed typos in the examples of `summary` and `print` that added a separate node `Z` to the example graphs, a typo in an example of `dosearch` that added a separate node `w_1`, and a dangling sentence in the documentation of the return value of `print`.
   * The warning about using both lower case and upper case names now determines the case of a name by its letters only, so that, e.g., `X_1` and `x` are also detected.
+  * The package no longer depends on the `DOT` package.
 
 # dosearch 1.0.12
 

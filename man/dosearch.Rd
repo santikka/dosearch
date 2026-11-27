@@ -382,8 +382,7 @@ Defaults to an empty vector.
 \item \code{draw_derivation}: a \code{logical} value. If \code{TRUE}, a string representing
 the derivation steps as a DOT graph is returned. If the \code{DiagrammeR}
 package is installed, the DOT graph can be plotted by calling \code{plot} on
-the return object. The DOT graph can also be exported as an .svg file
-by using the \code{DOT} package. Defaults to \code{FALSE}.
+the return object. Defaults to \code{FALSE}.
 \item \code{draw_all}: a \code{logical} value. If \code{TRUE} and if \code{draw_derivation = TRUE},
 the derivation will contain every step taken by the search. If \code{FALSE},
 only the steps that resulted in an identifiable target are returned.
@@ -662,19 +661,6 @@ graph8 <- "
 "
 dosearch(data8, query8, graph8)
 
-# Export the DOT diagram of the derivation as an SVG file
-# to the working directory via the DOT package.
-# By default, only the identifying part is plotted.
-# PostScript format is also supported.
-if (requireNamespace("DOT", quietly = TRUE)) {
-  d <- get_derivation(
-    data1,
-    query1,
-    graph1,
-    control = list(draw_derivation = TRUE)
-  )
-  DOT::dot(d$derivation, "derivation.svg")
-}
 }
 
 data <- "p(x,y,z)"
