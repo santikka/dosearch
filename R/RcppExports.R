@@ -3,11 +3,13 @@
 
 #' Process `csisearch` Calls from R
 #'
+#' Sets of vertices are given as integer vectors of vertex indices.
+#'
 #' @param dir_lhs A vector of vertices with outgoing directed edges
 #' @param dir_rhs A vector of vertices with incoming directed edges
 #' @param lab A vector of labels for vertices
-#' @param p_list A list of known distributions
-#' @param q_vec A vector of vertices representing the causal query
+#' @param p_list A list of known distributions, each a list of four sets
+#' @param q_list The target distribution as a list of four sets
 #' @param label_map A list of edge labels
 #' @param local_csi Local CSI statements
 #' @param con_vars A set of variables that have assignments in labels
@@ -27,19 +29,21 @@
 #' @param cache Use caching for separation criteria
 #' @param verbose Print diagnostics during search
 #' @noRd
-initialize_csisearch <- function(dir_lhs, dir_rhs, lab, p_list, q_vec, label_map, local_csi, con_vars, intv_vars, n, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, cache, verbose) {
-    .Call(`_dosearch_initialize_csisearch`, dir_lhs, dir_rhs, lab, p_list, q_vec, label_map, local_csi, con_vars, intv_vars, n, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, cache, verbose)
+initialize_csisearch <- function(dir_lhs, dir_rhs, lab, p_list, q_list, label_map, local_csi, con_vars, intv_vars, n, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, cache, verbose) {
+    .Call(`_dosearch_initialize_csisearch`, dir_lhs, dir_rhs, lab, p_list, q_list, label_map, local_csi, con_vars, intv_vars, n, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, cache, verbose)
 }
 
 #' Process `dosearch` Calls from R
+#'
+#' Sets of vertices are given as integer vectors of vertex indices.
 #'
 #' @param dir_lhs A vector of vertices with outgoing directed edges
 #' @param dir_rhs A vector of vertices with incoming directed edges
 #' @param bi_lhs A vector of vertices with incoming bidirected edges
 #' @param bi_rhs A vector of vertices with incoming bidirected edges
 #' @param lab A vector of labels for vertices
-#' @param p_list A list of known distributions
-#' @param q_vec A vector of vertices representing the causal query
+#' @param p_list A list of known distributions, each a list of five sets
+#' @param q_list The target distribution as a list of five sets
 #' @param n The number of vertices
 #' @param tr A set representing transportability nodes
 #' @param sb A set representing selection bias nodes
@@ -47,6 +51,8 @@ initialize_csisearch <- function(dir_lhs, dir_rhs, lab, p_list, q_vec, label_map
 #' @param md_p A set representing missing data proxies
 #' @param time_limit Time limit for the search (in hours)
 #' @param rules Overrides the set of default rules
+#' @param case_reasoning Add the rules for case-by-general, case-by-case
+#'   and general-by-case reasoning for missing data mechanisms
 #' @param benchmark Record the search time
 #' @param benchmark_rules Record time taken by each individual rule
 #' @param draw_derivation Form a string representing the
@@ -56,10 +62,9 @@ initialize_csisearch <- function(dir_lhs, dir_rhs, lab, p_list, q_vec, label_map
 #' @param formula Output formula as string
 #' @param improve Enable search enhancements
 #' @param heuristic Use search heuristic
-#' @param md_sym Symbol used to represent active missing data mechanisms
 #' @param verbose Print diagnostics during search
 #' @noRd
-initialize_dosearch <- function(dir_lhs, dir_rhs, bi_lhs, bi_rhs, lab, p_list, q_vec, n, tr, sb, md_s, md_p, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, md_sym, verbose) {
-    .Call(`_dosearch_initialize_dosearch`, dir_lhs, dir_rhs, bi_lhs, bi_rhs, lab, p_list, q_vec, n, tr, sb, md_s, md_p, time_limit, rules, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, md_sym, verbose)
+initialize_dosearch <- function(dir_lhs, dir_rhs, bi_lhs, bi_rhs, lab, p_list, q_list, n, tr, sb, md_s, md_p, time_limit, rules, case_reasoning, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, verbose) {
+    .Call(`_dosearch_initialize_dosearch`, dir_lhs, dir_rhs, bi_lhs, bi_rhs, lab, p_list, q_list, n, tr, sb, md_s, md_p, time_limit, rules, case_reasoning, benchmark, benchmark_rules, draw_derivation, draw_all, formula, improve, heuristic, verbose)
 }
 

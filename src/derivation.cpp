@@ -8,6 +8,7 @@ derivation::~derivation() {
 
 void derivation::init() {
   deriv = "strict digraph InferenceTree {\n";
+  labels.clear();
 }
 
 void derivation::finish() {
@@ -19,14 +20,12 @@ void derivation::add_edge(const std::string& from, const std::string& to, const 
 }
 
 std::string derivation::get_label(const std::string& label) {
-  std::string lab;
-  for (unsigned i = 1; i <= labels.size(); i++) {
-    lab = labels[i-1];
-    if (lab.compare(label) == 0) return ("n" + std::to_string(i));
-  }
-  labels.push_back(label);
-  deriv += "n" + std::to_string(labels.size()) + "[shape=polygon,sides=4,label=\"" + label + "\"]\n";
-  return ("n" + std::to_string(labels.size()));
+  auto it = labels.find(label);
+  if (it != labels.end()) return "n" + std::to_string(it->second);
+  int id = labels.size() + 1;
+  labels.emplace(label, id);
+  deriv += "n" + std::to_string(id) + "[shape=polygon,sides=4,label=\"" + label + "\"]\n";
+  return "n" + std::to_string(id);
 }
 
 std::string derivation::get() const {

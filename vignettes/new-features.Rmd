@@ -1,0 +1,716 @@
+---
+title: "New features in dosearch 1.1.0"
+link-citations: yes
+output:
+  html_document: default
+bibliography: new-features.bib
+vignette: >
+  %\VignetteIndexEntry{New features in dosearch 1.1.0}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+# Display the formula of a dosearch object as a LaTeX equation. If variants
+# is TRUE, the variants of the formula for the values of the variables of
+# case-by-case reasoning are displayed instead, each followed by the values.
+show_formula <- function(x, variants = FALSE) {
+  f <- get_formula(x, variants = variants)
+  values <- names(f)
+  if (is.null(values)) values <- ""
+  values <- ifelse(nzchar(values), paste0("\\qquad (", values, ")"), "")
+  cat(paste("$$", f, values, "$$\n"), sep = "")
+}
+# Print the steps of a derivation as "from -> to (rule)"
+print_steps <- function(x) {
+  lines <- strsplit(x$derivation, "\n")[[1L]]
+  nodes <- regmatches(
+    lines,
+    regexec("^(n[0-9]+)\\[.*label=\"(.*)\"\\]$", lines)
+  )
+  nodes <- do.call(rbind, nodes[lengths(nodes) == 3L])
+  labels <- stats::setNames(nodes[, 3L], nodes[, 2L])
+  edges <- regmatches(
+    lines,
+    regexec("^(n[0-9]+) -> (n[0-9]+)\\[label=\"(.*)\"\\]$", lines)
+  )
+  edges <- do.call(rbind, edges[lengths(edges) == 4L])
+  cat(
+    sprintf(
+      "%-18s -> %-18s (%s)",
+      labels[edges[, 2L]],
+      labels[edges[, 3L]],
+      edges[, 4L]
+    ),
+    sep = "\n"
+  )
+}
+```
+
+\newcommand{\doo}{\textrm{do}}
+\newcommand{\+}[1]{\mathbf{#1}}
+\newcommand{\given}{{ \, | \, }}
+\newcommand{\pa}{\textrm{Pa}}
+\newcommand{\ch}{\textrm{Ch}}
+\newcommand{\sib}{\textrm{Sib}}
+
+# Introduction
+
+Version 1.1.0 of `dosearch` is a substantial revision of the implementation of **do-search** [@tikka21]. This vignette describes five of the main changes:
+
+1. the search is considerably faster, and graphs of arbitrary size are supported,
+2. two new criteria detect non-identifiable targets before the search is started,
+3. formulas show the derivation of the target from the input distributions without unnecessary summations, quotients and parentheses, and variables that are bound by summations are distinguished by primes,
+4. new inference rules for missing data problems allow missing data mechanisms to be disabled, i.e., assigned the value 0, and
+5. formulas can be plotted with the mathematics rendered via the new function `plot_formula`.
+
+The complete list of changes, including a number of bug fixes, is given in the `NEWS.md` file of the package. We assume that the reader is familiar with the search and the notation of @tikka21, which are also summarized in the vignette "Identifying Causal Effects using dosearch".
+
+```{r setup}
+library("dosearch")
+```
+
+# Performance
+
+Version 1.1.0 represents sets of variables as dynamic bitsets instead of the 32-bit integers of version 1.0.12, which removes the limit of 30 nodes on the size of the graph (at most 15 vertices for DAGs, whose intervention nodes counted towards the limit). The new version also changes the parts of the implementation that determine its speed. Distributions are indexed by hash keys of their sets instead of strings, each inference rule enumerates only subsets of the variables that it can be applied to instead of every subset of all variables, d-separation in DAGs is tested by a single linear-time traversal of the graph instead of pairwise tests on copies of its adjacency matrices, and the edge labels of LDAGs are processed by vectorized code. This section compares the running times of the two versions and shows how much larger graphs the new version can analyze with equal effort.
+
+## Setup
+
+**DAG search.** The instances follow the small-scale simulation design of @tikka21. For each number of vertices $n \in \{5, 6, 7, 8\}$, 25 random semi-Markovian graphs were generated with an expected degree of 2 for directed edges and 1 for bidirected edges and a directed path from $x$ to $y$. The target is $P(y \given \doo(x))$, and randomly generated input distributions are added until the target becomes identifiable. Both the identifiable set of inputs and the last non-identifiable one were solved with the four combinations of the search heuristic and the search improvements (`heuristic` and `improve` in `control`), which gives 200 runs per graph size. The instances were generated once and used for both versions. The reported times are the search times returned with `benchmark = TRUE`, which exclude the parsing of the inputs in R. Each run had a time limit of 60 seconds, which was never reached.
+
+**LDAG preprocessing.** The graph consists of a labeled edge `X -> Y : P1 = 0; P2 = 1` and edges from $k$ other parents $P_1, \ldots, P_k$ to $Y$. The target is equal to the input distribution, so the elapsed time of the call to `dosearch` measures the processing of the labels. The times are medians of three runs, except for version 1.0.12 with $k = 8$, which was run once.
+
+**Environment.** R 4.3.3 on one core of an Intel Xeon processor at 2.1 GHz. Both versions were built from source with GCC 13.3 and the default compiler flags of R (`-O2`) and were run one after the other. The measurements were made before the criteria of the next section were added to the search, so they do not include the early verdicts of these criteria.
+
+## Results
+
+Both versions returned the same identifiability result in all 800 runs. Table 1 and the figure below summarize the running times. The total search time over all runs decreased from 267.6 to 29.0 seconds, a speedup of 9.2. The speedup grows with the size of the graph, from about 3 for graphs with 5 vertices to about 10 for graphs with 8 vertices (12 for the median run). This is consistent with the nature of the changes: in version 1.0.12, every rule enumerated all subsets of the variables and every d-separation test was carried out separately for each pair of variables, and both costs grow with the size of the graph. The speedup was similar for all four search configurations, between 8.9 and 9.7 in total. The longest single run took 3.97 seconds with version 1.0.12 and 0.58 seconds with version 1.1.0.
+
+The processing of LDAG labels was a bottleneck in version 1.0.12 for edges whose endpoint has many other parents: its time grew roughly sixfold with each additional parent and reached 75.6 seconds for $k = 8$. Version 1.1.0 needs 0.23 seconds for the same graph.
+
+Table: Table 1: Running times of `dosearch` 1.0.12 and 1.1.0. Panel A: total search time over the 200 runs for each graph size $n$; the speedup is the ratio of the totals, and the median speedup is the median of the ratios of the runs that took at least 1 ms with version 1.0.12. Panel B: elapsed time of processing an LDAG with a labeled edge whose endpoint has $k$ other parents.
+
+|                              | 1.0.12 (s) | 1.1.0 (s) | Speedup | Median speedup |
+|:-----------------------------|-----------:|----------:|--------:|---------------:|
+| *A. DAG search*              |            |           |         |                |
+| $n = 5$                      |       0.46 |      0.16 |     3.0 |            3.2 |
+| $n = 6$                      |       4.71 |      0.90 |     5.3 |            5.3 |
+| $n = 7$                      |      30.93 |      4.58 |     6.7 |            8.3 |
+| $n = 8$                      |     231.54 |     23.38 |     9.9 |           11.9 |
+| Total                        |     267.63 |     29.01 |     9.2 |            7.1 |
+| *B. LDAG preprocessing*      |            |           |         |                |
+| $k = 4$                      |      0.051 |     0.007 |       7 |                |
+| $k = 5$                      |      0.288 |     0.012 |      24 |                |
+| $k = 6$                      |      1.904 |     0.051 |      37 |                |
+| $k = 7$                      |     11.738 |     0.082 |     143 |                |
+| $k = 8$                      |     75.586 |     0.230 |     329 |                |
+
+```{r performance-figure, echo = FALSE, fig.width = 8, fig.height = 4, fig.align = "center", fig.cap = "(a) Search time per run for each graph size $n$ with versions 1.0.12 (grey) and 1.1.0 (blue), on a logarithmic scale. The 54 runs that ended before the search, with a search time of zero in both versions, are omitted. (b) Ratio of the search times of the two versions for the runs that took at least 1 ms with version 1.0.12, on a logarithmic scale. The boxes show the quartiles and the whiskers the 5th and 95th percentiles."}
+# Base-10 logarithms of the 5th, 25th, 50th, 75th and 95th percentiles,
+# one column per graph size n = 5, 6, 7, 8
+time_old <- matrix(
+  c(
+    -0.6053, -0.0149, 0.3613, 0.5747, 0.7541,
+    0.4441, 0.9877, 1.3535, 1.5618, 1.7147,
+    0.7880, 1.7858, 2.1233, 2.3931, 2.6203,
+    0.8767, 2.4692, 2.9795, 3.3002, 3.5294
+  ),
+  nrow = 5L
+)
+time_new <- matrix(
+  c(
+    -1.2669, -0.5648, -0.1400, 0.0974, 0.3096,
+    -0.4142, 0.2671, 0.6073, 0.8599, 1.0480,
+    -0.4734, 0.7980, 1.1909, 1.5161, 1.9036,
+    -0.5640, 1.3301, 1.8792, 2.2879, 2.5874
+  ),
+  nrow = 5L
+)
+speedup <- matrix(
+  c(
+    0.3126, 0.4418, 0.5090, 0.5465, 0.6086,
+    0.5642, 0.6486, 0.7267, 0.7951, 0.9972,
+    0.6767, 0.8458, 0.9215, 1.0312, 1.2343,
+    0.8460, 0.9874, 1.0740, 1.1849, 1.4527
+  ),
+  nrow = 5L
+)
+fill <- c("grey85", "#D2E0F0")
+border <- c("grey40", "#1F64B4")
+op <- par(mfrow = c(1L, 2L), mar = c(4.1, 4.6, 2.1, 1.1))
+stats <- matrix(0, 5L, 8L)
+stats[, c(1L, 3L, 5L, 7L)] <- time_old
+stats[, c(2L, 4L, 6L, 8L)] <- time_new
+bxp(
+  list(stats = stats, n = rep(1L, 8L)),
+  at = rep(1:4, each = 2L) + c(-0.19, 0.19),
+  boxwex = 0.32,
+  boxfill = rep(fill, 4L),
+  border = rep(border, 4L),
+  whisklty = 1L,
+  staplelty = 1L,
+  ylim = c(-1.5, 4),
+  xlim = c(0.45, 4.55),
+  axes = FALSE,
+  main = "(a) Search time per run",
+  cex.main = 0.9,
+  font.main = 1
+)
+abline(h = -1:4, col = "grey92")
+bxp(
+  list(stats = stats, n = rep(1L, 8L)),
+  at = rep(1:4, each = 2L) + c(-0.19, 0.19),
+  boxwex = 0.32,
+  boxfill = rep(fill, 4L),
+  border = rep(border, 4L),
+  whisklty = 1L,
+  staplelty = 1L,
+  axes = FALSE,
+  add = TRUE
+)
+axis(1L, at = 1:4, labels = 5:8)
+axis(2L, at = -1:4, labels = c("0.1", "1", "10", "100", "1000", "10000"), las = 1L)
+box()
+title(xlab = "Number of vertices n", ylab = "Search time (ms)")
+legend(
+  "topleft",
+  legend = c("1.0.12", "1.1.0"),
+  fill = fill,
+  border = border,
+  bty = "n"
+)
+bxp(
+  list(stats = speedup, n = rep(1L, 4L)),
+  boxwex = 0.32,
+  boxfill = fill[2L],
+  border = border[2L],
+  whisklty = 1L,
+  staplelty = 1L,
+  ylim = c(0, 1.6),
+  xlim = c(0.45, 4.55),
+  axes = FALSE,
+  main = "(b) Speedup per run",
+  cex.main = 0.9,
+  font.main = 1
+)
+abline(h = log10(c(1, 2, 5, 10, 20)), col = "grey92")
+bxp(
+  list(stats = speedup, n = rep(1L, 4L)),
+  boxwex = 0.32,
+  boxfill = fill[2L],
+  border = border[2L],
+  whisklty = 1L,
+  staplelty = 1L,
+  axes = FALSE,
+  add = TRUE
+)
+axis(1L, at = 1:4, labels = 5:8)
+axis(2L, at = log10(c(1, 2, 5, 10, 20)), labels = c(1, 2, 5, 10, 20), las = 1L)
+box()
+title(xlab = "Number of vertices n", ylab = "Speedup")
+par(op)
+```
+
+## Larger graphs with equal effort
+
+The total search time of version 1.0.12 for graphs with 8 vertices, 231.5 seconds, was used as a budget. Starting from $n = 9$, the DAG benchmark of version 1.1.0 was extended one vertex at a time, with new instances generated as above, until the total search time of the 200 runs for a graph size exceeded the budget. Table 2 shows the results.
+
+For $n = 9$, the 200 runs took 132.0 seconds in total, 57% of the budget, and the longest single run took 4.9 seconds. For $n = 10$, the budget was exceeded during the sixth of the 25 graphs, after 48 of the 200 runs, so the remaining runs were not carried out. With the effort that version 1.0.12 needs for graphs with 8 vertices, version 1.1.0 thus analyzes graphs with 9 vertices. Each additional vertex multiplies the search time of version 1.1.0 by about 5.6 (from 23.4 seconds for $n = 8$ to 132.0 seconds for $n = 9$), so the speedup of about 10 corresponds to slightly more than one additional vertex.
+
+Table: Table 2: Total search time of `dosearch` 1.1.0 for larger graphs compared with the budget of 231.5 seconds, the total search time of version 1.0.12 for $n = 8$. For $n = 10$, the runs were stopped once the budget was exceeded.
+
+|          | Runs      | Total (s) | Share of budget |
+|:---------|:----------|----------:|----------------:|
+| $n = 8$  | 200       |      23.4 |             10% |
+| $n = 9$  | 200       |     132.0 |             57% |
+| $n = 10$ | 48 of 200 |     238.1 |            103% |
+
+Because the search remains exponential in the number of vertices, it may still be necessary to restrict the inference rules via `rules` or to set a `time_limit` in `control` for large graphs.
+
+# Early detection of non-identifiable targets
+
+Consider a target $Q = P(\+Y \given \doo(\+X), \+W)$ and input distributions $P(\+A_i \given \doo(\+B_i), \+C_i)$, $i = 1, \ldots, n$. A non-identifiable target can only be recognized by exhausting the search space, which is the most expensive outcome of the search. Theorem 1 of @tikka21 avoids the search when a variable of $\+Y$ does not appear in the set $\+L = \bigcup_{i=1}^n \+A_i$ of variables on the left-hand sides of the inputs: no rule of the search can introduce a new variable to the left-hand side of a distribution. Version 1.1.0 adds two criteria of the same kind. Each describes a property that every input distribution has and that every rule of the search preserves, but that the target lacks. Like Theorem 1, they are cheap to evaluate: the first criterion needs at most one d-separation test, which takes linear time in the size of the graph, for each variable of the target, and the second only compares the neighbors of the variables of the target with the variables of the inputs. The criteria are evaluated before the search is started, when `improve = TRUE` (the default) in `control`. With `verbose = TRUE`, the criterion that applies is reported.
+
+## Variables that do not appear in any input distribution
+
+Let $\+V_P = \bigcup_{i=1}^n (\+A_i \cup \+B_i \cup \+C_i)$ be the set of variables that appear in the inputs.
+
+**Criterion 1.** If some variable $U \in (\+X \cup \+W) \setminus \+V_P$ is d-connected to $\+Y$ given $(\+X \cup \+W) \setminus \{U\}$ in the graph $G_{\overline{\+X}}$ where the incoming edges of $\+X$ are removed, the target is not identifiable by do-search.
+
+Criterion 1 is the counterpart of Theorem 1 for the right-hand side of the target. Every rule of the search either equates two distributions via do-calculus or computes a distribution from the values of known distributions by summing, multiplying or dividing over variables on their left-hand sides. A variable that does not appear in any input distribution never appears on a left-hand side, so no derived distribution depends on its value. If the target were derived, it would therefore be constant in the value of $U$ in every model compatible with $G$. When $U$ is d-connected to $\+Y$ given the rest of the right-hand side in $G_{\overline{\+X}}$, a model whose interventional distribution is faithful to $G_{\overline{\+X}}$ [@meek1995] shows that this is not the case. A formal proof is given below.
+
+In the following example, the input does not contain $x$, which has a direct effect on $y$:
+
+```{r}
+dosearch(
+  "p(y,z)",
+  "p(y|do(x))",
+  "x -> y \n z -> y",
+  control = list(verbose = TRUE)
+)
+```
+
+If the variable is d-separated from the left-hand side, the criterion does not apply. Here $x$ is a child of $y$, and the target is identified by deleting the action on $x$ (rule 3 of do-calculus):
+
+```{r}
+dosearch("p(y)", "p(y|do(x))", "y -> x")
+```
+
+## Anchored variables
+
+For a variable $Y \in \+Y$, the *parent anchors* of $Y$ are the parents of $Y$ that do not appear in $\+L$, $\+X$ or $\+W$, and the *child anchors* of $Y$ are the children of $Y$ and the variables connected to $Y$ by a bidirected edge that do not appear in $\+L$ or $\+W$:
+$$
+\Pi_Y = \pa(Y) \setminus (\+L \cup \+X \cup \+W), \qquad K_Y = (\ch(Y) \cup \sib(Y)) \setminus (\+L \cup \+W).
+$$
+A distribution $P(\+A \given \doo(\+B), \+C)$ with $Y \in \+A$ is *anchored* at $Y$ if $\+B \cup \+C$ contains a parent anchor of $Y$ or $\+C$ contains a child anchor of $Y$. By construction, the target is not anchored at $Y$.
+
+**Criterion 2.** If every input distribution with $Y$ on its left-hand side is anchored at $Y$, the target is not identifiable by do-search.
+
+An anchor is adjacent to $Y$, so the d-separation conditions of do-calculus that would remove it from a distribution with $Y$ on the left-hand side never hold. A parent anchor can be exchanged between an action and an observation, but it can be neither deleted as an observation nor as an action, because the edge from the anchor to $Y$ remains in every graph that these rules consider. A child anchor that is observed can be neither deleted nor exchanged for an action, because the edge into the anchor remains. Furthermore, anchors never appear on a left-hand side, so the chain rule cannot move them there to be marginalized over. It follows that every distribution derived during the search with $Y$ on the left-hand side is anchored at $Y$ as well, and the target, which is not, cannot be derived. A formal proof is given below.
+
+In the following example, $z$ is a parent of $y$ whose distribution is not available, so it cannot be summed over to obtain the causal effect of $x$ on $y$:
+
+```{r}
+dosearch(
+  "p(y|x,z) \n p(x)",
+  "p(y|do(x))",
+  "z -> y \n x -> y",
+  control = list(verbose = TRUE)
+)
+```
+
+Selection bias and transportability nodes never appear on the left-hand side of an input distribution, so they are anchors whenever they are adjacent to a variable of the target. If the selection depends directly on the outcome [@bareinboim2015recovering], the causal effect cannot be recovered from the biased data alone:
+
+```{r}
+dosearch(
+  "p(x,y|s)",
+  "p(y|do(x))",
+  "x -> y \n y -> s",
+  selection_bias = "s",
+  control = list(verbose = TRUE)
+)
+```
+
+Similarly, if the mechanism of the outcome differs between the source and target domains [@bareinboim2014transportability], an experiment in the source domain alone does not suffice. Note that the intervened parent $x$ of $y$ is not an anchor, because it appears in the target:
+
+```{r}
+dosearch(
+  "p(y|do(x),t)",
+  "p(y|do(x))",
+  "x -> y \n t -> y",
+  transportability = "t",
+  control = list(verbose = TRUE)
+)
+```
+
+An unbiased distribution of the outcome or data from the target domain is not anchored, so the criterion does not apply when such data are available, and the search proceeds as usual:
+
+```{r}
+dosearch("p(x,y|s) \n p(y)", "p(y|do(x))", "x -> y \n y -> s", selection_bias = "s")
+```
+
+## Proofs
+
+Let $G$ be a DAG without missing data mechanisms. Selection bias and transportability nodes are vertices of $G$ that never appear on the left-hand side of a distribution. The search restricts the rules that can be applied to them, which only reduces the set of possible derivations, so these restrictions can be ignored below. A distribution $P(\+A \given \doo(\+B), \+C)$ has disjoint sets of variables on its left-hand side ($\+A$), actions ($\+B$) and observations ($\+C$). We write $G_{\overline{\+B}}$ for the graph where the edges into $\+B$ are removed, including the bidirected edges incident to $\+B$, and $G_{\underline{\+Z}}$ for the graph where the directed edges out of $\+Z$ are removed. Without missing data mechanisms, the search uses the following rules [@tikka21]:
+
+- **Rule 1** (insertion and deletion of observations, rules 1 and $-1$): $P(\+A \given \doo(\+B), \+C) = P(\+A \given \doo(\+B), \+C \cup \+Z)$ if $\+A$ and $\+Z$ are d-separated by $\+B \cup \+C$ in $G_{\overline{\+B}}$.
+- **Rule 2** (exchange of observations and actions, rules 2 and $-2$): $P(\+A \given \doo(\+B), \+C \cup \+Z) = P(\+A \given \doo(\+B \cup \+Z), \+C)$ if $\+A$ and $\+Z$ are d-separated by $\+B \cup \+C$ in $G_{\overline{\+B}\underline{\+Z}}$.
+- **Rule 3** (insertion and deletion of actions, rules 3 and $-3$): $P(\+A \given \doo(\+B), \+C) = P(\+A \given \doo(\+B \cup \+Z), \+C)$ if $\+A$ and $\+Z$ are d-separated by $\+B \cup \+C$ in $G_{\overline{\+B}\,\overline{\+Z(\+C)}}$, where $\+Z(\+C)$ is the set of variables of $\+Z$ that are not ancestors of $\+C$ in $G_{\overline{\+B}}$.
+- **Rule 4** (marginalization): $P(\+A \setminus \+Z \given \doo(\+B), \+C) = \sum_{\+Z} P(\+A \given \doo(\+B), \+C)$ for $\+Z \subset \+A$.
+- **Rule 5** (conditioning): $P(\+A \setminus \+Z \given \doo(\+B), \+C \cup \+Z) = P(\+A \given \doo(\+B), \+C) / \sum_{\+A \setminus \+Z} P(\+A \given \doo(\+B), \+C)$ for $\+Z \subset \+A$.
+- **Rule 6** (chain rule, rules 6 and $-6$): $P(\+A \cup \+Z \given \doo(\+B), \+C) = P(\+A \given \doo(\+B), \+C \cup \+Z) P(\+Z \given \doo(\+B), \+C)$, where either factor is the distribution that is expanded and the other factor must have been derived earlier.
+
+Rules 7 to 13 concern missing data mechanisms, so they cannot be applied. The rules of do-calculus (rules 1 to 3) hold for all values of the variables in every model compatible with $G$, and we assume models where all distributions are positive. A distribution is *derived* if it is an input distribution or if it is obtained by a rule from derived distributions.
+
+**Lemma 1** [@tikka21, Theorem 1]. The left-hand side of every derived distribution is a subset of $\+L$.
+
+*Proof.* Rules 1 to 5 do not add variables to the left-hand side, and rule 6 only adds variables that are on the left-hand side of a distribution that was derived earlier. The claim follows by induction over the derivation. $\square$
+
+### Criterion 1
+
+**Lemma 2.** For every derived distribution $P(\+A \given \doo(\+B), \+C)$, there is an expression $F$ that is composed of the input distributions by summations, products and quotients such that $P(\+a \given \doo(\+b), \+c) = F(\+a, \+b, \+c)$ for all values $\+a$, $\+b$ and $\+c$ in every model compatible with $G$, and $F(\+a, \+b, \+c)$ does not depend on the values of the variables in $(\+B \cup \+C) \setminus \+V_P$.
+
+*Proof.* By induction over the derivation. For an input distribution, $F$ is the distribution itself, and $\+B_i \cup \+C_i \subseteq \+V_P$. For rules 1 to 3, the new distribution is equal to the earlier distribution for all values of their variables, so we can take $F$ of the earlier distribution, ignore the values of the variables that were inserted, and fix the values of the variables that were deleted to arbitrary values. A variable of $(\+B \cup \+C) \setminus \+V_P$ of the new distribution was either inserted or it is a variable of the right-hand side of the earlier distribution, whose $F$ does not depend on it. For rules 4 and 5, $F$ is obtained from the earlier $F$ by summations over variables of $\+A$ and a quotient, and the right-hand side gains at most variables of $\+A \subseteq \+L \subseteq \+V_P$ (Lemma 1). For rule 6, $F$ is the product of the expressions of the factors, and every variable of $\+B \cup \+C$ is on the right-hand side of both factors. $\square$
+
+*Proof of Criterion 1.* Suppose that the target $P(\+Y \given \doo(\+X), \+W)$ is derived. By Lemma 2, there is an expression $F$ with $P(\+y \given \doo(\+x), \+w) = F(\+y, \+x, \+w)$ in every model compatible with $G$, and $F$ does not depend on the value of $U \in (\+X \cup \+W) \setminus \+V_P$. Let $G'$ be the DAG obtained from $G_{\overline{\+X}}$ by replacing each bidirected edge with a latent common parent of its endpoints. For almost all positive parameterizations of $G'$ with discrete variables, the joint distribution $P'$ is faithful to $G'$ [@meek1995]. Because $U$ and $\+Y$ are d-connected by $(\+X \cup \+W) \setminus \{U\}$ in $G_{\overline{\+X}}$, and hence in $G'$, they are dependent given $(\+X \cup \+W) \setminus \{U\}$ under $P'$. Therefore, there are values $\+y$, $\+x$ and $\+w$ and another value of $U$, giving the values $\+x'$ and $\+w'$, such that $P'(\+y \given \+x, \+w) \neq P'(\+y \given \+x', \+w')$. Now define a model $M$ compatible with $G$ where every variable outside $\+X$ has the same conditional distribution given its parents as in $G'$, the latent common parents of the bidirected edges that are not present in $G_{\overline{\+X}}$ are not used by these distributions, and the variables of $\+X$ have arbitrary positive distributions. The variables of $\+X$ have no parents in $G'$, so the truncated factorization gives $P_M(\+V \setminus \+X \given \doo(\+x)) = P'(\+V \setminus \+X \given \+x)$, and thus $P_M(\+y \given \doo(\+x), \+w) = P'(\+y \given \+x, \+w)$. This depends on the value of $U$, but $F(\+y, \+x, \+w)$ does not, which is a contradiction. $\square$
+
+### Criterion 2
+
+We use two facts. First, the anchors of $Y$ are not in $\+L$, so by Lemma 1 they never appear on the left-hand side of a derived distribution. Second, if a variable $V$ is adjacent to $Y$ in a graph, then $V$ and $Y$ are d-connected by any set that contains neither of them, because the edge between them is an active path.
+
+**Lemma 3.** If every input distribution with $Y$ on its left-hand side is anchored at $Y$, then every derived distribution with $Y$ on its left-hand side is anchored at $Y$.
+
+*Proof.* By induction over the derivation. Consider a distribution with $Y$ on its left-hand side that is obtained from a distribution $P(\+A \given \doo(\+B), \+C)$ that is anchored at $Y$, where $Y \in \+A$, and let $V$ be an anchor of $Y$ in $\+B \cup \+C$ for a parent anchor or in $\+C$ for a child anchor.
+
+- Rules 1 and 3 that insert variables, rule $-2$ and rule 5 do not remove variables from $\+B \cup \+C$ or from the observations, and rule 4 does not change the right-hand side.
+- Rule $-1$ deletes observations $\+Z \subseteq \+C$. Neither $V$ nor $Y$ is in $\+B$, so the edge between them is present in $G_{\overline{\+B}}$, and $\+A$ and $\+Z$ are d-connected if $V \in \+Z$. Thus the rule cannot delete $V$.
+- Rule 2 exchanges observations $\+Z \subseteq \+C$ for actions. A parent anchor remains in $\+B \cup \+C$. For a child anchor $V \in \+Z$, the edge $Y \to V$ or $Y \leftrightarrow V$ is not into $\+B$ and it is not a directed edge out of $\+Z$, so it is present in $G_{\overline{\+B}\underline{\+Z}}$, and the rule cannot be applied.
+- Rule $-3$ deletes actions $\+Z \subseteq \+B$. For a parent anchor $V \in \+Z$, the edge $V \to Y$ is into $Y$, and $Y$ is in neither $\+B \setminus \+Z$ nor $\+Z(\+C) \subseteq \+B$, so the edge is present in $G_{\overline{\+B \setminus \+Z}\,\overline{\+Z(\+C)}}$, and the rule cannot be applied. Child anchors in $\+C$ are not affected.
+- Rule 6 combines two derived distributions, and $Y$ is on the left-hand side of one of them. By the induction hypothesis, this factor is anchored at $Y$ by an anchor $V$ on its right-hand side. The only variables of the right-hand side of a factor that are not on the right-hand side of the result are the variables of the left-hand side of the other factor, which cannot contain $V$ by the first fact. Thus $V$ remains among the actions or observations of the result, respectively.
+
+Since the input distributions with $Y$ on the left-hand side are anchored by assumption, the claim follows. $\square$
+
+*Proof of Criterion 2.* The target $P(\+Y \given \doo(\+X), \+W)$ is not anchored at $Y$, because $\Pi_Y$ contains no variables of $\+X \cup \+W$ and $K_Y$ contains no variables of $\+W$. By Lemma 3, it cannot be derived. $\square$
+
+## Scope and evaluation
+
+Criteria 1 and 2 are only applied to DAGs without missing data mechanisms. The arguments above are based on the rules of do-calculus and probability calculus, and they do not extend directly to the rules for missing data problems, which exchange proxy variables for true variables and assign values to the missing data mechanisms. For LDAGs, an edge may vanish in some contexts, so adjacency does not imply dependence, and only Theorem 1 of @tikka21 is applied.
+
+The criteria were evaluated on random instances with 4 to 6 vertices, random targets $P(\+Y \given \doo(\+X), \+W)$ and one to four random input distributions, also with a selection bias node or a transportability node attached to a random vertex. For each instance, the verdict obtained with `improve = TRUE` was compared with the result of the full search with `improve = FALSE`, which uses all inference rules and does not apply any of the criteria. The results agreed in every instance. Table 3 shows how often each criterion determined the verdict among the non-identifiable instances.
+
+Table: Table 3: Shares of the non-identifiable random instances whose verdict was obtained before the search by Theorem 1 of @tikka21 and by Criteria 1 and 2. The criteria are applied in this order, so each instance is counted once.
+
+| Graph                               | Instances | Non-identifiable | Theorem 1 | Criterion 1 | Criterion 2 |
+|:------------------------------------|----------:|-----------------:|----------:|------------:|------------:|
+| 4 vertices                          |      1500 |             1156 |     60.4% |        2.7% |       10.0% |
+| 5 vertices                          |      1500 |             1258 |     63.9% |        2.3% |        9.5% |
+| 6 vertices                          |       400 |              350 |     66.3% |        3.1% |        6.9% |
+| 5 vertices, selection bias node     |       800 |              706 |     60.9% |        3.0% |       13.2% |
+| 5 vertices, transportability node   |       800 |              697 |     59.4% |        2.6% |       15.6% |
+
+The gain is smaller in the simulation design of the previous section, where the target is always $P(y \given \doo(x))$ and $P(x)$ is always among the inputs, so Criterion 1 never applies. For the last non-identifiable set of inputs of 200 graphs with 5 and 6 vertices and 100 graphs with 7 vertices, Theorem 1 determined the verdict for 24.0%, 22.5% and 15.0% of the instances and Criterion 2 for 4.5%, 4.5% and 5.0%, which saved 2–3% of the search time of the instances not detected by Theorem 1. The verdicts again agreed with the full search in every instance. The criteria examine the inputs one variable at a time, so they cannot detect non-identifiability that arises from how several partially overlapping inputs combine, which is the typical case in this design.
+
+# Formulas
+
+## Derivations in formulas
+
+Formulas of earlier versions expressed the target in terms of distributions that were derived from the input distributions by the rules of probability calculus alone, without showing how they were derived. For example, the conditional distribution $P(b \given c, d)$ was given as $p(b|d,c)$ when it was derived from the inputs $P(b, c, d \given a)$ and $P(a, d \given c)$, although it is neither an input distribution nor a marginal or conditional distribution of one. In version 1.1.0, every distribution that appears in a formula is an input distribution or a marginal or conditional distribution of an input distribution, possibly evaluated at values that are assigned to its missing data mechanisms or context variables during the derivation:
+
+```{r}
+derived <- dosearch(
+  "p(b,c,d|a) \n p(a,d|c)",
+  "p(b|c,d)",
+  "b -> a \n b -> d \n c -> d \n c <-> d"
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(derived)
+```
+
+A marginal or conditional distribution is given as such when the distribution that is marginalized or conditioned is derived from an input distribution by rules that have a single parent distribution, i.e., by the rules of do-calculus, marginalization and conditioning, and in missing data problems, by the assignment of values to the mechanisms and the exchange of proxy variables for true variables. The same holds when a distribution is divided by its marginal or conditional distribution (rules 7, -7, 8 and -8 of missing data problems) and both are derived from the same input distribution by these rules. Case-by-case reasoning over a variable that is assigned a value reduces to the case of that value, so it counts as a rule with a single parent here. Otherwise, the summations and quotients are given explicitly, e.g., when a product of distributions is marginalized, as in the formulas of the next section. The rules of do-calculus equate distributions without changing them, so they do not appear in formulas. For example, $p(z)$ and $p(y|x,z)$ in the back-door formula are the marginal and the conditional distribution of the input distribution $P(x,y,z)$:
+
+```{r}
+backdoor <- dosearch("p(x,y,z)", "p(y|do(x))", "x -> y \n z -> x \n z -> y")
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(backdoor)
+```
+
+The search returns the first derivation of the target that it finds rather than the shortest one, so a formula may contain steps that a derivation by hand would avoid. Showing the derivations does not change them. The terms of products are still ordered by the lengths of their formulas, which are now the lengths of the formulas as they are given, so the order of the terms may differ from earlier versions.
+
+## Primes and parentheses
+
+Formulas of earlier versions reused the names of the variables for the variables bound by summations, even when a variable of the same name already appeared in the formula, and they enclosed every product in parentheses. For example, the front-door formula was given as
+$$
+\sum_{z}\left(p(z|x)\sum_{x}\left(p(x)p(y|z,x)\right)\right),
+$$
+where the inner sum over $x$ refers to a different variable than the $x$ of $p(z|x)$. Version 1.1.0 changes the formulas in two further ways:
+
+1. A summation applies to every term that follows it in the same product, i.e., up to a minus sign (or a plus sign in the variants of formulas, see below), the end of the enclosing expression (a numerator, a denominator or an expression in brackets) or the end of the formula, as is conventional. Products are not enclosed in parentheses, and differences (and sums) are enclosed in parentheses only when they are terms of products or summations, when they are subtracted or when they are cases of case-by-case reasoning.
+2. A bound variable is primed when a variable of the same name is already in scope, i.e., when it is a variable of the target distribution, it appears in the formula outside the summations that bind it, or another summation over a variable of the same name applies at the position of the summation.
+
+The front-door formula is now given as follows:
+
+```{r}
+frontdoor <- dosearch("p(x,y,z)", "p(y|do(x))", "x -> z \n z -> y \n x <-> y")
+frontdoor
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(frontdoor)
+```
+
+When a summation is followed by other terms in a product, the derivation applies the summation only to the term that directly follows it, whereas the formula applies it to all the terms that follow. This does not change the value of the formula, because $\sum_{v} f(v) g = \left(\sum_{v} f(v)\right) g$ when $g$ does not depend on $v$, and the primes guarantee that the terms that follow a summation do not contain the variables that it binds. To keep the names unambiguous, a summation over a variable that follows another summation over a variable of the same name in the same product is primed once more. In the following example, the second summation over $w$ is in the scope of the first one:
+
+```{r}
+data <- "
+  p(x)
+  p(v,w|x,do(y))
+  p(y|v,w,do(x,z))
+"
+graph <- "
+  v -> x
+  x -> y
+  w -> y
+  v -> y
+  x -> z
+  w -> z
+  y <-> v
+  w <-> v
+"
+siblings <- dosearch(data, "p(y|do(x))", graph)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(siblings)
+```
+
+A variable that is bound by nested summations receives an additional prime for each enclosing summation that binds a variable of the same name. In the following example, the target variable $y$ is bound by the summation over $y'$, and the summation over $y''$ in the denominator is in the scope of that summation:
+
+```{r}
+nested <- dosearch(
+  "p(x) \n p(y|x) \n p(z|x,y)",
+  "p(y|do(x))",
+  "x -> y \n z -> x \n z -> y"
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(nested)
+```
+
+At most three primes are used. A variable that would need more primes is distinguished by a superscript instead, e.g., `y^{(4)}` for $y^{(4)}$. The primes do not otherwise change the formulas.
+
+In missing data problems, the proxy variable `x*` is written as `x^{\ast}` in formulas, so that the formulas render correctly, and its primes are given in the same superscript, e.g., `x^{\ast\prime}` for $x^{\ast\prime}$. A proxy variable that is exchanged for its true variable stands for the value of the true variable, so the proxy variable shares the primes of the true variable. In the case-control design of @tikka21, the proxy variable $y^*$ in the numerator stands for the value of $y$ in the target, and the proxy variable $y^{*\prime}$ in the denominator stands for the value of $y'$:
+
+```{r}
+casecontrol <- dosearch(
+  "p(x*,y*,r_x,r_y) \n p(y)",
+  "p(y|do(x))",
+  "x -> y \n y -> r_y \n r_y -> r_x",
+  missing_data = "r_x : x, r_y : y"
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(casecontrol)
+```
+
+Conversely, summations over a true variable and over its proxy variable are primed in the same way as summations over the same variable, so a proxy variable that is bound by a summation is never confused with a proxy variable that stands for the value of its true variable. In the following example, the summation over the proxy variable $x^{*\prime}$ is primed because $x$ is a variable of the target:
+
+```{r}
+proxies <- dosearch(
+  "p(x*,y*,r_x,r_y) \n p(y)",
+  "p(x)",
+  "x -> y \n y -> r_x \n y -> r_y",
+  missing_data = "r_x : x, r_y : y",
+  control = list(heuristic = TRUE)
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(proxies)
+```
+
+A proxy variable that is removed from a distribution by deleting an observation remains in the formula without a summation. It is a variable of its own, so it is primed when a variable of the same name is in scope, and the formula holds for every value of the variable that is possible given its mechanism in the same distribution. In the following example, the proxy variable $x^{*\prime}$ is deleted from $P(y \given x^*, R_X = 1)$, so the formula holds for every observed value of $x^{*\prime}$, and it is primed because it does not stand for the value of $x$ in the target:
+
+```{r}
+observed_proxy <- dosearch(
+  "p(x) \n p(y|x*,r_x = 1)",
+  "p(x,y)",
+  "x -> r_x",
+  missing_data = "r_x : x"
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(observed_proxy)
+```
+
+When the mechanism has the value 0 in the same distribution, the removed proxy variable is missing, so its value is determined by the mechanism. Conditioning on the missing proxy variable does not change the distribution, and the probability that it is missing is 1, so the proxy variable is omitted from the distribution:
+
+```{r}
+missing_proxy <- dosearch(
+  "p(x) \n p(y|x*,r_x = 0)",
+  "p(x,y)",
+  "x -> r_x",
+  missing_data = "r_x : x"
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(missing_proxy)
+```
+
+The removed proxy variable is kept only where omitting it would change the distribution. This is the case when the mechanism is on the left-hand side of the distribution and the proxy variable is not, e.g., $p(r_y = 0,z|y^*)$ is equal to $p(z|r_y = 0)$ and not to $p(r_y = 0,z)$ when $y^*$ is missing, and when the proxy variable is the only variable on the left-hand side. In these cases, the proxy variable is missing.
+
+Primes and the notation `x^{\ast}` are only used in formulas. Derivations (`draw_derivation = TRUE`) and the diagnostic output of the search (`verbose = TRUE`) show the distributions without primes and with the proxy variables written as `x*`, as in the input and target distributions.
+
+## Verification
+
+We verified the formulas of version 1.1.0 for 4853 identifiable instances: the random instances and the simulation design used above, the bivariate missing data problems of @tikka21, random missing data problems with `case_reasoning = TRUE`, and the instances of the tests of the package. For each instance, we drew a random model of binary variables that is compatible with the graph, where a bidirected edge is replaced by a latent common cause of its endpoints and a proxy variable is equal to its true variable when its mechanism has the value 1 and missing otherwise. We then compared the value of the formula, read with the conventional scope of summations, with the value of the target in the model for every combination of values of the variables that are not bound by summations, or for eight random combinations when there are more than three such variables. In all 4841 instances that were small enough to be evaluated, the formula had the same value as the target. None of the formulas contains a removed proxy variable that is missing. The formulas of 82 instances were derived by case-by-case reasoning, and their 120 variants (see Variants of formulas below) were compared in the same way with the target at the values of the variants. All 114 variants that were small enough to be evaluated had the same value as the target.
+
+The check also revealed two errors in the search. First, the search could remove a missing data mechanism from a distribution while its proxy variable remained in it. For example, it could derive $P(y \given x^*)$ from $P(y \given x^*, R_X = 0)$, where $x^*$ is always missing, or divide $P(R_X = 1, x^*)$ by $P(R_X = 1 \given x^*)$, which is zero when $x^*$ is missing. Such steps equate distributions that are defined for different values of the proxy variable, and they gave incorrect formulas for 15 of the 4853 instances. Rules that would remove a mechanism from a distribution that contains its proxy variable are no longer applied. Second, a proxy variable that was removed from a distribution by deleting an observation could be identified with another variable of the same name in the formula, which gave incorrect formulas for 14 of the 3237 instances with missing data when they were solved with `improve = FALSE`. Removed proxy variables are now variables of their own. With `improve = TRUE`, the default rules did not delete observations, because the deletion of observations is implied by the other rules [@tikka21], except for proxy variables, to which the other rules do not apply. The observations of proxy variables are now deleted by the default rules. Some instances were previously identified only through the incorrect steps, and all 4853 instances are now identified with correct formulas.
+
+For the 4757 instances whose derivations are not affected by these changes, the formulas of 2795 instances are the same as the formulas formatted as in earlier versions, and the formulas of 3187 instances are the same apart from the parentheses and the primes. Over the 1779 distinct pairs of formulas, the number of pairs of parentheses decreased from 2523 to 103, and the median length of the formulas decreased from 35 to 21 characters. The formulas of 46 instances that consisted of a single derived distribution now show how the distribution is derived.
+
+# New rules for missing data problems
+
+In earlier versions, missing data mechanisms could only be enabled in the input and target distributions. A mechanism $R_X$ is enabled when it is assigned the value 1, which means that $X$ is observed and its proxy variable $X^*$ is equal to $X$ [@Mohan2013]. In version 1.1.0, mechanisms can also be disabled by assigning them the value 0, which means that $X$ is missing. For example, `p(y*,r_y = 1)` is the distribution of the observed values of $Y$, and `p(y|r_y = 0)` is the distribution of $Y$ among the units for which $Y$ is missing, as obtained from a follow-up study of the non-respondents. Other values produce an error.
+
+Distributions with disabled mechanisms are combined with the other distributions by new inference rules that are analogous to the reasoning by cases for context variables of LDAGs [@tikka19]:
+
+| Rule     | Name             | Description |
+|:---------|:-----------------|:------------|
+| -9       | case-by-general  | Disables a mechanism on the left-hand side or among the observations that is not assigned a value, e.g., derives $P(\+Y \given \doo(\+X), \+W, R_Z = 0)$ from $P(\+Y \given \doo(\+X), \+W, R_Z)$. Rule 9 of @tikka21 enables a mechanism in the same way. |
+| 11, -11  | case-by-case     | Combines the distributions for both values of a mechanism on the left-hand side, $P(\+Y, R_Z = 1 \given \cdot)$ and $P(\+Y, R_Z = 0 \given \cdot)$, into the distribution $P(\+Y, R_Z \given \cdot)$. Rule 11 is applied to the distribution for the value 1 and rule -11 to the distribution for the value 0. |
+| 12       | general-by-case  | Derives the distribution for one value of a mechanism on the left-hand side from the distribution for the other value and the distribution where the mechanism is not present, e.g., $P(\+Y, R_Z = 0 \given \cdot) = P(\+Y \given \cdot) - P(\+Y, R_Z = 1 \given \cdot)$. The rule is applied to the distribution for the known value. |
+| 13, -13  | general-by-case  | Derives the same distributions as rule 12, but the rule is applied to the distribution $P(\+Y \given \cdot)$ where the mechanism is not present. The mechanism must appear on the left-hand side of some input distribution. Rule 13 derives the distribution for the value 1 and rule -13 for the value 0. |
+
+The new rules increase the size of the search space, so they are not used by default. They are added to the default rules, or to the rules given via `rules` in `control`, by setting the new argument `case_reasoning = TRUE` of `dosearch`. In the systematic analysis of bivariate missing data problems of @tikka21, enabling the rules does not change the results, and the search takes about twice as long.
+
+## Follow-up studies of non-respondents
+
+When $Y$ is missing not at random, its distribution is not identifiable from the observed data alone, even with case reasoning. A follow-up study that provides the distribution of $Y$ among the non-respondents makes it identifiable:
+
+```{r}
+data <- "
+  p(y*,r_y)
+  p(y|r_y = 0)
+"
+dosearch(data, "p(y)", "y -> r_y", missing_data = "r_y : y")
+followup <- dosearch(
+  data,
+  "p(y)",
+  "y -> r_y",
+  missing_data = "r_y : y",
+  case_reasoning = TRUE,
+  control = list(draw_derivation = TRUE)
+)
+followup
+```
+
+The formula sums over the two cases of $R_Y$, which are combined by case-by-case reasoning. The steps of the derivation show how the cases are obtained, where `A` denotes the assignment of a value to a mechanism (rules 9 and -9), `EX` the exchange of a proxy variable for its true variable, `P` the chain rule, `CbC` case-by-case reasoning and `M` marginalization:
+
+```{r}
+print_steps(followup)
+```
+
+That is, $P(y) = \sum_{R_Y} P(y, R_Y)$, where $P(y, R_Y = 1) = P(y^*, R_Y = 1)$ with $y^* = y$, and $P(y, R_Y = 0) = P(R_Y = 0)P(y \given R_Y = 0)$, where $P(R_Y = 0)$ is the marginal distribution of the input distribution $P(y^*, R_Y)$ at $R_Y = 0$.
+
+The new rules can also identify queries when no mechanism is disabled in the inputs. For example, the missingness mechanism of $Y$ is identifiable when the marginal distribution of $Y$ is known from another source, which requires both general-by-case and case-by-case reasoning:
+
+```{r}
+data <- "
+  p(y*,r_y)
+  p(y)
+"
+dosearch(data, "p(r_y = 1|y)", "y -> r_y", missing_data = "r_y : y")
+dosearch(
+  data,
+  "p(r_y = 1|y)",
+  "y -> r_y",
+  missing_data = "r_y : y",
+  case_reasoning = TRUE
+)
+```
+
+## Values of mechanisms in formulas
+
+The values that are assigned to the mechanisms during the derivation are shown in the input distributions of the formula. Previously, a mechanism could appear in the formula as if it had not been assigned a value. Assigning a value to a variable commutes with the summations over other variables, products, quotients and differences, so the value is assigned in every input distribution of the formula that the value applies to, except under the summations over the variable itself. Case-by-case reasoning over a variable that is assigned a value reduces to the case of that value. In the case-control design of @tikka21, the distribution of $y$ among the units for which $x$ is missing is
+
+```{r}
+missing_x <- dosearch(
+  "p(x*,y*,r_x,r_y) \n p(y)",
+  "p(y|r_x = 0)",
+  "x -> y \n y -> r_y \n r_y -> r_x",
+  missing_data = "r_x : x, r_y : y",
+  case_reasoning = TRUE
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(missing_x)
+```
+
+The value $R_X = 0$ of the target is shown in the conditional distribution of $R_X$ given $R_Y$ and in the marginal distribution of $R_X$, which are given as distributions of the input distribution $P(x^*, y^*, R_X, R_Y)$, whereas the marginal distribution of $y^*$ and $R_Y$ does not contain $R_X$, so the value does not apply to it.
+
+The notation $\left[f_0 \vee f_1\right]$ denotes the distribution given by $f_0$ when a mechanism has the value 0 and by $f_1$ when it has the value 1, as obtained by case-by-case reasoning, where a case that is a difference is enclosed in parentheses, e.g., $\left[\left(p(y) - p(r_x = 1,y)\right) \vee p(r_x = 1,y)\right]$:
+
+```{r}
+cases <- dosearch(
+  "p(y,r_x = 1|z) \n p(y,r_x = 0|z)",
+  "p(y,r_x|do(z))",
+  "z -> y \n x -> r_x",
+  missing_data = "r_x : x",
+  case_reasoning = TRUE
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(cases)
+```
+
+General-by-case reasoning appears in formulas as the difference of the formula for the distribution where the mechanism is not present and the formula for the other value of the mechanism:
+
+```{r}
+difference <- dosearch(
+  "p(y,r_x = 1|z) \n p(y|z)",
+  "p(y,r_x = 0|do(z))",
+  "z -> y \n x -> r_x",
+  missing_data = "r_x : x",
+  case_reasoning = TRUE
+)
+```
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(difference)
+```
+
+## Variants of formulas
+
+When the derivation uses case-by-case reasoning over missing data mechanisms (rules 11 and -11) or over context variables of LDAGs (rules 5 and -5), the result also contains the variants of the formula (`variants`), which are obtained via `get_formula(x, variants = TRUE)`. The variables of case-by-case reasoning are binary, and there is a variant for each combination of values of those variables that are free in the formula. The values are assigned in the variants, so case-by-case reasoning over a variable reduces to the case of its value. The variants of the formula of `cases` above are
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(cases, variants = TRUE)
+```
+
+A summation over a variable of case-by-case reasoning is written out in the variants as the sum of its terms for the values 0 and 1, so the variants do not contain the notation $\left[f_0 \vee f_1\right]$. A sum is enclosed in parentheses in the same way as a difference. When the case of a value is derived from a single input distribution, its marginal and conditional distributions are given as such in the variant, e.g., $p(y^{\ast}|r_y = 1)$ instead of the quotient of $p(r_y = 1, y^{\ast})$ and its marginal distribution. In the follow-up study and in the case-control design above, the mechanism $R_Y$ of case-by-case reasoning is bound by a summation, so there is a single variant, whose name is empty:
+
+```{r, echo = FALSE, results = "asis"}
+show_formula(followup, variants = TRUE)
+show_formula(missing_x, variants = TRUE)
+```
+
+Printing the result still shows the general formula:
+
+```{r}
+cases
+get_formula(cases, variants = TRUE)
+```
+
+The variants are not included when case-by-case reasoning is not used, e.g., for the general-by-case reasoning of `difference` above, and `get_formula(x, variants = TRUE)` then returns the formula itself.
+
+# Plotting formulas
+
+The new function `plot_formula` draws the formula of a `dosearch` object on the current graphics device with the mathematics rendered, so the formula can be read in an R session without LaTeX. The formula is converted to an expression of the `plotmath` facility of R (see `?plotmath`), where summations are drawn with their limits and quotients as fractions. The name of a variable is split at its first underscore into a name and a subscript, e.g., `r_x` is drawn as $r_x$, proxy variables are drawn with an asterisk as a superscript, and primes are drawn as prime marks. The formula of `missing_x` above is drawn as follows:
+
+```{r, fig.width = 7, fig.height = 1.2, fig.align = "center"}
+plot_formula(missing_x)
+```
+
+The formula is drawn on a single line that is shrunk to fit the plot region, so `plot_formula` is intended for formulas of moderate length, and formulas longer than `max_chars` characters (500 by default) are not plotted. Variable names that contain other characters than ASCII letters, digits, periods and underscores are cleaned for plotting, e.g., `a-b` is drawn as `a.b`, and a warning lists the names that were changed. The `plotmath` expressions are returned invisibly, so they can also be used in other plots, e.g., as titles.
+
+With `variants = TRUE`, the variants of the formula are drawn one below the other, each preceded by the values of the variables of case-by-case reasoning. The variants can be much shorter than the general formula. For example, when the joint distribution of $X$ and $Y$ is known for every combination of values of their mechanisms, e.g., from follow-up studies of the non-respondents, the conditional distribution of $Y$ given $X$ and the mechanisms is obtained by case-by-case reasoning over both mechanisms:
+
+```{r}
+data <- "
+  p(x*,y*,r_x = 1,r_y = 1)
+  p(x,y,r_x = 0,r_y = 0)
+  p(x,y,r_x = 0,r_y = 1)
+  p(x,y,r_x = 1,r_y = 0)
+"
+strata <- dosearch(
+  data,
+  "p(y|x,r_x,r_y)",
+  "x -> y \n x -> r_x \n y -> r_y",
+  missing_data = "r_x : x, r_y : y",
+  case_reasoning = TRUE
+)
+```
+
+```{r, fig.width = 7, fig.height = 1.2, fig.align = "center"}
+plot_formula(strata)
+```
+
+```{r, fig.width = 7, fig.height = 2, fig.align = "center"}
+plot_formula(strata, variants = TRUE)
+```
+
+# References

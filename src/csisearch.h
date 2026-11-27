@@ -8,30 +8,48 @@
 class csisearch : public search {
 public:
   csisearch(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
-  int con_vars, intv_vars;
+  varset con_vars, intv_vars;
+  // Values assigned to the context variables in the part of a formula that
+  // is being derived (see assigned_formula)
+  p pending;
   ldag* g;
   virtual void add_distribution(distr& nquery);
-  virtual void add_known(const int& a, const int& b, const int& c, const int& d);
+  virtual void add_known(const varset& a, const varset& b, const varset& c, const varset& d, const varset& e);
   virtual distr& next_distribution(const int& i);
   void assign_candidate(distr& required);
   bool check_trivial();
   bool separation_criterion();
-  int rule_limit(const int& ruleid, const unsigned int& z_size);
-  void set_target(const int& a, const int& b, const int& c, const int& d);
+  int rule_limit(const int& ruleid) const;
+  varset rule_mask(const int& ruleid, const p& pp) const;
+  void set_target(const varset& a, const varset& b, const varset& c, const varset& d, const varset& e);
   void set_graph(ldag* g_);
   void set_options(const std::vector<int>& rule_vec);
   void set_labels(const Rcpp::StringVector& lab);
-  void set_contexts(const int& con);
-  void set_interventions(const int& intv);
-  bool is_primitive(const bool& pa1_primitive, const bool& pa2_primitive, const int& ruleid);
-  std::string derive_formula(distr& dist);
-  std::string dec_to_text(const int& dec, const int& zero, const int& one) const;
+  void set_contexts(const varset& con);
+  void set_interventions(const varset& intv);
+  std::string derive_formula(distr& dist, bindings& open, bool& difference);
+  std::string assigned_formula(distr& dist, const varset& zero, const varset& one, bindings& open, bool& difference);
+  int assigned_case(const distr& dist, const p& values) const;
+  p parent_values(const distr& dist, p values) const;
+  bool single_input(const distr& dist, p values) const;
+  p compact_atom(const distr& dist, varset drop, varset move, p values) const;
+  std::string compact_formula(distr& dist, varset drop, varset move);
+  std::string sum_formula(distr& dist, varset z, bindings& open, bool& difference);
+  std::string written_sum(distr& dist, const varset& w);
+  varset case_variables(const distr& dist) const;
+  varset assigned(const p& pp) const;
+  void set_pending(const varset& zero, const varset& one);
+  bool is_difference(const distr& dist) const;
+  std::size_t sort_length(const distr& dist);
+  std::size_t term_length(const distr& dist);
+  varset free_vars(const distr& dist);
+  std::string dec_to_text(const varset& dec, const varset& zero, const varset& one, const std::vector<int>& scope) const;
   std::string to_string(const p& pp) const;
-  bool valid_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const bool& primi) const;
-  void apply_rule(const int& ruleid, const int& a, const int& b, const int& c, const int& d, const int& z);
+  std::string to_string(const p& pp, const std::vector<int>& scope) const;
+  bool valid_rule(const int& ruleid, const p& pp) const;
+  void apply_rule(const int& ruleid, const p& pp, const varset& z);
   void derive_distribution(const distr& iquery, const distr& required, const int& ruleid, int& remaining, bool& found);
-  void get_ruleinfo(const int& ruleid, const int& y, const int& x, const int& u, const int& v, const int& z);
-  void get_candidate(distr& required, const int& req);
+  void get_ruleinfo(const int& ruleid, const p& pp, const varset& z);
   void enumerate_candidates();
   virtual ~csisearch();
 };
@@ -45,7 +63,7 @@ public:
   };
   csisearch_heuristic(const int& n_, const double& tl, const bool& bm, const bool& br, const bool& dd, const bool& da, const bool& fa, const bool& im, const bool& verb);
   void add_distribution(distr& nquery);
-  void add_known(const int& a, const int& b, const int& c, const int& d);
+  void add_known(const varset& a, const varset& b, const varset& c, const varset& d, const varset& e);
   distr& next_distribution(const int& i);
   virtual ~csisearch_heuristic();
 private:

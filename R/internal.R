@@ -26,27 +26,15 @@ seq_min2 <- function(n) {
   }
 }
 
-#' Convert a Vector of Unique Integers to a Set
+#' Convert a Vector of Vertex Indices to a Set
 #'
-#' @param vec An `integer` vector.
-#' @param n An `integer`, the number of unique elements.
-#' @noRd
-to_dec <- function(vec, n) {
-  sum(2L^seq.int(0L, n - 1L)[vec])
-}
-
-#' Convert a Set of Integers to a Vector of Unique Integers
+#' Sets of vertices are passed to the C++ side as sorted vectors of unique
+#' vertex indices, which places no limit on the number of vertices.
 #'
-#' @param dec An `integer`, representing a set of integers.
-#' @param n An `integer`, the number of unique elements.
+#' @param vec An `integer` vector of vertex indices.
 #' @noRd
-to_vec <- function(dec, n) {
-  b <- integer(n)
-  for (i in seq_len(n)) {
-    b[n - i + 1L] <- (dec %% 2L) * 1L
-    dec <- (dec %/% 2L)
-  }
-  rev(b)
+as_set <- function(vec) {
+  sort(unique(as.integer(vec)))
 }
 
 #' Create a Comma-separated Character String
@@ -233,7 +221,7 @@ parse_graph <- function(graph) {
       v <- igraph::vertex_attr(graph, "name")
       if (is.null(v)) {
         n <- length(igraph::V(graph))
-        pow <- ceiling(log(n) / log(26))
+        pow <- max(1L, ceiling(log(n) / log(26)))
         d <- apply(
           expand.grid(rep(list(letters), pow)),
           1,
@@ -256,7 +244,7 @@ parse_graph <- function(graph) {
         unobs_edges <- e[!is.na(e_attr) & e_attr == "U"]
       }
       if (length(obs_edges) > 0L) {
-        obs_ind <- igraph::get.edges(graph, obs_edges)
+        obs_ind <- igraph::ends(graph, obs_edges, names = FALSE)
         g_obs <- paste(
           v[obs_ind[, 1L]],
           "->",
@@ -265,11 +253,14 @@ parse_graph <- function(graph) {
         )
       }
       if (length(unobs_edges) > 0L) {
-        unobs_ind <- igraph::get.edges(graph, unobs_edges)
-        unobs_ind <- unobs_ind[
-          unobs_ind[, 1L] < unobs_ind[, 2L], ,
-          drop = FALSE
-        ]
+        unobs_ind <- igraph::ends(graph, unobs_edges, names = FALSE)
+        # A bidirected edge may be given in either or both directions
+        unobs_ind <- unique(
+          cbind(
+            pmin(unobs_ind[, 1L], unobs_ind[, 2L]),
+            pmax(unobs_ind[, 1L], unobs_ind[, 2L])
+          )
+        )
         g_unobs <- paste(
           v[unobs_ind[, 1L]],
           "<->",
@@ -301,28 +292,26 @@ parse_graph <- function(graph) {
   }
 }
 
-#' Check True Graph Size
-#'
-#' @param args n The number of nodes.
-#' @noRd
-check_graph_size <- function(n) {
-  if (n > 30) {
-    stop_("The inputs imply a graph with more than 30 nodes.")
-  }
-}
-
 #' Set Default Values for Control Arguments
 #'
 #' @inheritParams dosearch
 #' @noRd
 control_defaults <- function(control) {
+  if ("md_sym" %in% names(control)) {
+    warning_(
+      "Argument `md_sym` of `control` is deprecated and will be ignored. ",
+      "The value 1 always denotes an enabled missing data mechanism ",
+      "and the value 0 a disabled one."
+    )
+    control$md_sym <- NULL
+  }
   rules <- as.integer(control$rules)
   con_vars <- as.character(control$con_vars)
   control$rules <- integer(0L)
   control$con_vars <- character(0L)
   control_lengths <- lengths(control)
   if (any(control_lengths > 1L)) {
-    stop(
+    stop_(
       "All elements of argument `control` ",
       "must be of length 1 (except `rules` and `con_vars`).\n",
       "The following elements have length > 1: ",
@@ -341,7 +330,6 @@ control_defaults <- function(control) {
     formula = TRUE,
     heuristic = FALSE,
     improve = TRUE,
-    md_sym = "1",
     rules = integer(0L),
     time_limit = -1.0,
     verbose = FALSE,
@@ -353,7 +341,7 @@ control_defaults <- function(control) {
   if (any(!control_names %in% default_names)) {
     stop_(
       "Unknown control arguments: ",
-      control_names[!control_names %in% default_names]
+      cs(control_names[!control_names %in% default_names])
     )
   }
   given_args <- match(control_names, default_names)
@@ -374,7 +362,77 @@ control_defaults <- function(control) {
       paste0(default_types[invalid_types], collapse = ", ")
     )
   }
+  if (control$benchmark_rules) {
+    control$benchmark <- TRUE
+  }
   control
+}
+
+#' Find Elements That Are Not Pairs of Non-empty Strings
+#'
+#' @param x A `list` of `character` vectors, e.g., value assignments of the
+#'   form `X = v` split by `=`.
+#' @noRd
+malformed_pairs <- function(x) {
+  vapply(
+    x,
+    function(y) length(y) != 2L || !all(nzchar(y)),
+    logical(1L)
+  )
+}
+
+#' Warn About Target Variables Missing From the Graph and the Inputs
+#'
+#' @param args A `list` of arguments for `initialize_dosearch` or
+#'   `initialize_csisearch`.
+#' @noRd
+warn_unknown_query_vars <- function(args) {
+  unknown <- setdiff(args$query_vars, union(args$graph_vars, args$var_pool))
+  if (length(unknown) > 0L) {
+    warning_(
+      "The target distribution contains variables that are not present ",
+      "in the graph or in any input distribution: ",
+      cs(unknown)
+    )
+  }
+}
+
+#' Warn About Input Variables Missing From the Graph and Other Distributions
+#'
+#' A variable that is not present in the graph, in any other input
+#' distribution or in the target distribution is likely a typo.
+#'
+#' @param args A `list` of arguments for `initialize_dosearch` or
+#'   `initialize_csisearch`.
+#' @noRd
+warn_unknown_input_vars <- function(args) {
+  v <- unlist(args$input_vars)
+  once <- v[!v %in% v[duplicated(v)]]
+  unknown <- setdiff(once, union(args$graph_vars, args$query_vars))
+  if (length(unknown) > 0L) {
+    warning_(
+      "The input distributions contain variables that are not present ",
+      "in the graph, in any other input distribution ",
+      "or in the target distribution: ",
+      cs(unknown)
+    )
+  }
+}
+
+#' Check the Validity of Inference Rules Given via `control`
+#'
+#' @param rules An `integer` vector of rule identifiers.
+#' @param valid An `integer` vector of valid rule identifiers.
+#' @noRd
+validate_rules <- function(rules, valid) {
+  invalid <- rules[!rules %in% valid]
+  if (length(invalid) > 0L) {
+    stop_(
+      "Invalid rules in argument `control`: ", cs(unique(invalid)), ".\n",
+      "Valid rules are: ", cs(valid)
+    )
+  }
+  unique(rules)
 }
 
 #' Construct an Empty `dosearch` Object

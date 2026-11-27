@@ -29,7 +29,7 @@ additionally include mechanisms related to:
 - Missing data (Mohan et al., 2013)
 - Context-specific independence (Corander et al., 2019)
 
-See the package vignette or the references for further information.
+See the package vignettes or the references for further information.
 
 ### Citing the package
 
@@ -69,7 +69,7 @@ graph <- "
   z -> y
 "
 dosearch(data, query, graph)
-#> \sum_{z}\left(p(z)p(y|x,z)\right)
+#> \sum_{z}p(z)p(y|x,z)
 
 # front-door formula
 graph <- "
@@ -78,7 +78,7 @@ graph <- "
   x <-> y
 "
 dosearch(data, query, graph)
-#> \sum_{z}\left(p(z|x)\sum_{x}\left(p(x)p(y|z,x)\right)\right)
+#> \sum_{z}p(z|x)\sum_{x'}p(x')p(y|z,x')
 
 # the 'napkin' graph
 data <- "p(x,y,z,w)"
@@ -90,7 +90,7 @@ graph <- "
   w <-> y
 "
 dosearch(data, query, graph)
-#> \frac{\sum_{w}\left(p(w)p(y,x|z,w)\right)}{\sum_{y}\sum_{w}\left(p(w)p(y,x|z,w)\right)}
+#> \frac{\sum_{w}p(w)p(y,x|z,w)}{\sum_{y'}\sum_{w}p(w)p(y',x|z,w)}
 
 # case-control design
 data <- "
@@ -104,7 +104,7 @@ graph <- "
 "
 md <- "r_x : x, r_y : y"
 dosearch(data, query, graph, missing_data = md)
-#> \frac{\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}{\sum_{y}\left(p(y)p(x|r_x = 1,y,r_y = 1)\right)}
+#> \frac{p(y)p(x^{\ast}|r_x = 1,r_y = 1,y^{\ast})}{\sum_{y'}p(y')p(x^{\ast}|r_x = 1,r_y = 1,y^{\ast\prime})}
 ```
 
 ## References

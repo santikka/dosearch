@@ -100,16 +100,51 @@
 #' The syntax for a single mechanism is `M_X : X` where
 #' \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} is the mechanism for \eqn{X}.
 #' Individual mechanisms should be separated by a comma.
-#' Note that both \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} and \eqn{X}
-#' must be present in the graph if the corresponding mechanism is given as
-#' input. Proxy variables should not be included in the graph, since they are
-#' automatically generated based on \code{missing_data}. By default, a warning
+#' If \ifelse{html}{\out{M<sub>X</sub>}}{\eqn{M_X}} or \eqn{X} is not present
+#' in the graph, it is added to the graph with no edges other than the edge to
+#' the proxy variable of \eqn{X}, i.e., it is independent of the other
+#' variables of the graph, and a warning is issued by default. Proxy variables
+#' should not be included in the graph, since they are automatically generated
+#' based on \code{missing_data}. By default, a warning
 #' is issued if a proxy variable is present in an input distribution but its
 #' corresponding mechanism is not present in any input. See e.g.,
 #' (Mohan, Pearl and Tian, 2013) for details on missing data as
 #' a causal inference problem. Note that `dosearch` is not complete for
 #' missing data problems, meaning that if `dosearch` is not able to identify
 #' the `query`, it might still be identifiable via some other means.
+#'
+#' Missing data mechanisms can be assigned values in `data` and `query`.
+#' The value 1 denotes an enabled mechanism, i.e., the variable is observed
+#' and its proxy variable is equal to the true variable, and the value 0
+#' denotes a disabled mechanism, i.e., the variable is missing. For example,
+#' `P(Y*,R_Y = 1)` is the distribution of the observed values of \eqn{Y}, and
+#' `P(Y|R_Y = 0)` is the distribution of \eqn{Y} among the units for which
+#' \eqn{Y} is missing, as obtained from a follow-up study of non-respondents.
+#' No other values are permitted. In addition to the rules of
+#' Tikka et al. (2021), the search can use rules analogous to the
+#' case-by-case, general-by-case and case-by-general reasoning of
+#' Tikka et al. (2019) for the values of the mechanisms by setting
+#' `case_reasoning = TRUE`. These rules are typically needed when mechanisms
+#' are disabled in the input or target distributions, and they can also
+#' identify queries that are not identifiable otherwise when the inputs
+#' originate from different sources. However, they increase the size of the
+#' search space, so they are not used by default.
+#'
+#' Before the search is started, the target is checked against criteria that
+#' can show it to be non-identifiable directly from the inputs, in which case
+#' the search is not carried out (when `improve = TRUE` in `control`). The
+#' target is non-identifiable by do-search when a variable on the left-hand
+#' side of the target does not appear on the left-hand side of any input
+#' distribution (Tikka et al., 2021). For DAGs without missing data mechanisms,
+#' two additional criteria are used. The first applies when a variable on the
+#' right-hand side of the target does not appear in any input distribution
+#' but the target depends on it, and the second applies when every input
+#' distribution of some variable of the left-hand side of the target also
+#' conditions on, or intervenes on, a neighbor of the variable in the graph
+#' that the rules of the search can never remove, but the target does not.
+#' See the vignette "New features in dosearch 1.1.0" for the precise criteria
+#' and their proofs. With `verbose = TRUE` in `control`, the criterion that
+#' applies is reported.
 #'
 #' The `control` argument is a list that can supply any of the following
 #' components:
@@ -119,6 +154,13 @@
 #' * `benchmark_rules`: a `logical` value. If `TRUE`, the time taken by each
 #'   individual inference rule is also recorded in the benchmark
 #'   (in milliseconds). Defaults to `FALSE`.
+#' * `cache`: a `logical` value. If `TRUE`, the results of the separation
+#'   criteria evaluated during the search are cached (for LDAGs only).
+#'   Defaults to `TRUE`.
+#' * `con_vars`: a `character` vector of additional context variables for
+#'   LDAGs, i.e., variables that can be assigned values in the input and target
+#'   distributions even though they do not appear in any edge label.
+#'   Defaults to an empty vector.
 #' * `draw_derivation`: a `logical` value. If `TRUE`, a string representing
 #'   the derivation steps as a DOT graph is returned. If the `DiagrammeR`
 #'   package is installed, the DOT graph can be plotted by calling `plot` on
@@ -128,7 +170,7 @@
 #'   the derivation will contain every step taken by the search. If `FALSE`,
 #'   only the steps that resulted in an identifiable target are returned.
 #'   Defaults to `FALSE`.
-#'   `empty`: a `logical` value. If `TRUE`, an empty `dosearch` object is
+#' * `empty`: a `logical` value. If `TRUE`, an empty `dosearch` object is
 #'   returned without running the search.
 #' * `formula`: a `logical` value. If `TRUE`, a string representing the
 #'   identifiable query is returned when the target query is identifiable.
@@ -138,16 +180,45 @@
 #'   during the search according to a search heuristic
 #'   (see Tikka et al., 2021, for details). Otherwise, distributions are
 #'   expanded in the order in which they were identified. Defaults to `FALSE`.
-#' * `md_sym`: a single `character` describing the symbol to use for active
-#'   missing data mechanisms. Defaults to `"1"`.
+#' * `improve`: a `logical` value. If `TRUE`, the search is not carried out
+#'   when the target can be shown to be non-identifiable directly from the
+#'   inputs (see 'Details'), and the default rules for DAGs exclude the
+#'   insertion and deletion of observations (rule 1 of do-calculus), which are
+#'   implied by the other rules (see Tikka et al., 2021, for details). The
+#'   observations of proxy variables can still be deleted in missing data
+#'   problems, because the other rules do not apply to proxy variables.
+#'   Defaults to `TRUE`.
+#' * `md_sym`: deprecated and ignored. Previously, a single `character`
+#'   describing the symbol to use for enabled missing data mechanisms.
+#'   The value 1 now always denotes an enabled mechanism and the value 0 a
+#'   disabled mechanism. A warning is issued if this argument is provided.
+#' * `rules`: an `integer` vector of inference rules to use in the search
+#'   instead of the default rules. The valid rules are -13, -11, -9, -8, -7,
+#'   -6, -3, -2, -1 and 1 to 13 for DAGs and -8, -7, -5, -4, -3, -2 and 0 to 8
+#'   for LDAGs. For DAGs, rules 9 to 13 and -13 to -9 are used only for
+#'   missing data problems: rules 9 and -9 assign the values 1 and 0 to
+#'   missing data mechanisms (case-by-general reasoning), rule 10 exchanges
+#'   proxy variables for true variables, rules 11 and -11 combine the
+#'   distributions for both values of a mechanism (case-by-case reasoning),
+#'   and rules 12, 13 and -13 derive the distribution for one value of a
+#'   mechanism from the distribution for the other value and the distribution
+#'   where the mechanism is not assigned a value or is not present
+#'   (general-by-case reasoning). Rules -9, 11, -11, 12, 13 and -13 are not
+#'   among the default rules, but they are added to the rules that are used
+#'   when `case_reasoning = TRUE`.
+#'   Mainly intended for testing and benchmarking, as the search may fail to
+#'   identify an identifiable query if a necessary rule is omitted.
+#'   Defaults to an empty vector, which uses the default rules.
 #' * `time_limit`: a `numeric` value giving a time limit for the search
 #'   (in hours). Defaults to a negative value that disables the time limit.
 #' * `verbose`: a `logical` value. If `TRUE`, diagnostic information is printed
 #'   to  the console during the search. Defaults to `FALSE`.
 #' * `warn`: a `logical` value. If `TRUE`, a warning is issued for possibly
-#'   unintentionally misspecified but syntactically correct input distributions.
-#'   A warning is also raised if both lower-case and upper-case node or
-#'   variable names are used simultaneously in the inputs
+#'   unintentionally misspecified but syntactically correct inputs, e.g., when
+#'   a variable of an input distribution is not present in the graph, in any
+#'   other input distribution or in the target distribution. A warning is
+#'   also raised if both lower-case and upper-case node or variable names are
+#'   used simultaneously in the inputs. Defaults to `TRUE`.
 #'
 #' @export
 #' @param data A `character` string describing the available distributions in
@@ -165,6 +236,12 @@
 #' @param missing_data A `character` string describing the missing data
 #'   mechanisms of the model in the package syntax (for DAGs only).
 #' @param control A `list` of control parameters.
+#' @param case_reasoning A `logical` value. If `TRUE`, the search also uses
+#'   the rules for case-by-general, case-by-case and general-by-case
+#'   reasoning on the values of the missing data mechanisms, i.e., rules -9,
+#'   11, -11, 12, 13 and -13 (see `rules` of `control`). These rules are
+#'   added to the default rules or to the rules given via `control`.
+#'   The default is `FALSE` (for DAGs with missing data mechanisms only).
 #' @return `dosearch` returns an object of class `dosearch` which is a list
 #'   with the following components by default. See the `control` options
 #'   on how to obtain a graphical representation of the derivation or
@@ -173,8 +250,83 @@
 #'   * `identifiable`: a `logical` value that is `TRUE` if the target
 #'     quantity is identifiable and `FALSE` otherwise.
 #'   * `formula`: a `character` string describing the formula for an
-#'     identifiable query or an empty character vector for
-#'     a non-identifiable effect.
+#'     identifiable query in LaTeX syntax or an empty character vector for
+#'     a non-identifiable effect. The formula shows the derivation of the
+#'     target from the input distributions: every distribution in the formula
+#'     is an input distribution or a marginal or conditional distribution of
+#'     an input distribution, where the values assigned to the variables
+#'     during the derivation are shown, and the steps of do-calculus do not
+#'     appear as they do not change the distributions. A marginal or
+#'     conditional distribution is given as such when the distribution that
+#'     is marginalized or conditioned is derived from an input distribution
+#'     by rules that have a single parent distribution, including the rules
+#'     of do-calculus. The same holds for the division of a distribution by
+#'     its marginal or conditional distribution (rules 7, -7, 8 and -8) when
+#'     both are derived from the same input distribution by such rules.
+#'     Case-by-case reasoning over a variable that is assigned a value
+#'     reduces to the case of that value, so it counts as a rule with a
+#'     single parent. Otherwise, the summations and quotients are given
+#'     explicitly.
+#'     A summation applies to every term that follows it in the same
+#'     product, i.e., up to a minus or a plus sign, the end of the enclosing
+#'     expression or the end of the formula. Products are not enclosed in
+#'     parentheses, and differences are enclosed in parentheses only when they
+#'     are terms of products or summations, when they are subtracted or when
+#'     they are cases of case-by-case reasoning (see below). A variable that
+#'     is bound by a summation is primed when a variable of the same name is
+#'     already in scope, i.e., when it is a variable of the target
+#'     distribution, it appears in the formula outside the summations that
+#'     bind it, or another summation over a variable of the same name applies
+#'     at the position of the summation.
+#'     For example, the front-door formula for \eqn{P(y|do(x))} from the
+#'     input \eqn{P(x,y,z)} is given as
+#'     `\sum_{z}p(z|x)\sum_{x'}p(x')p(y|z,x')`.
+#'     Variables bound by nested summations receive additional primes, and a
+#'     superscript of the form `^{(k)}` is used instead when the number of
+#'     primes \eqn{k} would exceed three. In missing data problems, the proxy
+#'     variable `x*` of a variable `x` is written as `x^{\ast}` in the
+#'     formula, and its primes are given in the same superscript, e.g.,
+#'     `x^{\ast\prime}` or `x^{\ast(4)}`. A proxy variable that stands for
+#'     the value of its true variable has the same primes as the true
+#'     variable, and the summations over a true variable and over its proxy
+#'     variable are distinguished in the same way as summations over the same
+#'     variable. A proxy variable that is removed
+#'     from a distribution by deleting an observation is not bound by a
+#'     summation, but it is a variable of its own, which is primed in the
+#'     same way when a variable of the same name is in scope. The formula
+#'     holds for every value of such a variable that is possible given its
+#'     missing data mechanism in the same distribution. When the mechanism
+#'     has the value 0, the variable is missing, so it is determined by the
+#'     mechanism, and it is omitted from the distribution, e.g.,
+#'     `p(y|r_x = 0)` is given instead of `p(y|r_x = 0,x^{\ast})`. The
+#'     variable is kept only when omitting it would change the distribution,
+#'     i.e., when the mechanism is on the left-hand side and the variable is
+#'     not, or when the variable is the only variable on the left-hand side.
+#'     Furthermore,
+#'     `\left[f_0 \vee f_1\right]` denotes the distribution given by `f_0`
+#'     when a missing data mechanism has the value 0 and by `f_1` when it has
+#'     the value 1 (case-by-case reasoning, see `variants`), where a case that
+#'     is a difference is enclosed in parentheses, e.g.,
+#'     `\left[\left(p(y) - p(r_x = 1,y)\right) \vee p(r_x = 1,y)\right]`.
+#'   * `variants`: a named `character` vector of the variants of `formula`
+#'     that is included when the formula is derived by case-by-case
+#'     reasoning, i.e., by rules 11 and -11 on the values of missing data
+#'     mechanisms or by rules 5 and -5 on the values of context variables of
+#'     labeled DAGs. These variables are binary, and the variants give the
+#'     formula for each combination of values of the variables that are
+#'     free in the formula, named by the values, e.g., `"r_x = 0, r_y = 1"`.
+#'     The values are assigned in the variants, so the case-by-case
+#'     reasoning over a variable reduces to the case of its value, and a
+#'     summation over a variable of case-by-case reasoning is written out as
+#'     the sum of its terms for the values 0 and 1, which is enclosed in
+#'     parentheses in the same way as a difference. For example, the formula
+#'     for \eqn{P(y)} from the inputs \eqn{P(y^*,r_y)} and
+#'     \eqn{P(y|r_y = 0)} in the graph `y -> r_y` is
+#'     `\sum_{r_y}\left[p(r_y = 0)p(y|r_y = 0) \vee p(r_y = 1,y^{\ast})\right]`,
+#'     and its variant is `p(r_y = 0)p(y|r_y = 0) + p(r_y = 1,y^{\ast})`. If
+#'     none of the variables is free in the formula, as here, there is a
+#'     single variant with an empty name. The variants are also available via
+#'     [dosearch::get_formula()].
 #'
 #' @references
 #' S. Tikka, A. Hyttinen, J. Karvanen. "Causal Effect Identification from
@@ -193,6 +345,10 @@
 #' K. Mohan, J. Pearl, J. Tian. "Graphical Models for Inference with Missing
 #' Data." In \emph{Proceedings of the 26th International Conference on
 #' Neural Information Processing Systems}, 1277--1285, 2013.
+#'
+#' S. Tikka, A. Hyttinen, J. Karvanen. "Identifying Causal Effects via
+#' Context-Specific Independence Relations." In \emph{Proceedings of the
+#' 33rd Annual Conference on Neural Information Processing Systems}, 2019.
 #'
 #' @examples
 #' # A simple back-door formula
@@ -251,6 +407,22 @@
 #' md <- "r_x : x, r_y : y"
 #' dosearch(data, query, graph, missing_data = md)
 #'
+#' # The value 0 denotes a disabled missing data mechanism. Here y is
+#' # missing not at random, but a follow-up study of the non-respondents
+#' # provides the distribution of y when it is missing in the original data.
+#' # Combining the cases requires case-by-case reasoning.
+#' data <- "
+#'   p(y*,r_y)
+#'   p(y|r_y = 0)
+#' "
+#' dosearch(
+#'   data,
+#'   "p(y)",
+#'   "y -> r_y",
+#'   missing_data = "r_y : y",
+#'   case_reasoning = TRUE
+#' )
+#'
 #' # Graph input using 'igraph' in the 'causaleffect' syntax
 #' if (requireNamespace("igraph", quietly = TRUE)) {
 #'   g_igraph <- igraph::graph_from_literal(
@@ -287,7 +459,7 @@
 #' data3 <- "
 #'   p(z_2,x_2|do(x_1))
 #'   p(z_1|x_2,do(x_1,y))
-#'   p(x_1|w_1,do(x_2))
+#'   p(x_1|w,do(x_2))
 #'   p(y|z_1,z_2,x_1,do(x_2))
 #'   p(w|y,x_1,do(x_2))
 #' "
@@ -355,7 +527,15 @@
 #'   y -> m_x
 #'   z <-> y
 #' "
-#' dosearch(data6, query6, graph6, missing_data = "m_x : x, m_y : y, m_z : z")
+#' # The mechanism m_y is independent of the other variables, so it is not
+#' # present in the graph, which would produce a warning by default
+#' dosearch(
+#'   data6,
+#'   query6,
+#'   graph6,
+#'   missing_data = "m_x : x, m_y : y, m_z : z",
+#'   control = list(warn = FALSE)
+#' )
 #'
 #' # An LDAG
 #' data7 <- "P(X,Y,Z)"
@@ -410,9 +590,13 @@
 #'
 dosearch <- function(data, query, graph, transportability = NULL,
                      selection_bias = NULL, missing_data = NULL,
-                     control = list()) {
+                     control = list(), case_reasoning = FALSE) {
   if (!is.list(control)) {
     stop_("Argument `control` must be a list.")
+  }
+  if (!is.logical(case_reasoning) || length(case_reasoning) != 1L ||
+      is.na(case_reasoning)) {
+    stop_("Argument `case_reasoning` must be either `TRUE` or `FALSE`.")
   }
   if (missing(data)) {
     stop_("Argument `data` is missing.")
@@ -439,7 +623,8 @@ dosearch <- function(data, query, graph, transportability = NULL,
       transportability,
       selection_bias,
       missing_data,
-      control
+      control,
+      case_reasoning
     )
   }
 }
@@ -456,7 +641,7 @@ dosearch <- function(data, query, graph, transportability = NULL,
 #' query <- "p(y|do(x))"
 #' graph <- "
 #'   x -> y
-#'   Z -> x
+#'   z -> x
 #'   z -> y
 #' "
 #' x <- dosearch(data, query, graph)
@@ -483,6 +668,7 @@ summary.dosearch <- function(object, ...) {
   d <- gsub(" ", "", d)
   g <- gsub("\n", "\n\t", trimws(object$call$graph, which = "both"))
   g <- gsub(" ", "", g)
+  g <- gsub("<->", "--", g)
   g <- gsub("->", " -> ", g)
   g <- gsub("--", " <-> ", g)
   structure(
@@ -546,7 +732,7 @@ plot.dosearch <- function(x, ...) {
 #' query <- "p(y|do(x))"
 #' graph <- "
 #'   x -> y
-#'   Z -> x
+#'   z -> x
 #'   z -> y
 #' "
 #' x <- dosearch(data, query, graph)
@@ -564,11 +750,11 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
     ifelse(res$identifiable, "identifiable.", "not identifiable by do-search."),
     "\n"
   )
-  if (identical(res$formula, "")) {
+  if (is.null(res$formula) || identical(res$formula, "")) {
     cat("Formula: NA\n")
   } else {
     trunc_str <- ifelse(
-      nchar(x$formula) > max_chars,
+      nchar(res$formula) > max_chars,
       "... [formula truncated]",
       ""
     )
@@ -599,13 +785,12 @@ print.summary.dosearch <- function(x, max_chars = 300L, ...) {
 #'   default is 300.
 #' @param ... Additional arguments passed to [base::format()].
 #' @return `print` returns `x` invisibly.
-#'   with an additional argument limiting the output length.
 #' @examples
 #' data <- "p(x,y,z)"
 #' query <- "p(y|do(x))"
 #' graph <- "
 #'   x -> z
-#'   Z -> y
+#'   z -> y
 #'   x <-> y
 #' "
 #' x <- dosearch(data, query, graph)
@@ -672,8 +857,14 @@ is_identifiable <- function(x) {
 #' @param run_again If `TRUE`, runs the search again in an attempt to obtain
 #'   the formula, for example if `control$formula` was `FALSE` in the call to
 #'   [dosearch::dosearch()], but the query itself is identifiable.
+#' @param variants If `TRUE`, returns the variants of the formula for the
+#'   values of the variables of case-by-case reasoning instead (see
+#'   `variants` in the value of [dosearch::dosearch()]). If case-by-case
+#'   reasoning was not used, the formula itself is returned.
 #' @return `get_formula` returns a `character` string representing the query
 #'   in terms of the input data or `NULL` if the query is not identifiable.
+#'   If `variants` is `TRUE`, the variants are returned as a named
+#'   `character` vector when they are available.
 #' @examples
 #' data <- "P(x,y,z)"
 #' query <- "P(y|do(x))"
@@ -685,23 +876,36 @@ is_identifiable <- function(x) {
 #' x <- dosearch(data, query, graph, control = list(formula = FALSE))
 #' get_formula(x, run_again = TRUE)
 #'
-get_formula <- function(x, run_again = FALSE) {
+#' # The variants of a formula derived by case-by-case reasoning
+#' x <- dosearch(
+#'   "p(y*,r_y = 1) \n p(y,r_y = 0)",
+#'   "p(y|r_y)",
+#'   "y -> r_y",
+#'   missing_data = "r_y : y",
+#'   case_reasoning = TRUE
+#' )
+#' get_formula(x, variants = TRUE)
+#'
+get_formula <- function(x, run_again = FALSE, variants = FALSE) {
   if (!is_dosearch(x)) {
     stop_("Argument `x` must be an object of class `dosearch`.")
   }
   if (run_again) {
     y <- x$call
     y$control$formula <- TRUE
-    z <- dosearch(
+    x <- dosearch(
       y$data,
       y$query,
       y$graph,
       y$transportability,
       y$selection_bias,
       y$missing_data,
-      y$control
+      y$control,
+      isTRUE(y$case_reasoning)
     )
-    z$formula
+  }
+  if (variants && !is.null(x$variants)) {
+    x$variants
   } else if (!is.null(x$formula)) {
     x$formula
   } else {
@@ -747,7 +951,8 @@ get_derivation <- function(x, run_again = FALSE, draw_all = FALSE) {
       y$transportability,
       y$selection_bias,
       y$missing_data,
-      y$control
+      y$control,
+      isTRUE(y$case_reasoning)
     )
     z$derivation
   } else if (!is.null(x$derivation)) {
@@ -798,7 +1003,8 @@ get_benchmark <- function(x, run_again = FALSE, include_rules = FALSE) {
       y$transportability,
       y$selection_bias,
       y$missing_data,
-      y$control
+      y$control,
+      isTRUE(y$case_reasoning)
     )
     get_benchmark(z, run_again = FALSE)
   } else if (!is.null(x$time)) {

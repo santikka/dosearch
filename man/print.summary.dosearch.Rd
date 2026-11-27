@@ -25,7 +25,7 @@ data <- "p(x,y,z)"
 query <- "p(y|do(x))"
 graph <- "
   x -> y
-  Z -> x
+  z -> x
   z -> y
 "
 x <- dosearch(data, query, graph)

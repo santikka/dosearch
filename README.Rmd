@@ -34,7 +34,7 @@ related to:
 * Missing data (Mohan et al., 2013)
 * Context-specific independence (Corander et al., 2019)
   
-See the package vignette or the references for further information.
+See the package vignettes or the references for further information.
   
 ### Citing the package
 

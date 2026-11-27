@@ -4,6 +4,10 @@
 #' @noRd
 get_derivation_ldag <- function(data, query, graph, control = list()) {
   control <- control_defaults(control)
+  control$rules <- validate_rules(
+    control$rules,
+    c(-8L, -7L, -5L, -4L, -3L, -2L, 0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)
+  )
   cl <- list(
     data = data,
     query = query,
@@ -11,7 +15,8 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
     transportability = NULL,
     selection_bias = NULL,
     missing_data = NULL,
-    control = control
+    control = control,
+    case_reasoning = FALSE
   )
   if (control$empty) {
     return(empty_output(cl))
@@ -31,22 +36,37 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   )
   args <- transform_graph_ldag(args, graph)
   args <- parse_labels(args)
+  args$graph_vars <- args$vars
   args <- parse_query_ldag(args, query)
   args <- parse_data_ldag(args, data)
   args <- validate_data_ldag(args)
   args <- validate_query_ldag(args)
-  args$con_vars <- union(control$con_vars, args$con_vars)
-  check_graph_size(args$n)
+  unknown_con <- setdiff(control$con_vars, args$vars)
+  if (length(unknown_con) > 0L) {
+    stop_(
+      "Unknown context variables in argument `control`: ", cs(unknown_con)
+    )
+  }
+  # Contexts are constructed only once all context variables are known,
+  # because the search relies on the settings of every combination of them
+  args$con_vars <- union(args$con_vars, control$con_vars)
+  args <- parse_contexts(args, args$input_labels)
+  args <- parse_interventions(args, args$input_labels)
+  args$label_map[args$null_context] <- NULL
+  if (control$warn) {
+    warn_unknown_query_vars(args)
+    warn_unknown_input_vars(args)
+  }
   res <- initialize_csisearch(
-    as.numeric(args$nums[args$dir_lhs]),
-    as.numeric(args$nums[args$dir_rhs]),
+    as.integer(args$nums[args$dir_lhs]),
+    as.integer(args$nums[args$dir_rhs]),
     as.character(args$vars),
     args$p_list,
-    args$q_vec,
+    args$q_list,
     args$label_map,
     args$local_csi,
-    to_dec(args$nums[args$con_vars], args$n),
-    to_dec(args$nums[args$intv_vars], args$n),
+    as_set(args$nums[args$con_vars]),
+    as_set(args$nums[args$intv_vars]),
     args$n,
     control$time_limit,
     control$rules,
@@ -64,12 +84,14 @@ get_derivation_ldag <- function(data, query, graph, control = list()) {
   structure(
     res[
       c(
-        TRUE, # always include identifiability result
-        control$formula,
-        control$draw_derivation,
-        control$benchmark,
-        control$benchmark_rules,
-        TRUE # always include the call
+        "identifiable", # always include identifiability result
+        if (control$formula) "formula",
+        # the variants are only included if case-by-case reasoning was used
+        if (control$formula && length(res$variants) > 0L) "variants",
+        if (control$draw_derivation) "derivation",
+        if (control$benchmark) "time",
+        if (control$benchmark_rules) "rule_times",
+        "call" # always include the call
       )
     ],
     class = "dosearch"
@@ -112,9 +134,25 @@ transform_graph_ldag <- function(args, graph) {
     labels <- gsub("\\s+", "", labels)
     labels_split <- strsplit(labels, "[;]")
     labels_split <- lapply(labels_split, strsplit, "[,]")
-    args$targets <- lapply(seq_along(labels_split), function(i) {
-      c("from" = args$dir_lhs[labeled[i]], "to" = args$dir_rhs[labeled[i]])
+    # Edges are read from the labeled lines themselves so that duplicated
+    # lines elsewhere in the graph cannot shift labels to other edges
+    edge_split <- strsplit(trimws(graph_lines[labeled]), "\\s+")
+    edge_keys <- vapply(
+      edge_split,
+      function(x) paste(x[1L], x[3L]),
+      character(1L)
+    )
+    unique_keys <- unique(edge_keys)
+    # Labels given on separate lines for the same edge are combined
+    labels_split <- lapply(unique_keys, function(k) {
+      do.call(c, labels_split[edge_keys == k])
     })
+    args$targets <- lapply(
+      edge_split[match(unique_keys, edge_keys)],
+      function(x) {
+        c("from" = x[1L], "to" = x[3L])
+      }
+    )
   }
   args$labels <- labels_split
   intv <- args$dir_lhs[substr(args$dir_lhs, 1L, 2L) == "I_"]
@@ -138,14 +176,18 @@ transform_graph_ldag <- function(args, graph) {
 
 #' Parse Edge Labels of an LDAG
 #'
+#' Each explicit or inferred label is stored as a `list` with the elements
+#' `zero` and `one` (the sets of vertices assigned to 0 and 1), `from` and `to`
+#' (the endpoints of the edge), `pa` (the set of other parents of `to`) and
+#' `vanishing` (whether the edge is absent in every context).
+#'
 #' @param args A `list` of arguments for `initialize_csisearch`
 #' @noRd
 parse_labels <- function(args) {
-  input_labels <- matrix(0L, sum(lengths(args$labels)), 5L)
+  input_labels <- vector(mode = "list", length = sum(lengths(args$labels)))
   index <- 0L
   args$null_context <- c()
-  args$inferred <- 0L
-  args$inferred_labels <- matrix(0L, 0L, 5L)
+  args$inferred_labels <- list()
   vanishing <- matrix(0L, 0L, 2L)
   # Loop labels
   for (i in seq_along(args$labels)) {
@@ -153,39 +195,48 @@ parse_labels <- function(args) {
     to <- args$targets[[i]]["to"]
     pa <- setdiff(args$parents[[to]], from)
     n_pa <- length(pa)
-    vals <- expand.grid(rep(list(c(0L, 1L)), n_pa))
-    names(vals) <- pa
-    vals$present <- rep(FALSE, nrow(vals))
+    vals <- as.matrix(expand.grid(rep(list(c(0L, 1L)), n_pa)))
+    present <- logical(nrow(vals))
     # Loop individual assignments within label
     for (j in seq_along(args$labels[[i]])) {
       index <- index + 1L
       label_split <- strsplit(args$labels[[i]][[j]], "[=]")
+      if (any(malformed_pairs(label_split))) {
+        stop_(
+          "Invalid label for edge ", from, " -> ", to, ": ",
+          "malformed value assignment."
+        )
+      }
       label_lhs <- vapply(label_split, "[[", character(1L), 1L)
       label_rhs <- vapply(label_split, "[[", character(1L), 2L)
-      validate_label(from, to, pa, label_lhs)
+      validate_label(from, to, pa, label_lhs, label_rhs)
       intv <- substr(label_lhs, 1L, 2L) == "I_"
       args$con_vars <- c(args$con_vars, label_lhs[!intv])
       zero <- which(label_rhs == 0L)
       one <- which(label_rhs == 1L)
-      input_labels[index, 1L] <- to_dec(args$nums[label_lhs[zero]], args$n)
-      input_labels[index, 2L] <- to_dec(args$nums[label_lhs[one]], args$n)
-      input_labels[index, 3L] <- args$nums[from]
-      input_labels[index, 4L] <- args$nums[to]
-      input_labels[index, 5L] <- to_dec(args$nums[pa], args$n)
-      vals <- label_values(vals, zero, one, pa, label_lhs)
+      input_labels[[index]] <- new_label(
+        args, label_lhs[zero], label_lhs[one], from, to, pa
+      )
+      present <- present | label_values(vals, zero, one, pa, label_lhs)
     }
-    if (all(vals$present)) {
+    if (all(present)) {
       vanishing <- rbind(vanishing, c(args$nums[from], args$nums[to]))
     }
-    args <- infer_labels(args, vals, from, to, pa)
+    args <- infer_labels(args, vals, present, from, to, pa)
   }
-  input_labels <- rbind(input_labels, args$inferred_labels)
-  input_labels <- input_labels[!duplicated(input_labels), , drop = FALSE]
+  input_labels <- c(input_labels, args$inferred_labels)
+  input_labels <- input_labels[!duplicated(input_labels)]
+  # Whether an edge vanishes depends only on the edge, not on the context
+  vanishing_keys <- paste(vanishing[, 1L], vanishing[, 2L])
+  for (k in seq_along(input_labels)) {
+    input_labels[[k]]$vanishing <- paste(
+      input_labels[[k]]$from,
+      input_labels[[k]]$to
+    ) %in% vanishing_keys
+  }
   args$con_vars <- unique(args$con_vars)
+  args$input_labels <- input_labels
   args$label_map <- list()
-  args <- parse_contexts(args, input_labels, vanishing)
-  args <- parse_interventions(args, input_labels, vanishing)
-  args$label_map[args$null_context] <- NULL
   if (nrow(vanishing) > 0L) {
     edge_mat <- cbind(args$nums[args$dir_lhs], args$nums[args$dir_rhs])
     present <- !duplicated(
@@ -198,6 +249,25 @@ parse_labels <- function(args) {
   args
 }
 
+#' Create an Edge Label
+#'
+#' @param args A `list` of arguments for `initialize_csisearch`
+#' @param zero A `character` vector of variables assigned to 0.
+#' @param one A `character` vector of variables assigned to 1.
+#' @param from A `character` string, vertex name of the edge's origin.
+#' @param to A `character` string, vertex name of the edge's endpoint.
+#' @param pa A `character` vector, vertex names of the other parents of `to`.
+#' @noRd
+new_label <- function(args, zero, one, from, to, pa) {
+  list(
+    zero = as_set(args$nums[zero]),
+    one = as_set(args$nums[one]),
+    from = as.integer(args$nums[from]),
+    to = as.integer(args$nums[to]),
+    pa = as_set(args$nums[pa])
+  )
+}
+
 #' Validate an Edge Label of an LDAG
 #'
 #' @param from A `character` string, vertex name of the edge's origin.
@@ -205,8 +275,10 @@ parse_labels <- function(args) {
 #' @param pa A `character` vector, vertex names of the parents of `to`.
 #' @param label_lhs A `character` vector, variable names bound by the edge
 #'   label value assignments.
+#' @param label_rhs A `character` vector, the values assigned to the
+#'   variables in `label_lhs`.
 #' @noRd
-validate_label <- function(from, to, pa, label_lhs) {
+validate_label <- function(from, to, pa, label_lhs, label_rhs) {
   if (from %in% label_lhs) {
     stop_(
       "Invalid label for edge ", from, " -> ", to, ": ",
@@ -231,107 +303,105 @@ validate_label <- function(from, to, pa, label_lhs) {
       "only other parents of ", to, " may be assigned."
     )
   }
+  if (any(!label_rhs %in% c("0", "1"))) {
+    stop_(
+      "Invalid label for edge ", from, " -> ", to, ": ",
+      "assigned values must be either 0 or 1."
+    )
+  }
 }
 
 #' Get Value Combinations that Appear in an Edge Label
 #'
 #' @inheritParams validate_label
-#' @param vals A `data.frame` of possible value assignments of the parents.
+#' @param vals An `integer` matrix of all possible value assignments of the
+#'   parents (one assignment per row).
 #' @param zero An `integer` vector denoting the indices of assignment to 0.
 #' @param one An `integer` vector denoting the indices of assignment to 1.
+#' @return A `logical` vector indicating the rows of `vals` that are
+#'   consistent with the label.
 #' @noRd
 label_values <- function(vals, zero, one, pa, label_lhs) {
-  zl <- length(zero)
-  ol <- length(one)
-  if (zl == 0L) {
-    ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
-    if (nrow(ones) > 0L) {
-      vals[
-        which(apply(ones, 1L, function(x) all(x == 1))),
-        "present"
-      ] <- TRUE
-    }
-  } else if (ol == 0L) {
-    zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
-    if (nrow(zeros) > 0L) {
-      vals[
-        which(apply(zeros, 1, function(x) all(x == 0L))),
-        "present"
-      ] <- TRUE
-    }
-  } else {
-    zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
-    ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
-    ind_z <- which(apply(zeros, 1L, function(x) all(x == 0L)))
-    ind_o <- which(apply(ones, 1L, function(x) all(x == 1L)))
-    ind_zo <- intersect(ind_z, ind_o)
-    if (length(ind_zo) > 0L) {
-      vals[ind_zo, "present"] <- TRUE
-    }
-  }
-  vals
+  zeros <- vals[, which(pa %in% label_lhs[zero]), drop = FALSE]
+  ones <- vals[, which(pa %in% label_lhs[one]), drop = FALSE]
+  rowSums(zeros != 0L) == 0L & rowSums(ones != 1L) == 0L
 }
 
 #' Infer Edge Labels That Were Not Explicitly Provided
 #'
+#' A label is inferred for an assignment to a proper subset of the parents
+#' if every full assignment of the parents consistent with it is present.
+#'
 #' @inheritParams validate_label
 #' @inheritParams label_values
 #' @param args A `list` of arguments for `initialize_csisearch`
+#' @param present A `logical` vector indicating the rows of `vals` that are
+#'   present in the labels of the edge.
 #' @noRd
-infer_labels <- function(args, vals, from, to, pa) {
-  n_pa <- length(pa)
+infer_labels <- function(args, vals, present, from, to, pa) {
   n_sets <- nrow(vals) - 1L
   for (j in seq_min2(n_sets)) {
-    sub_pa <- pa[which(vals[j, seq_len(n_pa)] == 1L)]
-    sub_ind <- which(pa %in% sub_pa)
-    sub_vals <- vals[, c(sub_ind, n_pa + 1L)]
-    assignments <- expand.grid(rep(list(c(0L, 1L)), length(sub_pa)))
-    names(assignments) <- sub_pa
-    for (k in seq_len(nrow(assignments))) {
-      zero <- sub_pa[which(assignments[k, ] == 0L)]
-      one <- sub_pa[which(assignments[k, ] == 1L)]
-      assign_ind <- apply(
-        sub_vals[, -ncol(sub_vals), drop = FALSE],
-        1L,
-        function(x) {
-          identical(
-            as.integer(x),
-            as.integer(assignments[k, ])
-          )
-        }
+    sub_ind <- which(vals[j, ] == 1L)
+    sub_pa <- pa[sub_ind]
+    n_sub <- length(sub_ind)
+    pow <- 2L^(seq_len(n_sub) - 1L)
+    # Encode the assignment of each row to the subset as an integer
+    # in the same order as expand.grid
+    codes <- drop(vals[, sub_ind, drop = FALSE] %*% pow)
+    complete <- tapply(
+      present,
+      factor(codes, levels = seq.int(0L, 2L^n_sub - 1L)),
+      all
+    )
+    for (k in which(complete)) {
+      bits <- ((k - 1L) %/% pow) %% 2L
+      args$inferred_labels[[length(args$inferred_labels) + 1L]] <- new_label(
+        args, sub_pa[bits == 0L], sub_pa[bits == 1L], from, to, pa
       )
-      if (any(assign_ind) && all(sub_vals[assign_ind, "present"])) {
-        args$inferred <- args$inferred + 1L
-        args$inferred_labels <- rbind(
-          args$inferred_labels,
-          c(
-            to_dec(args$nums[zero], args$n),
-            to_dec(args$nums[one], args$n),
-            args$nums[from],
-            args$nums[to],
-            to_dec(args$nums[pa], args$n)
-          )
-        )
-      }
     }
   }
   args
 }
 
+#' Find the Edges of the Labels That Hold in a Context
+#'
+#' @param input_labels A `list` of explicit and inferred labels, see
+#'   `parse_labels()`.
+#' @param zero An `integer` vector of vertices assigned to 0 in the context.
+#' @param one An `integer` vector of vertices assigned to 1 in the context.
+#' @return A `logical` vector indicating the labels whose assignments are
+#'   implied by the context and whose edge does not vanish.
+#' @noRd
+labels_in_context <- function(input_labels, zero, one) {
+  vapply(
+    input_labels,
+    function(x) {
+      !x$vanishing && all(x$zero %in% zero) && all(x$one %in% one)
+    },
+    logical(1L)
+  )
+}
+
+#' Collect the Unique Endpoints of the Given Labels
+#'
+#' @inheritParams labels_in_context
+#' @param active A `logical` vector indicating the labels to include.
+#' @noRd
+label_endpoints <- function(input_labels, active) {
+  endpoints <- cbind(
+    vapply(input_labels[active], "[[", integer(1L), "from"),
+    vapply(input_labels[active], "[[", integer(1L), "to")
+  )
+  unique(endpoints)
+}
+
 #' Parse Context Implied by the Edge Labels
 #'
 #' @param args A `list` of arguments for `initialize_csisearch`
-#' @param input_labels A `matrix` with 5 columns that holds information on
-#'   the explicit and implied labels of the graph (one label per row).
-#'   The columns are:
-#'   1. Set of variables assigned to 0.
-#'   2. Set of variables assigned to 1.
-#'   3. The origin of the edge.
-#'   4. The endpoint of the edge.
-#'   5. The (other) parents of the edge endpoint.
-#' @param vanishing A `matrix` denoting edges that do not exist in any context
+#' @param input_labels A `list` of explicit and inferred labels, see
+#'   `parse_labels()`.
 #' @noRd
-parse_contexts <- function(args, input_labels, vanishing) {
+parse_contexts <- function(args, input_labels) {
   all_contexts <- expand.grid(rep(list(c(0L, 1L)), length(args$con_vars)))
   args$n_con <- nrow(all_contexts)
   args$index_csi <- 0L
@@ -339,7 +409,7 @@ parse_contexts <- function(args, input_labels, vanishing) {
     sub_vars <- args$con_vars[which(all_contexts[i, ] == 1)]
     con_vals <- expand.grid(rep(list(c(0L, 1L)), length(sub_vars)))
     args$label_map[[i - 1L]] <- list(
-      vars = to_dec(args$nums[sub_vars], args$n),
+      vars = as_set(args$nums[sub_vars]),
       contexts = vector(mode = "list", length = nrow(con_vals))
     )
     equiv_ind <- 0L
@@ -347,11 +417,11 @@ parse_contexts <- function(args, input_labels, vanishing) {
     for (j in seq_len(nrow(con_vals))) {
       zero <- sub_vars[which(con_vals[j, ] == 0L)]
       one <- sub_vars[which(con_vals[j, ] == 1L)]
-      z_set <- to_dec(args$nums[zero], args$n)
-      o_set <- to_dec(args$nums[one], args$n)
+      z_set <- as_set(args$nums[zero])
+      o_set <- as_set(args$nums[one])
       args$label_map[[i - 1L]][["contexts"]][[j]]$zero <- z_set
       args$label_map[[i - 1L]][["contexts"]][[j]]$one <- o_set
-      args <- parse_local_csi(args, z_set, o_set, input_labels, vanishing)
+      args <- parse_local_csi(args, z_set, o_set, input_labels)
       args$label_map[[i - 1L]][["contexts"]][[j]]$from <- args$endpoints[, 1L]
       args$label_map[[i - 1L]][["contexts"]][[j]]$to <- args$endpoints[, 2L]
       pos <- Position(
@@ -387,38 +457,28 @@ parse_contexts <- function(args, input_labels, vanishing) {
 #' Parse a Local Context-Specific (Conditional) Independence
 #'
 #' @inheritParams parse_contexts
-#' @param z_set An `integer` representing the set of variables assigned to 0
+#' @param z_set An `integer` vector of the vertices assigned to 0
 #'   in the current context
-#' @param o_set An `integer` representing the set of variables assigned to 1
+#' @param o_set An `integer` vector of the vertices assigned to 1
 #'   in the current context.
 #' @noRd
-parse_local_csi <- function(args, z_set, o_set, input_labels, vanishing) {
-  args$endpoints <- matrix(0L, 0L, 2L)
-  for (k in seq_len(nrow(input_labels))) {
-    z_inp <- input_labels[k, 1L]
-    o_inp <- input_labels[k, 2L]
-    if ((bitwAnd(z_set, z_inp) == z_inp && bitwAnd(o_set, o_inp) == o_inp)) {
-      csi_v <- apply(vanishing, 1L, function(x) {
-        isTRUE(all.equal(x, input_labels[k, 3L:4L]))
-      })
-      if (!any(csi_v)) {
-        args$endpoints <- rbind(args$endpoints, input_labels[k, 3L:4L])
-        pa <- input_labels[k, 5L]
-        lab <- bitwOr(z_set, o_set)
-        if (pa == lab) {
-          args$index_csi <- args$index_csi + 1L
-          args$local_csi[[args$index_csi]] <- list(
-            x = to_dec(input_labels[k, 3L], args$n),
-            y = to_dec(input_labels[k, 4L], args$n),
-            z = pa,
-            zero = z_set,
-            one = o_set
-          )
-        }
-      }
+parse_local_csi <- function(args, z_set, o_set, input_labels) {
+  active <- labels_in_context(input_labels, z_set, o_set)
+  lab <- union(z_set, o_set)
+  for (k in which(active)) {
+    pa <- input_labels[[k]]$pa
+    if (length(pa) == length(lab) && all(pa %in% lab)) {
+      args$index_csi <- args$index_csi + 1L
+      args$local_csi[[args$index_csi]] <- list(
+        x = input_labels[[k]]$from,
+        y = input_labels[[k]]$to,
+        z = pa,
+        zero = z_set,
+        one = o_set
+      )
     }
   }
-  args$endpoints <- unique(args$endpoints)
+  args$endpoints <- label_endpoints(input_labels, active)
   args
 }
 
@@ -426,7 +486,7 @@ parse_local_csi <- function(args, z_set, o_set, input_labels, vanishing) {
 #'
 #' @inheritParams parse_contexts
 #' @noRd
-parse_interventions <- function(args, input_labels, vanishing) {
+parse_interventions <- function(args, input_labels) {
   all_interventions <- expand.grid(
     rep(list(c(0L, 1L)), length(args$intv_vars))
   )
@@ -434,25 +494,14 @@ parse_interventions <- function(args, input_labels, vanishing) {
   for (i in seq_min2(n_intv)) {
     index <- max(args$n_con - 1L, 0L) + i - 1L
     sub_vars <- args$intv_vars[which(all_interventions[i, ] == 1L)]
-    o <- to_dec(args$nums[sub_vars], args$n)
+    o <- as_set(args$nums[sub_vars])
     args$label_map[[index]] <- list(
       vars = o,
-      contexts = list(list(zero = 0L, one = o))
+      contexts = list(list(zero = integer(0L), one = o))
     )
-    endpoints <- matrix(0L, 0L, 2L)
-    for (k in seq_len(nrow(input_labels))) {
-      z_inp <- input_labels[k, 1L]
-      o_inp <- input_labels[k, 2L]
-      if (z_inp == 0 && bitwAnd(o, o_inp) == o_inp) {
-        csi_v <- apply(vanishing, 1L, function(x) {
-          isTRUE(all.equal(x, input_labels[k, 3L:4L]))
-        })
-        if (!any(csi_v)) {
-          endpoints <- rbind(endpoints, input_labels[k, 3L:4L])
-        }
-      }
-    }
-    endpoints <- unique(endpoints)
+    # Only labels without assignments to zero hold under interventions
+    active <- labels_in_context(input_labels, integer(0L), o)
+    endpoints <- label_endpoints(input_labels, active)
     args$label_map[[index]][["contexts"]][[1L]]$from <- endpoints[, 1L]
     args$label_map[[index]][["contexts"]][[1L]]$to <- endpoints[, 2L]
     args$label_map[[index]][["contexts"]][[1L]]$equivalence <- 1L
@@ -473,38 +522,40 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
   zero <- character(0L)
   one <- character(0L)
   d_parsed <- gsub("\\s+", "", d)
-  d_parsed <- gsub("do", "$", d_parsed)
+  d_parsed <- gsub("([|,])do\\(", "\\1$(", d_parsed)
   d_split <- match_distribution_ldag(d_parsed)
   if (any(is.na(d_split[[1L]]))) {
-    stop_(
-      stop_("Unable to parse ", type, ": ", d)
-    )
+    stop_("Unable to parse ", type, ": ", d)
   }
   d_null <- vapply(d_split, is.null, logical(1L))
   for (j in which(!d_null)) {
-    dup <- duplicated(d_split[[j]])
-    if (any(dup)) {
-      stop_(
-        "Invalid ", type, ": ", d, ", ",
-        "duplicated variables ", d_split[[j]][dup], "."
-      )
-    }
     equals <- grep("=", d_split[[j]], value = FALSE)
     if (length(equals) > 0L) {
       eq_split <- strsplit(d_split[[j]][equals], "[=]")
+      if (any(malformed_pairs(eq_split))) {
+        stop_(
+          "Invalid value assignment in ", type, ": ", d, "."
+        )
+      }
       eq_lhs <- vapply(eq_split, "[[", character(1L), 1L)
       eq_lhs <- gsub("\\s+", "", eq_lhs)
       eq_rhs <- vapply(eq_split, "[[", character(1L), 2L)
       eq_rhs <- gsub("\\s+", "", eq_rhs)
-      uniq_rhs <- unique(eq_rhs)
-      if (!(uniq_rhs[1L] %in% 0L:1L)) {
+      if (any(!eq_rhs %in% c("0", "1"))) {
         stop_(
           "Invalid value assignment in ", type, ": ", d, "."
         )
       }
       d_split[[j]][equals] <- eq_lhs
-      zero <- c(zero, eq_lhs[eq_rhs == 0L])
-      one <- c(one, eq_lhs[eq_rhs == 1L])
+      zero <- c(zero, eq_lhs[eq_rhs == "0"])
+      one <- c(one, eq_lhs[eq_rhs == "1"])
+    }
+    dup <- duplicated(d_split[[j]])
+    if (any(dup)) {
+      stop_(
+        "Invalid ", type, ": ", d, ", ",
+        "duplicated variables ", cs(unique(d_split[[j]][dup])), "."
+      )
     }
   }
   d1_new <- d_split[[1L]][which(!(d_split[[1L]] %in% args$vars))]
@@ -519,8 +570,11 @@ parse_distribution_ldag <- function(args, d, type, out, i) {
     d
   )
   if (i > 0L) {
+    args$var_pool <- union(args$var_pool, unlist(d_split))
+    args$input_vars[[i]] <- unique(unlist(d_split))
     args[[out]][[i]] <- d_process
   } else {
+    args$query_vars <- unique(unlist(d_split))
     args[[out]] <- d_process
   }
   args
@@ -545,6 +599,7 @@ parse_data_ldag <- function(args, data) {
   data_split <- gsub("\\s+", "", data_split)
   data_split <- data_split[which(nzchar(data_split))]
   args$p_process <- vector(mode = "list", length = length(data_split))
+  args$input_vars <- vector(mode = "list", length = length(data_split))
   for (i in seq_along(data_split)) {
     args <- parse_distribution_ldag(
       args,
@@ -559,16 +614,31 @@ parse_data_ldag <- function(args, data) {
 
 #' Check the Validity of a Distribution
 #'
-#' @param args A `list` of arguments for `initialize_dosearch`.
-#' @param d An `integer` vector of length 4 denoting the distribution.
+#' @param args A `list` of arguments for `initialize_csisearch`.
+#' @param msg A `character` string to prefix error messages with.
+#' @param d A `list` of four sets of vertex indices denoting the distribution.
+#' @param d_str A `character` string representing the distribution.
 #' @noRd
 validate_distribution_ldag <- function(args, msg, d, d_str) {
-  if (bitwAnd(d[1L], d[2L]) > 0L) {
+  if (any(d[[1L]] %in% d[[2L]])) {
     stop_(
-      "Invalid input distribution ", d_str, ": ",
+      msg, d_str, ": ",
       "same variable on the left and right-hand side."
     )
   }
+}
+
+#' Convert a Parsed Distribution into Sets of Vertex Indices
+#'
+#' @param p A `list` of parsed distribution components.
+#' @noRd
+distribution_sets_ldag <- function(p) {
+  list(
+    as_set(p[[1L]]),
+    as_set(p[[2L]]),
+    as_set(p[[3L]]),
+    as_set(p[[4L]])
+  )
 }
 
 #' Check the Validity of Input Distributions
@@ -576,14 +646,10 @@ validate_distribution_ldag <- function(args, msg, d, d_str) {
 #' @param args A `list` of arguments for `initialize_csisearch`.
 #' @noRd
 validate_data_ldag <- function(args) {
+  args$p_list <- vector(mode = "list", length = length(args$p_process))
   for (i in seq_along(args$p_process)) {
     p <- args$p_process[[i]]
-    args$p_list[[i]] <- c(
-      to_dec(p[[1L]], args$n),
-      to_dec(p[[2L]], args$n),
-      to_dec(p[[3L]], args$n),
-      to_dec(p[[4L]], args$n)
-    )
+    args$p_list[[i]] <- distribution_sets_ldag(p)
     validate_distribution_ldag(
       args,
       "Invalid input distribution ",
@@ -600,16 +666,11 @@ validate_data_ldag <- function(args) {
 #' @noRd
 validate_query_ldag <- function(args) {
   q <- args$q_process
-  args$q_vec <- c(
-    to_dec(q[[1L]], args$n),
-    to_dec(q[[2L]], args$n),
-    to_dec(q[[3L]], args$n),
-    to_dec(q[[4L]], args$n)
-  )
+  args$q_list <- distribution_sets_ldag(q)
   validate_distribution_ldag(
     args,
     "Invalid query ",
-    args$q_vec,
+    args$q_list,
     q[[5L]]
   )
   args

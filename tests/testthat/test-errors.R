@@ -38,6 +38,12 @@ test_that("invalid input types fail", {
     dosearch("p(x)", "p(y)", "x -> y", control = 0L),
     "Argument `control` must be a list."
   )
+  for (cr in list(NA, "TRUE", 1L, c(TRUE, FALSE), logical(0L))) {
+    expect_error(
+      dosearch("p(x)", "p(y)", "x -> y", case_reasoning = cr),
+      "Argument `case_reasoning` must be either `TRUE` or `FALSE`\\."
+    )
+  }
   specs <- c("transportability", "selection_bias", "missing_data")
   args_init <- list(data = "p(x)", query = "p(y)", graph = "x -> y")
   for (spec in specs) {
@@ -157,21 +163,37 @@ test_that("multiple graphs fail", {
   )
 })
 
-test_that("too large a graph fails", {
-  data <- "p(x)"
-  query <- "p(y)"
-  graph <- paste0(
-    apply(
-      cbind(letters[seq_len(16L)], " -> ", letters[1L + seq_len(16L)]),
-      1L,
-      paste0,
-      collapse = ""
+test_that("special nodes cannot be missing data variables", {
+  graph <- "
+    x -> y
+    r_x -> y
+    s -> x
+  "
+  expect_error(
+    dosearch(
+      "p(x*,r_x,y)",
+      "p(y|do(x))",
+      graph,
+      transportability = "r_x",
+      missing_data = "r_x : x"
     ),
-    collapse = "\n"
+    paste0(
+      "Transportability nodes r_x cannot be variables with missing data, ",
+      "missing data mechanisms or proxies"
+    )
   )
   expect_error(
-    dosearch(data, query, graph),
-    "The inputs imply a graph with more than 30 nodes"
+    dosearch(
+      "p(x*,r_x,y)",
+      "p(y|do(x))",
+      graph,
+      selection_bias = "x*",
+      missing_data = "r_x : x"
+    ),
+    paste0(
+      "Selection bias nodes x\\* cannot be variables with missing data, ",
+      "missing data mechanisms or proxies"
+    )
   )
 })
 
@@ -292,11 +314,15 @@ test_that("syntactically correct but semantically incorrect inputs fail", {
   )
   expect_error(
     dosearch("p(x,r_x=2,r_y=1)", "p(y)", "x -> r_x", missing_data = md),
-    "multiple symbols used for missing data mechanisms"
+    "the value of a missing data mechanism must be either 0 or 1"
   )
   expect_error(
-    dosearch("p(x,r_x=2)", "p(y)", "x -> r_x", missing_data = md),
-    "invalid symbol used for a missing data mechanism"
+    dosearch("p(x,r_x=a)", "p(y)", "x -> r_x", missing_data = md),
+    "the value of a missing data mechanism must be either 0 or 1"
+  )
+  expect_error(
+    dosearch("p(x)", "p(y|r_y=2)", "x -> r_x", missing_data = md),
+    "the value of a missing data mechanism must be either 0 or 1"
   )
   expect_error(
     dosearch("p(x,x*)", "p(y)", "x -> r_x", missing_data = md),
@@ -316,6 +342,10 @@ test_that("syntactically correct but semantically incorrect inputs fail", {
   )
   expect_error(
     dosearch("p(x = 1)", "p(y)", "x -> r_x", missing_data = md),
+    "value assignment of a non-missing data mechanism"
+  )
+  expect_error(
+    dosearch("p(x = 0)", "p(y)", "x -> r_x", missing_data = md),
     "value assignment of a non-missing data mechanism"
   )
   expect_error(
@@ -396,5 +426,207 @@ test_that("non-DAG dagitty input fails", {
   expect_error(
     dosearch("p(x)", "p(y)", g_dagitty),
     "Attempting to use `dagitty`, but the graph type is not `dag`"
+  )
+})
+
+test_that("variables both conditioned on and intervened on fail", {
+  err <- "variables cannot be both conditioned on and intervened on: x"
+  expect_error(
+    dosearch("p(y|x,do(x))", "p(y)", "x -> y"),
+    err
+  )
+  expect_error(
+    dosearch("p(x,y)", "p(y|do(x),x)", "x -> y"),
+    err
+  )
+  expect_error(
+    dosearch(
+      list(c(y = 0, x = 1, z = 2)),
+      "p(y)",
+      "x -> y",
+      control = list(warn = FALSE)
+    ),
+    NA
+  )
+})
+
+test_that("value assignments without missing data mechanisms fail", {
+  expect_error(
+    dosearch("p(y|do(x),z=0)", "p(y)", "x -> y\nz -> y"),
+    "value assignments are only supported for missing data mechanisms"
+  )
+})
+
+test_that("malformed value assignments fail", {
+  md <- "r_x : x"
+  expect_error(
+    dosearch("p(x*,r_x=)", "p(x)", "x -> y", missing_data = md),
+    "malformed value assignment"
+  )
+  expect_error(
+    dosearch("p(x*,r_x,r_x=1)", "p(x)", "x -> y", missing_data = md),
+    "duplicated variables r_x"
+  )
+  graph <- "x -> y : z = 1\nz -> y"
+  expect_error(
+    dosearch("p(x,y,z=)", "p(y)", graph),
+    "Invalid value assignment"
+  )
+  expect_error(
+    dosearch("p(y|x=1,z=2)", "p(y)", graph),
+    "Invalid value assignment"
+  )
+  expect_error(
+    dosearch("p(y|z=0,z=1)", "p(y)", graph),
+    "duplicated variables z"
+  )
+})
+
+test_that("invalid edge label values fail", {
+  expect_error(
+    dosearch("p(x,y,z)", "p(y)", "x -> y : z = 2\nz -> y"),
+    "assigned values must be either 0 or 1"
+  )
+  expect_error(
+    dosearch("p(x,y,z)", "p(y)", "x -> y : z\nz -> y"),
+    "malformed value assignment"
+  )
+})
+
+test_that("invalid missing data mechanisms fail", {
+  data <- "p(x*,y*,r_x,r_y)"
+  query <- "p(x)"
+  graph <- "x -> y"
+  expect_error(
+    dosearch(data, query, graph, missing_data = "r_x : x : y"),
+    "Malformed missing data mechanisms: r_x:x:y"
+  )
+  expect_error(
+    dosearch(data, query, graph, missing_data = "r_x : "),
+    "Malformed missing data mechanisms: r_x:"
+  )
+  expect_error(
+    dosearch(data, query, graph, missing_data = "r : x, r : y"),
+    "A missing data mechanism cannot be shared by multiple variables: r"
+  )
+  expect_error(
+    dosearch(data, query, graph, missing_data = "r_x : x, r_y : x"),
+    "Each variable can have only one missing data mechanism: x"
+  )
+  expect_error(
+    dosearch(data, query, graph, missing_data = "r_x : x, x : y"),
+    paste0(
+      "A variable cannot be both a missing data mechanism ",
+      "and a variable with missing data: x"
+    )
+  )
+})
+
+test_that("ambiguous edge types fail", {
+  for (e in c("-->", "->>", "<--", "<->>")) {
+    expect_error(
+      dosearch("p(x,y)", "p(y)", paste("x", e, "y")),
+      "Invalid graph, unknown edge types found"
+    )
+  }
+})
+
+test_that("invalid rules fail", {
+  expect_error(
+    dosearch(
+      "p(x,y)",
+      "p(y|do(x))",
+      "x -> y",
+      control = list(rules = c(4, 14))
+    ),
+    "Invalid rules in argument `control`: 14"
+  )
+  expect_error(
+    dosearch(
+      "p(x,y)",
+      "p(y|do(x))",
+      "x -> y",
+      control = list(rules = c(-10, -12))
+    ),
+    "Invalid rules in argument `control`: -10, -12"
+  )
+  expect_error(
+    dosearch("p(x,y)", "p(y|do(x))", "x -> y", control = list(rules = 0)),
+    "Invalid rules in argument `control`: 0"
+  )
+  expect_error(
+    dosearch(
+      "p(x,y,z)",
+      "p(y)",
+      "x -> y : z = 1\nz -> y",
+      control = list(rules = -6)
+    ),
+    "Invalid rules in argument `control`: -6"
+  )
+})
+
+test_that("unknown context variables fail", {
+  expect_error(
+    dosearch(
+      "p(x,y,z)",
+      "p(y)",
+      "x -> y : z = 1\nz -> y",
+      control = list(con_vars = "w")
+    ),
+    "Unknown context variables in argument `control`: w"
+  )
+})
+
+test_that("missing data symbol is deprecated", {
+  dep <- "Argument `md_sym` of `control` is deprecated and will be ignored"
+  expect_warning(
+    out <- dosearch(
+      "p(x*,r_x)",
+      "p(x*,r_x=1)",
+      "x -> r_x",
+      missing_data = "r_x : x",
+      control = list(md_sym = "a")
+    ),
+    dep
+  )
+  expect_true(out$identifiable)
+  expect_identical(out$formula, "p(r_x = 1,x^{\\ast})")
+  expect_null(out$call$control$md_sym)
+  expect_warning(
+    dosearch(
+      "p(x*,r_x)",
+      "p(x*)",
+      "x -> r_x",
+      missing_data = "r_x : x",
+      control = list(md_sym = "1", warn = FALSE)
+    ),
+    dep
+  )
+  expect_error(
+    suppressWarnings(
+      dosearch(
+        "p(x*,r_x=a)",
+        "p(x)",
+        "x -> y",
+        missing_data = "r_x : x",
+        control = list(md_sym = "a")
+      )
+    ),
+    "the value of a missing data mechanism must be either 0 or 1"
+  )
+})
+
+test_that("all unknown control arguments are listed", {
+  expect_error(
+    dosearch("p(x)", "p(y)", "x -> y", control = list(a = 1, b = 2)),
+    "Unknown control arguments: a, b"
+  )
+})
+
+test_that("invalid LDAG queries are reported as queries", {
+  expect_error(
+    dosearch("p(x,y)", "p(y|y)", "x -> y : z = 1\nz -> y"),
+    "Invalid query p(y|y): same variable",
+    fixed = TRUE
   )
 })
